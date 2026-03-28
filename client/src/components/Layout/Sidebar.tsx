@@ -21,7 +21,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
       <div className="sidebar-header">
         <div className="sidebar-logo" style={{ background: 'transparent', padding: 0 }}>
-          <img src="/logo.jpeg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          <img src="/icon.png" alt="PMS Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
         {!collapsed && (
           <div className="sidebar-brand">

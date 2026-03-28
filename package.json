@@ -4,12 +4,13 @@
   "description": "PMS Application",
   "main": "electron/dist/main.js",
   "scripts": {
+    "build:server": "cd server && npm run build",
     "build:electron": "tsup electron/main.ts electron/preload.ts --out-dir electron/dist --format cjs --external electron",
-    "start": "npm run build:electron && electron .",
-    "pack": "npm run build:electron && electron-builder --dir",
-    "dist": "npm run build:electron && electron-builder",
-    "build:win": "npm run build:electron && electron-builder --win --x64",
-    "build:mac": "npm run build:electron && electron-builder --mac"
+    "start": "npm run build:server && npm run build:electron && electron .",
+    "pack": "npm run build:server && npm run build:electron && electron-builder --dir",
+    "dist": "npm run build:server && npm run build:electron && electron-builder",
+    "build:win": "npm run build:server && npm run build:electron && electron-builder --win --x64",
+    "build:mac": "npm run build:server && npm run build:electron && electron-builder --mac"
   },
   "keywords": [],
   "author": "",
@@ -26,18 +27,21 @@
   "build": {
     "appId": "com.payroll.system",
     "productName": "PMS Application",
+    "icon": "client/public/icon.png",
     "mac": {
       "target": [
         "dmg"
       ],
-      "identity": null
+      "identity": null,
+      "icon": "client/public/icon.png"
     },
     "win": {
       "target": [
         "nsis",
         "portable",
         "zip"
-      ]
+      ],
+      "icon": "client/public/icon.png"
     },
     "nsis": {
       "oneClick": false,
@@ -45,20 +49,22 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "PMS Application",
-      "installerIcon": "build/icon.png",
-      "uninstallerIcon": "build/icon.png"
+      "installerIcon": "client/public/icon.png",
+      "uninstallerIcon": "client/public/icon.png"
     },
     "linux": {
       "target": [
         "AppImage"
-      ]
+      ],
+      "icon": "client/public/icon.png"
     },
     "files": [
       "electron/dist/**/*",
       "server/dist/**/*",
       "server/package.json",
       "server/node_modules/**/*",
-      "client/dist/**/*"
+      "client/dist/**/*",
+      "client/public/icon.png"
     ]
   }
 }

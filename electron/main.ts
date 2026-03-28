@@ -14,7 +14,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    icon: path.join(__dirname, '../../build/icon.png'),
+    icon: path.join(__dirname, '../../client/public/icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -49,7 +49,7 @@ function createWindow() {
 app.whenReady().then(() => {
   // Set MacOS Dock Icon natively
   if (process.platform === 'darwin') {
-    app.dock.setIcon(path.join(__dirname, '../../build/icon.png'));
+    app.dock.setIcon(path.join(__dirname, '../../client/public/icon.png'));
   }
 
   // Fork the compiled Express app

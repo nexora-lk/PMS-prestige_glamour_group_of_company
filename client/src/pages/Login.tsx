@@ -34,7 +34,7 @@ export default function Login() {
       <div className="login-bg" />
       <div className="login-card">
         <div className="login-logo" style={{ background: 'transparent', padding: 0 }}>
-          <img src="/logo.jpeg" alt="Logo" style={{ width: '64px', height: '64px', objectFit: 'contain' }} />
+          <img src="/icon.png" alt="PMS Logo" style={{ width: '64px', height: '64px', objectFit: 'contain' }} />
         </div>
         <h1>Welcome Back</h1>
         <p className="subtitle">Sign in to PMS Application</p>

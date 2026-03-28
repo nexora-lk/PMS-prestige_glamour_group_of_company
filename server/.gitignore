@@ -3,14 +3,17 @@ node_modules/
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
-# Build outputs
+# Build output (compiled TypeScript)
 dist/
 build/
-out/
-# Environment
-.env
-.env.local
-.env.*.local
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 # IDE
 .idea/
 .vscode/
@@ -26,13 +29,10 @@ out/
 # OS
 .DS_Store
 Thumbs.db
-# Logs
-logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+# Environment
+.env
+.env.local
+.env.*.local
 # Test coverage
 coverage/
 .nyc_output/

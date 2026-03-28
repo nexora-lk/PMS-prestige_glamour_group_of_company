@@ -1,0 +1,64 @@
+{
+  "name": "pms-application",
+  "version": "1.0.0",
+  "description": "PMS Application",
+  "main": "electron/dist/main.js",
+  "scripts": {
+    "build:electron": "tsup electron/main.ts electron/preload.ts --out-dir electron/dist --format cjs --external electron",
+    "start": "npm run build:electron && electron .",
+    "pack": "npm run build:electron && electron-builder --dir",
+    "dist": "npm run build:electron && electron-builder",
+    "build:win": "npm run build:electron && electron-builder --win --x64",
+    "build:mac": "npm run build:electron && electron-builder --mac"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3",
+    "npm-run-all": "^4.1.5",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.2",
+    "wait-on": "^9.0.4"
+  },
+  "build": {
+    "appId": "com.payroll.system",
+    "productName": "PMS Application",
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "identity": null
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable",
+        "zip"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PMS Application",
+      "installerIcon": "build/icon.png",
+      "uninstallerIcon": "build/icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ]
+    },
+    "files": [
+      "electron/dist/**/*",
+      "server/dist/**/*",
+      "server/package.json",
+      "server/node_modules/**/*",
+      "client/dist/**/*"
+    ]
+  }
+}

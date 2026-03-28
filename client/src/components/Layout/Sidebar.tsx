@@ -1,0 +1,63 @@
+import { NavLink, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+
+interface SidebarProps {
+  collapsed: boolean;
+  onToggle: () => void;
+}
+
+export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+  const { logout } = useAuth();
+  const location = useLocation();
+
+  const navItems = [
+    { path: '/', label: 'Dashboard', icon: '📊' },
+    { path: '/users', label: 'Users', icon: '👥' },
+    { path: '/payroll', label: 'Payroll', icon: '💰' },
+    { path: '/export', label: 'Export & Backup', icon: '💾' },
+  ];
+
+  return (
+    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
+      <div className="sidebar-header">
+        <div className="sidebar-logo" style={{ background: 'transparent', padding: 0 }}>
+          <img src="/logo.jpeg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        </div>
+        {!collapsed && (
+          <div className="sidebar-brand">
+            <h2>PMS</h2>
+            <p>Application</p>
+          </div>
+        )}
+      </div>
+
+      <nav className="sidebar-nav">
+        <span className="nav-section-label">{collapsed ? '•' : 'Main Menu'}</span>
+        {navItems.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            className={`nav-item${location.pathname === item.path ? ' active' : ''}`}
+          >
+            <span className="nav-item-icon">{item.icon}</span>
+            {!collapsed && <span>{item.label}</span>}
+          </NavLink>
+        ))}
+
+        <span className="nav-section-label" style={{ marginTop: 'auto' }}>
+          {collapsed ? '•' : 'Account'}
+        </span>
+        <button className="nav-item" onClick={logout}>
+          <span className="nav-item-icon">🚪</span>
+          {!collapsed && <span>Logout</span>}
+        </button>
+      </nav>
+
+      <div className="sidebar-footer">
+        <button className="sidebar-toggle" onClick={onToggle}>
+          {collapsed ? '→' : '←'}
+        </button>
+      </div>
+    </aside>
+  );
+}

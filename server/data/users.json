@@ -1,0 +1,19 @@
+[
+  {
+    "id": "81d9e342-e5cb-492b-91a6-6f0c695252f3",
+    "firstName": "testNew",
+    "lastName": "test2",
+    "email": "test@gmail.com",
+    "phone": "1234567890",
+    "department": "sdfgsdfg",
+    "role": "utrdu",
+    "designation": "sdfgsd",
+    "joinDate": "2026-03-20",
+    "basicSalary": 10000,
+    "allowances": 10,
+    "deductions": 10,
+    "status": "active",
+    "createdAt": "2026-03-27T18:15:09.582Z",
+    "updatedAt": "2026-03-27T18:15:54.768Z"
+  }
+]

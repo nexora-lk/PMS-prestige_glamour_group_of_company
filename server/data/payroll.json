@@ -1,0 +1,17 @@
+[
+  {
+    "userId": "81d9e342-e5cb-492b-91a6-6f0c695252f3",
+    "userName": "testNew test2",
+    "period": "2026-03",
+    "basicSalary": 10000,
+    "allowances": 10,
+    "deductions": 10,
+    "tax": 0,
+    "grossSalary": 10010,
+    "netSalary": 10000,
+    "department": "sdfgsdfg",
+    "designation": "sdfgsd",
+    "id": "a0a4c849-b6d1-42bf-9ef1-1a123abc452b",
+    "generatedAt": "2026-03-27T18:17:00.625Z"
+  }
+]

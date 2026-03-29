@@ -2,18 +2,70 @@ import { useState, useEffect, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { payrollService } from '../services/payrollService';
 import { userService } from '../services/userService';
-import type { User, PayrollRecord } from '../types';
+import type { User, PayrollRecord, MonthlyPaysheet } from '../types';
 import { showToast } from '../components/Toast';
+import { PaysheetGeneration } from '../components/PaysheetGeneration';
+import PaySheet from '../components/PaySheet';
+
+/** Convert a PayrollRecord into the shape PaySheet expects */
+function recordToPaysheet(record: PayrollRecord): MonthlyPaysheet {
+  return {
+    id: record.id,
+    employeeId: record.userId,
+    codeNo: record.userId.substring(0, 8),
+    payMonth: record.period,
+    role: record.designation,
+    monthsOfService: 0,
+    achieve: 0,
+    allowance: record.allowances,
+    nopay: 0,
+    late: 0,
+    epfAvailability: record.tax > 0,
+    etfAvailability: record.tax > 0,
+    welfare: 0,
+    otherOfficers: 0,
+    basicSalary: record.basicSalary,
+    grossSalary: record.grossSalary,
+    netSalary: record.netSalary,
+    generalAllowance: record.allowances,
+    epfEmployee: record.tax,
+    nopayDeduction: 0,
+    lateDeduction: 0,
+    createdAt: record.generatedAt,
+  };
+}
+
+/** Build a minimal User from a PayrollRecord for display */
+function recordToUser(record: PayrollRecord): User {
+  const nameParts = record.userName.split(' ');
+  return {
+    id: record.userId,
+    firstName: nameParts[0] || '',
+    lastName: nameParts.slice(1).join(' ') || '',
+    email: '',
+    phone: '',
+    branch: record.branch,
+    role: record.designation,
+    designation: record.designation,
+    joinDate: '',
+    basicSalary: record.basicSalary,
+    allowances: record.allowances,
+    deductions: record.deductions,
+    status: 'active',
+    createdAt: '',
+    updatedAt: '',
+  };
+}
 
 export default function Payroll() {
-  const [activeTab, setActiveTab] = useState<'generate' | 'history'>('generate');
+  const [activeTab, setActiveTab] = useState<'generate' | 'branch-role' | 'history'>('generate');
   const [users, setUsers] = useState<User[]>([]);
   const [history, setHistory] = useState<PayrollRecord[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Generate State
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7));
   const [generatedRecords, setGeneratedRecords] = useState<PayrollRecord[]>([]);
   const [generating, setGenerating] = useState(false);
 
@@ -63,7 +115,7 @@ export default function Payroll() {
       });
       setGeneratedRecords(res.records);
       showToast(res.message, 'success');
-      fetchHistory(); // Refresh history
+      fetchHistory();
     } catch (err: any) {
       showToast(err.message || 'Failed to generate payroll', 'error');
     } finally {
@@ -76,7 +128,6 @@ export default function Payroll() {
     setActiveTab('generate');
   };
 
-
   return (
     <div className="animate-in">
       <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
@@ -85,6 +136,12 @@ export default function Payroll() {
           onClick={() => setActiveTab('generate')}
         >
           Generate & Print
+        </button>
+        <button
+          className={`btn ${activeTab === 'branch-role' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveTab('branch-role')}
+        >
+          By Branch & Role
         </button>
         <button
           className={`btn ${activeTab === 'history' ? 'btn-primary' : 'btn-secondary'}`}
@@ -127,12 +184,13 @@ export default function Payroll() {
                   >
                     {users.map((u) => (
                       <option key={u.id} value={u.id}>
-                        {u.firstName} {u.lastName} ({u.department})
+                        {u.firstName} {u.lastName} ({u.branch})
                       </option>
                     ))}
                   </select>
                   <p className="text-muted" style={{ fontSize: 11, marginTop: 6 }}>
-                    Note: Leave empty to generate for all active employees. Hold Ctrl/Cmd to select multiple.
+                    Note: Leave empty to generate for all active employees. Hold Ctrl/Cmd to
+                    select multiple.
                   </p>
                 </div>
                 <button
@@ -152,7 +210,7 @@ export default function Payroll() {
               <h2>Preview</h2>
               {generatedRecords.length > 0 && (
                 <button className="btn btn-secondary btn-sm" onClick={() => handlePrint()}>
-                  🖨️ Print
+                  Print
                 </button>
               )}
             </div>
@@ -163,84 +221,23 @@ export default function Payroll() {
                   <p>Generate a pay sheet to view preview</p>
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <div ref={printRef} className="print-area">
-                    {generatedRecords.map((record, index) => (
-                      <div key={record.id} className="paysheet" style={{ marginBottom: index < generatedRecords.length - 1 ? 40 : 0 }}>
-                        <div className="paysheet-header">
-                          <h1>PAYROLL SLIP</h1>
-                          <p>PayrollPro Management Inc.</p>
-                        </div>
-
-                        <div className="paysheet-info">
-                          <div>
-                            <div className="paysheet-info-item">
-                              <span className="label">Employee Name</span>
-                              <span className="value">{record.userName}</span>
-                            </div>
-                            <div className="paysheet-info-item">
-                              <span className="label">Employee ID</span>
-                              <span className="value">{record.userId.substring(0, 8)}</span>
-                            </div>
-                            <div className="paysheet-info-item">
-                              <span className="label">Department</span>
-                              <span className="value">{record.department}</span>
-                            </div>
-                          </div>
-                          <div>
-                            <div className="paysheet-info-item">
-                              <span className="label">Pay Period</span>
-                              <span className="value">{record.period}</span>
-                            </div>
-                            <div className="paysheet-info-item">
-                              <span className="label">Designation</span>
-                              <span className="value">{record.designation}</span>
-                            </div>
-                            <div className="paysheet-info-item">
-                              <span className="label">Generated On</span>
-                              <span className="value">{new Date(record.generatedAt).toLocaleDateString()}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <table className="paysheet-table">
-                          <thead>
-                            <tr>
-                              <th>Earnings</th>
-                              <th style={{ textAlign: 'right' }}>Amount ($)</th>
-                              <th>Deductions</th>
-                              <th style={{ textAlign: 'right' }}>Amount ($)</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr>
-                              <td>Basic Salary</td>
-                              <td style={{ textAlign: 'right' }}>{record.basicSalary.toFixed(2)}</td>
-                              <td>Tax Deduction</td>
-                              <td style={{ textAlign: 'right' }}>{record.tax.toFixed(2)}</td>
-                            </tr>
-                            <tr>
-                              <td>Allowances</td>
-                              <td style={{ textAlign: 'right' }}>{record.allowances.toFixed(2)}</td>
-                              <td>Other Deductions</td>
-                              <td style={{ textAlign: 'right' }}>{record.deductions.toFixed(2)}</td>
-                            </tr>
-                            <tr>
-                              <td style={{ fontWeight: 600 }}>Gross Earnings</td>
-                              <td style={{ textAlign: 'right', fontWeight: 600 }}>{record.grossSalary.toFixed(2)}</td>
-                              <td style={{ fontWeight: 600 }}>Total Deductions</td>
-                              <td style={{ textAlign: 'right', fontWeight: 600 }}>{(record.tax + record.deductions).toFixed(2)}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-
-                        <div className="paysheet-total">
-                          <p style={{ color: '#64748b', fontSize: 13, marginBottom: 4 }}>NET PAY</p>
-                          <div className="net-salary">${record.netSalary.toFixed(2)}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div
+                  ref={printRef}
+                  style={{
+                    background: '#eaeaea',
+                    padding: 24,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 40,
+                  }}
+                >
+                  {generatedRecords.map((record) => (
+                    <PaySheet
+                      key={record.id}
+                      paysheet={recordToPaysheet(record)}
+                      employee={recordToUser(record)}
+                    />
+                  ))}
                 </div>
               )}
             </div>
@@ -248,11 +245,17 @@ export default function Payroll() {
         </div>
       )}
 
+      {activeTab === 'branch-role' && (
+        <PaysheetGeneration onSuccess={() => fetchHistory()} />
+      )}
+
       {activeTab === 'history' && (
         <div className="card">
           <div className="table-wrapper">
             {loading ? (
-              <div className="loading-spinner"><div className="spinner"></div></div>
+              <div className="loading-spinner">
+                <div className="spinner"></div>
+              </div>
             ) : history.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-state-icon">🕒</div>
@@ -264,7 +267,7 @@ export default function Payroll() {
                   <tr>
                     <th>Period</th>
                     <th>Employee</th>
-                    <th>Department</th>
+                    <th>Branch</th>
                     <th>Gross Pay</th>
                     <th>Net Pay</th>
                     <th>Date Generated</th>
@@ -274,17 +277,24 @@ export default function Payroll() {
                 <tbody>
                   {history.map((record) => (
                     <tr key={record.id}>
-                      <td><span className="badge badge-info">{record.period}</span></td>
+                      <td>
+                        <span className="badge badge-info">{record.period}</span>
+                      </td>
                       <td style={{ fontWeight: 500 }}>{record.userName}</td>
-                      <td>{record.department}</td>
-                      <td>${record.grossSalary.toFixed(2)}</td>
-                      <td style={{ fontWeight: 600, color: 'var(--success)' }}>${record.netSalary.toFixed(2)}</td>
+                      <td>{record.branch}</td>
+                      <td>Rs. {record.grossSalary.toFixed(2)}</td>
+                      <td style={{ fontWeight: 600, color: 'var(--success)' }}>
+                        Rs. {record.netSalary.toFixed(2)}
+                      </td>
                       <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>
                         {new Date(record.generatedAt).toLocaleString()}
                       </td>
                       <td>
-                        <button className="btn btn-ghost btn-sm" onClick={() => viewRecord(record)}>
-                          👁️ View / Print
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => viewRecord(record)}
+                        >
+                          View / Print
                         </button>
                       </td>
                     </tr>

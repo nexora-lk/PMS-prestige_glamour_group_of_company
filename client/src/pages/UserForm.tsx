@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { FiX } from 'react-icons/fi';
 import { userService } from '../services/userService';
+import { BRANCHES } from '../constants/branches';
+import { ROLES, ROLE_SALARIES } from '../constants/roleSalaries';
 import type { User } from '../types';
 import { showToast } from '../components/Toast';
 
@@ -9,9 +12,8 @@ const initialFormData = {
   lastName: '',
   email: '',
   phone: '',
-  department: '',
+  branch: '',
   role: '',
-  designation: '',
   joinDate: '',
   basicSalary: 0,
   allowances: 0,
@@ -29,14 +31,13 @@ export default function UserForm() {
     lastName: string;
     email: string;
     phone: string;
-    department: string;
+    branch: string;
     role: string;
-    designation: string;
     joinDate: string;
     basicSalary: number;
     allowances: number;
     deductions: number;
-    status: 'active' | 'inactive';
+    status: 'active' | 'delete';
   }>(initialFormData);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
@@ -51,9 +52,8 @@ export default function UserForm() {
             lastName: user.lastName,
             email: user.email,
             phone: user.phone,
-            department: user.department,
+            branch: user.branch,
             role: user.role,
-            designation: user.designation,
             joinDate: user.joinDate.split('T')[0],
             basicSalary: user.basicSalary,
             allowances: user.allowances,
@@ -73,10 +73,19 @@ export default function UserForm() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'number' ? Number(value) : value,
-    }));
+    const newValue = type === 'number' ? Number(value) : value;
+    
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [name]: newValue,
+      };
+      // Auto-populate basicSalary when role is selected
+      if (name === 'role' && newValue in ROLE_SALARIES) {
+        updated.basicSalary = ROLE_SALARIES[newValue as keyof typeof ROLE_SALARIES];
+      }
+      return updated;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -110,7 +119,7 @@ export default function UserForm() {
       <div className="card-header">
         <h2>{isEdit ? 'Edit Employee Data' : 'Add New Employee'}</h2>
         <button className="btn btn-ghost" onClick={() => navigate('/users')}>
-          ✕ Cancel
+          <FiX size={20} />
         </button>
       </div>
 
@@ -172,40 +181,40 @@ export default function UserForm() {
           </h3>
           <div className="form-row">
             <div className="form-group">
-              <label>Department</label>
-              <input
-                type="text"
-                className="form-input"
-                name="department"
-                value={formData.department}
+              <label>Branch *</label>
+              <select
+                required
+                className="form-select"
+                name="branch"
+                value={formData.branch}
                 onChange={handleChange}
-                placeholder="e.g. Engineering"
-              />
+              >
+                <option value="">Select Branch</option>
+                {BRANCHES.map((branch) => (
+                  <option key={branch} value={branch}>
+                    {branch}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="form-group">
-              <label>Designation</label>
-              <input
-                type="text"
-                className="form-input"
-                name="designation"
-                value={formData.designation}
-                onChange={handleChange}
-                placeholder="e.g. Senior Developer"
-              />
-            </div>
-          </div>
-          <div className="form-row">
             <div className="form-group">
               <label>Role</label>
-              <input
-                type="text"
-                className="form-input"
+              <select
+                className="form-select"
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                placeholder="e.g. Employee, Manager"
-              />
+              >
+                <option value="">Select Role</option>
+                {ROLES.map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
             </div>
+          </div>
+          <div className="form-row">
             <div className="form-group">
               <label>Join Date</label>
               <input
@@ -236,20 +245,6 @@ export default function UserForm() {
               />
             </div>
             <div className="form-group">
-              <label>Status</label>
-              <select
-                className="form-select"
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-          </div>
-          <div className="form-row">
-            <div className="form-group">
               <label>Total Allowances (Monthly)</label>
               <input
                 type="number"
@@ -261,6 +256,8 @@ export default function UserForm() {
                 onChange={handleChange}
               />
             </div>
+          </div>
+          <div className="form-row">
             <div className="form-group">
               <label>Fixed Deductions (Monthly)</label>
               <input

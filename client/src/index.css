@@ -1193,113 +1193,7 @@ body {
   gap: 12px;
 }
 
-/* ═══ Paysheet Print View ═══ */
-.paysheet {
-  background: white;
-  color: var(--neutral-900);
-  padding: 40px;
-  border-radius: var(--radius-lg);
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.paysheet-header {
-  text-align: center;
-  border-bottom: 3px solid var(--gold-600);
-  padding-bottom: 20px;
-  margin-bottom: 24px;
-}
-
-.paysheet-header h1 {
-  font-size: 24px;
-  color: var(--navy-900);
-  font-weight: 800;
-}
-
-.paysheet-header p {
-  color: var(--neutral-500);
-  font-size: 13px;
-  margin-top: 6px;
-}
-
-.paysheet-info {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 24px;
-  background: var(--neutral-50);
-  padding: 16px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--gold-200);
-}
-
-.paysheet-info-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--gold-100);
-}
-
-.paysheet-info-item:last-child {
-  border-bottom: none;
-}
-
-.paysheet-info-item .label {
-  color: var(--neutral-500);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.paysheet-info-item .value {
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--navy-900);
-}
-
-.paysheet-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 24px 0;
-}
-
-.paysheet-table th {
-  background: linear-gradient(135deg, var(--gold-600), var(--gold-700));
-  padding: 12px 16px;
-  text-align: left;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: white;
-  border: none;
-  font-weight: 700;
-}
-
-.paysheet-table td {
-  padding: 12px 16px;
-  border: 1px solid var(--gold-200);
-  font-size: 14px;
-  color: var(--neutral-900);
-}
-
-.paysheet-table tbody tr:nth-child(even) {
-  background: var(--neutral-50);
-}
-
-.paysheet-total {
-  text-align: right;
-  padding: 16px 0;
-  border-top: 3px solid var(--gold-600);
-  margin-top: 8px;
-}
-
-.paysheet-total .net-salary {
-  font-size: 28px;
-  font-weight: 800;
-  background: linear-gradient(135deg, var(--gold-600), var(--ruby-500));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
+/* Old paysheet styles removed — PaySheet component uses inline styles */
 
 /* ═══ Empty State ═══ */
 .empty-state {
@@ -1627,9 +1521,6 @@ body {
     grid-template-columns: 1fr;
   }
   .form-row {
-    grid-template-columns: 1fr;
-  }
-  .paysheet-info {
     grid-template-columns: 1fr;
   }
 }

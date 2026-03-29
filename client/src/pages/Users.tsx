@@ -1,19 +1,22 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FiSearch, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { useUsers } from '../hooks/useUsers';
+import { userService } from '../services/userService';
+import { BRANCHES } from '../constants/branches';
 import { showToast } from '../components/Toast';
 import type { User } from '../types';
 
 export default function Users() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [department, setDepartment] = useState('');
+  const [branch, setBranch] = useState('');
   const [status, setStatus] = useState('all');
   const [page, setPage] = useState(1);
 
-  const { users, loading, error, response, deleteUser, refreshUsers } = useUsers({
+  const { users, loading, error, response, refreshUsers } = useUsers({
     search,
-    department: department || undefined,
+    branch: branch || undefined,
     status: (status as any) || 'all',
     page,
     limit: 15,
@@ -23,13 +26,14 @@ export default function Users() {
     async (id: string, name: string) => {
       if (!window.confirm(`Are you sure you want to delete ${name}?`)) return;
       try {
-        await deleteUser(id);
-        showToast('User deleted successfully', 'success');
+        await userService.updateUser(id, { status: 'delete' } as any);
+        showToast('User status changed to Delete', 'success');
+        refreshUsers();
       } catch (err: any) {
         showToast(err.message || 'Failed to delete user', 'error');
       }
     },
-    [deleteUser]
+    [refreshUsers]
   );
 
   const handleSearchChange = (value: string) => {
@@ -37,8 +41,8 @@ export default function Users() {
     setPage(1);
   };
 
-  const handleDepartmentChange = (value: string) => {
-    setDepartment(value);
+  const handleBranchChange = (value: string) => {
+    setBranch(value);
     setPage(1);
   };
 
@@ -56,7 +60,7 @@ export default function Users() {
 
         <div className="filter-bar">
           <div className="search-input">
-            <span className="search-icon">🔍</span>
+            <FiSearch className="search-icon" />
             <input
               type="text"
               placeholder="Search by name, email, role..."
@@ -67,13 +71,13 @@ export default function Users() {
 
           <select
             className="filter-select"
-            value={department}
-            onChange={(e) => handleDepartmentChange(e.target.value)}
+            value={branch}
+            onChange={(e) => handleBranchChange(e.target.value)}
           >
-            <option value="">All Departments</option>
-            {response?.departments.map((d) => (
-              <option key={d} value={d}>
-                {d}
+            <option value="">All Branches</option>
+            {BRANCHES.map((b) => (
+              <option key={b} value={b}>
+                {b}
               </option>
             ))}
           </select>
@@ -85,13 +89,13 @@ export default function Users() {
           >
             <option value="all">All Statuses</option>
             <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="delete">Delete</option>
           </select>
 
           <button
             className="btn btn-primary"
             style={{ marginLeft: 'auto' }}
-            onClick={() => navigate('/users')}
+            onClick={() => navigate('/users/new')}
           >
             + Add User
           </button>
@@ -121,7 +125,7 @@ export default function Users() {
                 <tr>
                   <th>Employee</th>
                   <th>Contact</th>
-                  <th>Department / Role</th>
+                  <th>Branch / Role</th>
                   <th>Salary</th>
                   <th>Status</th>
                   <th>Actions</th>
@@ -148,12 +152,12 @@ export default function Users() {
                       <div className="user-email">{user.phone}</div>
                     </td>
                     <td>
-                      <div>{user.department}</div>
+                      <div>{user.branch}</div>
                       <div className="user-email">{user.designation}</div>
                     </td>
                     <td>
                       <div>
-                        ${user.basicSalary.toLocaleString('en-US', {
+                        Rs. {user.basicSalary.toLocaleString('en-US', {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
@@ -167,14 +171,16 @@ export default function Users() {
                         <button
                           className="btn btn-ghost btn-sm"
                           onClick={() => navigate(`/users/${user.id}`)}
+                          title="Edit"
                         >
-                          ✏️ Edit
+                          <FiEdit2 size={16} />
                         </button>
                         <button
                           className="btn btn-ghost btn-danger btn-sm"
                           onClick={() => handleDelete(user.id, user.firstName)}
+                          title="Delete"
                         >
-                          🗑️ Delete
+                          <FiTrash2 size={16} />
                         </button>
                       </div>
                     </td>

@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import { FiBarChart2, FiUsers, FiDollarSign, FiFileText, FiDownload, FiLogOut, FiChevronRight, FiChevronLeft } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
@@ -10,12 +11,21 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { logout } = useAuth();
   const location = useLocation();
 
+  const iconMap: Record<string, React.ReactNode> = {
+    dashboard: <FiBarChart2 size={20} />,
+    users: <FiUsers size={20} />,
+    payroll: <FiDollarSign size={20} />,
+    paysheets: <FiFileText size={20} />,
+    export: <FiDownload size={20} />,
+    logout: <FiLogOut size={20} />,
+  };
+
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: '📊' },
-    { path: '/users', label: 'Users', icon: '👥' },
-    { path: '/payroll', label: 'Payroll', icon: '💰' },
-    { path: '/paysheets', label: 'Monthly Paysheets', icon: '📋' },
-    { path: '/export', label: 'Export & Backup', icon: '💾' },
+    { path: '/', label: 'Dashboard', icon: 'dashboard' },
+    { path: '/users', label: 'Users', icon: 'users' },
+    { path: '/payroll', label: 'Payroll', icon: 'payroll' },
+    { path: '/paysheets', label: 'Monthly Paysheets', icon: 'paysheets' },
+    { path: '/export', label: 'Export & Backup', icon: 'export' },
   ];
 
   return (
@@ -40,7 +50,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             to={item.path}
             className={`nav-item${location.pathname === item.path ? ' active' : ''}`}
           >
-            <span className="nav-item-icon">{item.icon}</span>
+            <span className="nav-item-icon">{iconMap[item.icon]}</span>
             {!collapsed && <span>{item.label}</span>}
           </NavLink>
         ))}
@@ -49,14 +59,14 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           {collapsed ? '•' : 'Account'}
         </span>
         <button className="nav-item" onClick={logout}>
-          <span className="nav-item-icon">🚪</span>
+          <span className="nav-item-icon">{iconMap.logout}</span>
           {!collapsed && <span>Logout</span>}
         </button>
       </nav>
 
       <div className="sidebar-footer">
         <button className="sidebar-toggle" onClick={onToggle}>
-          {collapsed ? '→' : '←'}
+          {collapsed ? <FiChevronRight size={20} /> : <FiChevronLeft size={20} />}
         </button>
       </div>
     </aside>

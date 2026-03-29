@@ -43,7 +43,7 @@ export function generatePaySheet(user: User, period: string): Omit<PayrollRecord
     tax,
     grossSalary,
     netSalary: Math.max(0, netSalary),
-    department: user.department,
+    branch: user.branch,
     designation: user.designation,
   };
 }

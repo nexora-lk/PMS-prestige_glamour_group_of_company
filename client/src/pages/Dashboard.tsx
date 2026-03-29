@@ -32,7 +32,7 @@ export default function Dashboard() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'LKR' }).format(amount);
   };
 
   return (
@@ -57,8 +57,8 @@ export default function Dashboard() {
         <div className="stat-card stagger-3">
           <div className="stat-icon purple">🏢</div>
           <div className="stat-info">
-            <h3>{stats?.totalDepartments || 0}</h3>
-            <p>Departments</p>
+            <h3>{stats?.totalBranches || 0}</h3>
+            <p>Branches</p>
           </div>
         </div>
 

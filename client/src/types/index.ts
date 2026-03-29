@@ -4,14 +4,14 @@ export interface User {
   lastName: string;
   email: string;
   phone: string;
-  department: string;
+  branch: string;
   role: string;
   designation: string;
   joinDate: string;
   basicSalary: number;
   allowances: number;
   deductions: number;
-  status: 'active' | 'inactive';
+  status: 'active' | 'delete';
   createdAt: string;
   updatedAt: string;
 }
@@ -28,7 +28,7 @@ export interface PayrollRecord {
   netSalary: number;
   grossSalary: number;
   generatedAt: string;
-  department: string;
+  branch: string;
   designation: string;
 }
 
@@ -46,7 +46,7 @@ export interface UsersResponse {
   total: number;
   page: number;
   totalPages: number;
-  departments: string[];
+  branches: string[];
   roles: string[];
 }
 
@@ -54,8 +54,8 @@ export interface StatsResponse {
   totalUsers: number;
   activeUsers: number;
   inactiveUsers: number;
-  totalDepartments: number;
-  departments: string[];
+  totalBranches: number;
+  branches: string[];
   totalMonthlySalary: number;
 }
 

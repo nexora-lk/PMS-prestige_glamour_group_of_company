@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { FiUsers, FiDollarSign, FiInfo } from 'react-icons/fi';
 import { exportService } from '../services/exportService';
 import { showToast } from '../components/Toast';
 
@@ -35,7 +36,7 @@ export default function Export() {
       <div className="export-grid">
         <div className="export-card stagger-1">
           <div className="export-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
-            👥
+            <FiUsers size={40} />
           </div>
           <h3>Employees Data</h3>
           <p>Download a complete Excel (.xlsx) report of all employee profiles and salary information.</p>
@@ -50,7 +51,7 @@ export default function Export() {
 
         <div className="export-card stagger-2">
           <div className="export-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-            💰
+            <FiDollarSign size={40} />
           </div>
           <h3>Payroll History</h3>
           <p>Download a complete Excel (.xlsx) report of all generated pay sheets and tax deductions.</p>
@@ -65,7 +66,7 @@ export default function Export() {
 
         <div className="export-card stagger-3">
           <div className="export-icon" style={{ background: 'rgba(168, 85, 247, 0.1)', color: '#a855f7' }}>
-            ℹ️
+            <FiInfo size={40} />
           </div>
           <h3>Backup Information</h3>
           <p>Google Drive backup feature requires OAuth2 setup. See documentation for configuration details.</p>

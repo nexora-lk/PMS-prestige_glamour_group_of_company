@@ -3,7 +3,6 @@ import { paysheetService } from '../services/paysheetService';
 import { userService } from '../services/userService';
 import type { User, MonthlyPaysheet } from '../types';
 import { showToast } from './Toast';
-import { pgwcsTheme } from '../theme/colors';
 
 interface MonthlyPaysheetFormProps {
   onSuccess?: () => void;
@@ -108,10 +107,10 @@ export function MonthlyPaysheetForm({
 
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="form-row">
         <div className="form-group">
           <label>
-            Months of Service <span style={{ color: pgwcsTheme.ruby[600] }}>*</span>
+            Select Employee <span style={{ color: 'var(--ruby-500)' }}>*</span>
           </label>
           <select
             className="form-select"
@@ -131,7 +130,7 @@ export function MonthlyPaysheetForm({
 
         <div className="form-group">
           <label>
-            Code No. <span style={{ color: pgwcsTheme.ruby[600] }}>*</span>
+            Code No. <span style={{ color: 'var(--ruby-500)' }}>*</span>
           </label>
           <input
             type="text"
@@ -147,7 +146,7 @@ export function MonthlyPaysheetForm({
 
         <div className="form-group">
           <label>
-            Pay Month <span style={{ color: pgwcsTheme.ruby[600] }}>*</span>
+            Pay Month <span style={{ color: 'var(--ruby-500)' }}>*</span>
           </label>
           <input
             type="month"
@@ -162,26 +161,64 @@ export function MonthlyPaysheetForm({
 
         <div className="form-group">
           <label>
-            Role <span style={{ color: pgwcsTheme.ruby[600] }}>*</span>
+            Role <span style={{ color: 'var(--ruby-500)' }}>*</span>
           </label>
-          <input
-            type="text"
-            className="form-input"
+          <select
+            className="form-select"
             name="role"
             value={formData.role || ''}
             onChange={handleInputChange}
-            placeholder="e.g., Manager"
             required
             disabled={isEditMode}
+          >
+            <option value="">Select Role</option>
+            <optgroup label="Sales/Target-Based Roles">
+              <option value="GM">GM - General Manager</option>
+              <option value="AGM">AGM - Assistant General Manager</option>
+              <option value="PH">PH - Provincial Head</option>
+              <option value="DPH">DPH - Deputy Provincial Head</option>
+              <option value="SRM">SRM - Senior Regional Manager</option>
+              <option value="RM">RM - Regional Manager</option>
+              <option value="BM">BM - Branch Manager</option>
+              <option value="BDE">BDE - Business Development Executive</option>
+            </optgroup>
+            <optgroup label="Non-Target Roles">
+              <option value="CCI">CCI - Collections/Call Center</option>
+              <option value="HR_FIN_HEAD">HR_FIN_HEAD - HR & Finance Head</option>
+              <option value="MANAGER_ADMIN">MANAGER_ADMIN - Manager Admin</option>
+              <option value="SR_EXEC_HR">SR_EXEC_HR - Senior Executive HR</option>
+              <option value="SR_EXEC_FINANCE">SR_EXEC_FINANCE - Senior Executive Finance</option>
+              <option value="ASST_HR_EXEC">ASST_HR_EXEC - Assistant HR Executive</option>
+              <option value="ASST_FIN_EXEC">ASST_FIN_EXEC - Assistant Finance Executive</option>
+              <option value="MICRO_FIN_MANAGER">MICRO_FIN_MANAGER - Micro Finance Manager</option>
+              <option value="MICRO_FIN_EXEC">MICRO_FIN_EXEC - Micro Finance Executive</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label>
+            Months of Service <span style={{ color: 'var(--ruby-500)' }}>*</span>
+          </label>
+          <input
+            type="number"
+            className="form-input"
+            name="monthsOfService"
+            value={formData.monthsOfService || 0}
+            onChange={handleInputChange}
+            placeholder="e.g., 6"
+            min="0"
+            step="1"
+            required
           />
         </div>
       </div>
 
-      <div style={{ borderTop: `1px solid ${pgwcsTheme.neutral[200]}`, paddingTop: 16, marginTop: 8 }}>
-        <h3 style={{ marginBottom: 16, fontSize: 14, fontWeight: 600 }}>
+      <div style={{ borderTop: '1px solid var(--neutral-700)', paddingTop: 16, marginTop: 8 }}>
+        <h3 style={{ marginBottom: 16, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
           Salary Components
         </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="form-row">
           <div className="form-group">
             <label>Achievement Amount</label>
             <input
@@ -236,11 +273,11 @@ export function MonthlyPaysheetForm({
         </div>
       </div>
 
-      <div style={{ borderTop: `1px solid ${pgwcsTheme.neutral[200]}`, paddingTop: 16, marginTop: 8 }}>
-        <h3 style={{ marginBottom: 16, fontSize: 14, fontWeight: 600 }}>
+      <div style={{ borderTop: '1px solid var(--neutral-700)', paddingTop: 16, marginTop: 8 }}>
+        <h3 style={{ marginBottom: 16, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
           Deductions
         </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="form-row">
           <div className="form-group">
             <label>No Pay Days</label>
             <input
@@ -269,11 +306,11 @@ export function MonthlyPaysheetForm({
         </div>
       </div>
 
-      <div style={{ borderTop: `1px solid ${pgwcsTheme.neutral[200]}`, paddingTop: 16, marginTop: 8 }}>
-        <h3 style={{ marginBottom: 16, fontSize: 14, fontWeight: 600 }}>
+      <div style={{ borderTop: '1px solid var(--neutral-700)', paddingTop: 16, marginTop: 8 }}>
+        <h3 style={{ marginBottom: 16, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
           Fund Availability
         </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="form-row">
           <div className="form-group">
             <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input
@@ -316,4 +353,3 @@ export function MonthlyPaysheetForm({
     </form>
   );
 }
-

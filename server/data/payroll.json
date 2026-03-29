@@ -9,7 +9,7 @@
     "tax": 0,
     "grossSalary": 10010,
     "netSalary": 10000,
-    "department": "sdfgsdfg",
+    "branch": "sdfgsdfg",
     "designation": "sdfgsd",
     "id": "a0a4c849-b6d1-42bf-9ef1-1a123abc452b",
     "generatedAt": "2026-03-27T18:17:00.625Z"
@@ -24,7 +24,7 @@
     "tax": 0,
     "grossSalary": 0.01,
     "netSalary": 0,
-    "department": "sdfg",
+    "branch": "sdfg",
     "designation": "sdgf",
     "id": "e398e66d-bf86-41f7-a2d6-e38d225649c1",
     "generatedAt": "2026-03-29T06:04:13.039Z"
@@ -39,9 +39,24 @@
     "tax": 22499.8,
     "grossSalary": 210000,
     "netSalary": 187000.2,
-    "department": "HR",
+    "branch": "HR",
     "designation": "HR&Finantial Head",
     "id": "68210821-ae69-4a5a-a4ba-2bc8d01087bd",
     "generatedAt": "2026-03-29T07:25:08.101Z"
+  },
+  {
+    "userId": "9d763db0-ee20-4e72-ab04-38ac84d49e13",
+    "userName": "Nidarsha Shehan",
+    "period": "2026-03",
+    "basicSalary": 1000,
+    "allowances": 10000,
+    "deductions": 100000,
+    "tax": 0,
+    "grossSalary": 11000,
+    "netSalary": 0,
+    "branch": "sdfgdg",
+    "designation": "sbsg",
+    "id": "93d8b2b6-53ec-4905-8ca3-64727171731f",
+    "generatedAt": "2026-03-29T13:37:46.694Z"
   }
 ]

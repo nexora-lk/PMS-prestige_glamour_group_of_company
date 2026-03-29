@@ -26,6 +26,7 @@ router.post('/', (req: Request, res: Response): void => {
       nopay,
       late,
       epfAvailability,
+      etfAvailability,
       monthsOfService,
       welfare,
       otherOfficers,
@@ -135,13 +136,16 @@ router.post('/', (req: Request, res: Response): void => {
       nopay,
       late,
       epfAvailability: epfAvailability === true || epfAvailability === 1,
-      etfAvailability: epfAvailability === true || epfAvailability === 1,
+      etfAvailability: etfAvailability === true || etfAvailability === 1,
       otherOfficers: otherOfficers || 0,
       // Store calculated results
       ...calculatedResult,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+
+    // Store welfare as a top-level input field (separate from calculated welfare)
+    newPaysheet.welfare = welfare || 0;
 
     paysheets.push(newPaysheet);
     writeJSON(PAYSHEETS_FILE, paysheets);
@@ -257,6 +261,10 @@ router.put('/:id', (req: Request, res: Response): void => {
     const monthsOfService =
       req.body.monthsOfService !== undefined ? req.body.monthsOfService : paysheet.monthsOfService;
     const welfare = req.body.welfare !== undefined ? req.body.welfare : paysheet.welfare;
+    const etfAvailability =
+      req.body.etfAvailability !== undefined
+        ? req.body.etfAvailability === true || req.body.etfAvailability === 1
+        : paysheet.etfAvailability;
     const otherOfficers =
       req.body.otherOfficers !== undefined ? req.body.otherOfficers : paysheet.otherOfficers;
 
@@ -304,7 +312,7 @@ router.put('/:id', (req: Request, res: Response): void => {
       nopay,
       late,
       epfAvailability,
-      etfAvailability: epfAvailability,
+      etfAvailability,
       monthsOfService,
       otherOfficers,
       // Store updated calculated results
@@ -325,31 +333,8 @@ router.put('/:id', (req: Request, res: Response): void => {
   }
 });
 
-// DELETE /api/paysheets/:id — Delete a monthly paysheet
-router.delete('/:id', (req: Request, res: Response): void => {
-  try {
-    let paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
-    const index = paysheets.findIndex((p) => p.id === req.params.id);
-
-    if (index === -1) {
-      res.status(404).json({ error: 'Paysheet not found' });
-      return;
-    }
-
-    const deleted = paysheets.splice(index, 1)[0];
-    writeJSON(PAYSHEETS_FILE, paysheets);
-
-    res.json({
-      message: 'Paysheet deleted successfully',
-      paysheet: deleted,
-    });
-  } catch (error) {
-    console.error('Error deleting paysheet:', error);
-    res.status(500).json({ error: 'Failed to delete paysheet' });
-  }
-});
-
 // POST /api/paysheets/calculate — Calculate and preview paysheet without saving
+// IMPORTANT: This route must be defined BEFORE /:id to avoid Express matching "calculate" as an ID
 router.post('/calculate', (req: Request, res: Response): void => {
   try {
     const { role, achieve, allowance, nopay, late, epfAvailability, monthsOfService, welfare, otherOfficers } = req.body;
@@ -426,6 +411,7 @@ router.post('/calculate', (req: Request, res: Response): void => {
 });
 
 // GET /api/paysheets/month/:payMonth — Get all paysheets for a specific month
+// IMPORTANT: This route must be defined BEFORE /:id to avoid Express matching "month" as an ID
 router.get('/month/:payMonth', (req: Request, res: Response): void => {
   try {
     let paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
@@ -441,6 +427,30 @@ router.get('/month/:payMonth', (req: Request, res: Response): void => {
   } catch (error) {
     console.error('Error fetching paysheets for month:', error);
     res.status(500).json({ error: 'Failed to fetch paysheets for month' });
+  }
+});
+
+// DELETE /api/paysheets/:id — Delete a monthly paysheet
+router.delete('/:id', (req: Request, res: Response): void => {
+  try {
+    let paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
+    const index = paysheets.findIndex((p) => p.id === req.params.id);
+
+    if (index === -1) {
+      res.status(404).json({ error: 'Paysheet not found' });
+      return;
+    }
+
+    const deleted = paysheets.splice(index, 1)[0];
+    writeJSON(PAYSHEETS_FILE, paysheets);
+
+    res.json({
+      message: 'Paysheet deleted successfully',
+      paysheet: deleted,
+    });
+  } catch (error) {
+    console.error('Error deleting paysheet:', error);
+    res.status(500).json({ error: 'Failed to delete paysheet' });
   }
 });
 

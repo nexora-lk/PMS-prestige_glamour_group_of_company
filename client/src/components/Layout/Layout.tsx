@@ -16,7 +16,7 @@ export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
 
-  const currentPage = pageTitles[location.pathname] || { title: 'PayrollPro', subtitle: '' };
+  const currentPage = pageTitles[location.pathname] || { title: 'PMS', subtitle: '' };
 
   return (
     <div className="app-layout">

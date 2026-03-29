@@ -4,9 +4,9 @@ import type { User, UsersResponse } from '../types';
 
 interface UseUsersOptions {
   search?: string;
-  department?: string;
+  branch?: string;
   role?: string;
-  status?: 'active' | 'inactive' | 'all';
+  status?: 'active' | 'delete' | 'all';
   page?: number;
   limit?: number;
   sortBy?: string;
@@ -40,7 +40,7 @@ export const useUsers = (options: UseUsersOptions = {}) => {
     fetchUsers();
   }, [
     options.search,
-    options.department,
+    options.branch,
     options.role,
     options.status,
     options.page,
@@ -103,4 +103,5 @@ export const useUsers = (options: UseUsersOptions = {}) => {
     refreshUsers,
   };
 };
+
 

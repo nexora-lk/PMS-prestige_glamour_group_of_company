@@ -3,9 +3,9 @@ import type { User, UsersResponse, StatsResponse } from '../types';
 
 interface UserListParams {
   search?: string;
-  department?: string;
+  branch?: string;
   role?: string;
-  status?: 'active' | 'inactive' | 'all';
+  status?: 'active' | 'delete' | 'all';
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   page?: number;

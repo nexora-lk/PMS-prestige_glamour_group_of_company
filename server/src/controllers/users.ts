@@ -10,7 +10,7 @@ const USERS_FILE = 'users.json';
 router.get('/', (req: Request, res: Response): void => {
   try {
     let users = readJSON<User>(USERS_FILE);
-    const { search, department, role, status, sortBy, sortOrder, page, limit } = req.query;
+    const { search, branch, role, status, sortBy, sortOrder, page, limit } = req.query;
 
     // Search filter
     if (search && typeof search === 'string') {
@@ -20,15 +20,15 @@ router.get('/', (req: Request, res: Response): void => {
           u.firstName.toLowerCase().includes(q) ||
           u.lastName.toLowerCase().includes(q) ||
           u.email.toLowerCase().includes(q) ||
-          u.department.toLowerCase().includes(q) ||
+          u.branch.toLowerCase().includes(q) ||
           u.role.toLowerCase().includes(q) ||
           u.designation.toLowerCase().includes(q)
       );
     }
 
-    // Department filter
-    if (department && typeof department === 'string' && department !== 'all') {
-      users = users.filter((u) => u.department.toLowerCase() === department.toLowerCase());
+    // Branch filter
+    if (branch && typeof branch === 'string' && branch !== 'all') {
+      users = users.filter((u) => u.branch.toLowerCase() === branch.toLowerCase());
     }
 
     // Role filter
@@ -61,9 +61,9 @@ router.get('/', (req: Request, res: Response): void => {
     const startIndex = (pageNum - 1) * limitNum;
     const paginatedUsers = users.slice(startIndex, startIndex + limitNum);
 
-    // Get unique departments and roles for filter options
+    // Get unique branches and roles for filter options
     const allUsers = readJSON<User>(USERS_FILE);
-    const departments = [...new Set(allUsers.map((u) => u.department).filter(Boolean))];
+    const branches = [...new Set(allUsers.map((u) => u.branch).filter(Boolean))];
     const roles = [...new Set(allUsers.map((u) => u.role).filter(Boolean))];
 
     res.json({
@@ -71,7 +71,7 @@ router.get('/', (req: Request, res: Response): void => {
       total,
       page: pageNum,
       totalPages: Math.ceil(total / limitNum),
-      departments,
+      branches,
       roles,
     });
   } catch (error) {
@@ -84,8 +84,8 @@ router.get('/stats', (_req: Request, res: Response): void => {
   try {
     const users = readJSON<User>(USERS_FILE);
     const active = users.filter((u) => u.status === 'active').length;
-    const inactive = users.filter((u) => u.status === 'inactive').length;
-    const departments = [...new Set(users.map((u) => u.department).filter(Boolean))];
+    const deleted = users.filter((u) => u.status === 'delete').length;
+    const branches = [...new Set(users.map((u) => u.branch).filter(Boolean))];
     const totalSalary = users
       .filter((u) => u.status === 'active')
       .reduce((sum, u) => sum + u.basicSalary + u.allowances - u.deductions, 0);
@@ -93,9 +93,9 @@ router.get('/stats', (_req: Request, res: Response): void => {
     res.json({
       totalUsers: users.length,
       activeUsers: active,
-      inactiveUsers: inactive,
-      totalDepartments: departments.length,
-      departments,
+      deletedUsers: deleted,
+      totalBranches: branches.length,
+      branches,
       totalMonthlySalary: totalSalary,
     });
   } catch (error) {
@@ -123,7 +123,7 @@ router.post('/', (req: Request, res: Response): void => {
   try {
     const users = readJSON<User>(USERS_FILE);
     const {
-      firstName, lastName, email, phone, department,
+      firstName, lastName, email, phone, branch,
       role, designation, joinDate, basicSalary, allowances, deductions, status,
     } = req.body;
 
@@ -146,7 +146,7 @@ router.post('/', (req: Request, res: Response): void => {
       lastName: lastName || '',
       email: email || '',
       phone: phone || '',
-      department: department || '',
+      branch: branch || '',
       role: role || '',
       designation: designation || '',
       joinDate: joinDate || now.split('T')[0],

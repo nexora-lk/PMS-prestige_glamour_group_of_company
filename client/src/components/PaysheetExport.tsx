@@ -103,7 +103,7 @@ export function PaysheetExport() {
           h1 { text-align: center; margin-bottom: 20px; }
           table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
           th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
-          th { background-color: #f5f5f5; font-weight: bold; }
+          th { background-color: #0A0A3E; color: white; font-weight: bold; }
           td:first-child, th:first-child { text-align: left; }
           .page-break { page-break-after: always; }
           .total-row { font-weight: bold; background-color: #f9f9f9; }
@@ -132,21 +132,21 @@ export function PaysheetExport() {
                 <td>${p.role}</td>
                 <td>${p.monthsOfService}</td>
                 <td>${((p.achievementPct || 0) * 100).toFixed(2)}%</td>
-                <td>${(p.grossSalary || 0).toLocaleString()}</td>
-                <td>${(
+                <td>Rs. ${(p.grossSalary || 0).toLocaleString()}</td>
+                <td>Rs. ${(
                   (p.nopayDeduction || 0) +
                   (p.lateDeduction || 0) +
                   (p.epfEmployee || 0)
                 ).toLocaleString()}</td>
-                <td>${(p.netSalary || 0).toLocaleString()}</td>
+                <td>Rs. ${(p.netSalary || 0).toLocaleString()}</td>
               </tr>
             `
               )
               .join('')}
             <tr class="total-row">
               <td colspan="4">TOTAL</td>
-              <td>${paysheets.reduce((sum, p) => sum + (p.grossSalary || 0), 0).toLocaleString()}</td>
-              <td>${paysheets
+              <td>Rs. ${paysheets.reduce((sum, p) => sum + (p.grossSalary || 0), 0).toLocaleString()}</td>
+              <td>Rs. ${paysheets
                 .reduce(
                   (sum, p) =>
                     sum +
@@ -156,7 +156,7 @@ export function PaysheetExport() {
                   0
                 )
                 .toLocaleString()}</td>
-              <td>${paysheets.reduce((sum, p) => sum + (p.netSalary || 0), 0).toLocaleString()}</td>
+              <td>Rs. ${paysheets.reduce((sum, p) => sum + (p.netSalary || 0), 0).toLocaleString()}</td>
             </tr>
           </tbody>
         </table>
@@ -169,180 +169,141 @@ export function PaysheetExport() {
     printWindow.print();
   };
 
+  const formatCurrency = (num: number) =>
+    `Rs. ${num.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
+    <div className="animate-in">
       {/* Header */}
-      <div
-        style={{
-          marginBottom: '24px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          backgroundColor: 'white',
-          padding: '20px',
-          borderRadius: '8px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        }}
-      >
-        <div>
-          <h1 style={{ margin: '0 0 4px 0', fontSize: '28px', fontWeight: 700 }}>
-            📤 Export Paysheets
-          </h1>
-          <p style={{ margin: '0', color: '#666', fontSize: '13px' }}>
+      <div className="card" style={{ marginBottom: 24 }}>
+        <div className="card-header">
+          <h2>Export Paysheets</h2>
+          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 13 }}>
             Export and print paysheet records for reporting
           </p>
         </div>
       </div>
 
       {/* Controls */}
-      <div
-        style={{
-          marginBottom: '24px',
-          backgroundColor: 'white',
-          padding: '20px',
-          borderRadius: '8px',
-          display: 'flex',
-          gap: '16px',
-          alignItems: 'center',
-        }}
-      >
-        <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px' }}>
-            Select Month
-          </label>
-          <input
-            type="month"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            style={{
-              padding: '8px 12px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '14px',
-            }}
-          />
+      <div className="card" style={{ marginBottom: 24 }}>
+        <div className="card-body" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label>Select Month</label>
+            <input
+              type="month"
+              className="form-input"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            />
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={exportToCSV}
+            disabled={exporting || loading || paysheets.length === 0}
+            style={{ marginTop: 20 }}
+          >
+            Export to CSV
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={printPaysheets}
+            disabled={loading || paysheets.length === 0}
+            style={{ marginTop: 20 }}
+          >
+            Print
+          </button>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={exportToCSV}
-          disabled={exporting || loading || paysheets.length === 0}
-          style={{ marginTop: '24px', padding: '8px 16px' }}
-        >
-          📊 Export to CSV
-        </button>
-        <button
-          className="btn btn-secondary"
-          onClick={printPaysheets}
-          disabled={loading || paysheets.length === 0}
-          style={{ marginTop: '24px', padding: '8px 16px' }}
-        >
-          🖨️ Print
-        </button>
       </div>
 
       {/* Results */}
-      <div
-        style={{
-          backgroundColor: 'white',
-          padding: '20px',
-          borderRadius: '8px',
-        }}
-      >
-        {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#999' }}>
-            ⏳ Loading paysheets...
-          </div>
-        ) : paysheets.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#999' }}>
-            📋 No paysheets found for {selectedMonth}
-          </div>
-        ) : (
-          <>
-            <h2 style={{ marginBottom: '16px', fontSize: '16px', fontWeight: 600 }}>
-              {paysheets.length} Paysheets Ready to Export
-            </h2>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+      <div className="card">
+        <div className="table-wrapper">
+          {loading ? (
+            <div className="loading-spinner">
+              <div className="spinner"></div>
+            </div>
+          ) : paysheets.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">📋</div>
+              <p>No paysheets found for {selectedMonth}</p>
+            </div>
+          ) : (
+            <>
+              <div className="card-header">
+                <h2>{paysheets.length} Paysheets Ready to Export</h2>
+              </div>
+              <table className="data-table">
                 <thead>
-                  <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '2px solid #ddd' }}>
-                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: 600 }}>Code</th>
-                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: 600 }}>Role</th>
-                    <th style={{ padding: '12px', textAlign: 'center', fontWeight: 600 }}>Months</th>
-                    <th style={{ padding: '12px', textAlign: 'right', fontWeight: 600 }}>Achievement %</th>
-                    <th style={{ padding: '12px', textAlign: 'right', fontWeight: 600 }}>Gross Salary</th>
-                    <th style={{ padding: '12px', textAlign: 'right', fontWeight: 600 }}>Net Salary</th>
+                  <tr>
+                    <th>Code</th>
+                    <th>Role</th>
+                    <th>Months</th>
+                    <th>Achievement %</th>
+                    <th>Gross Salary</th>
+                    <th>Net Salary</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {paysheets.map((p, i) => (
-                    <tr
-                      key={p.id}
-                      style={{
-                        backgroundColor: i % 2 === 0 ? '#fff' : '#fafafa',
-                        borderBottom: '1px solid #e0e0e0',
-                      }}
-                    >
-                      <td style={{ padding: '10px 12px', fontWeight: 500 }}>{p.codeNo}</td>
-                      <td style={{ padding: '10px 12px' }}>{p.role}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center' }}>{p.monthsOfService}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'right' }}>
-                        {((p.achievementPct || 0) * 100).toFixed(2)}%
+                  {paysheets.map((p) => (
+                    <tr key={p.id}>
+                      <td style={{ fontWeight: 500 }}>{p.codeNo}</td>
+                      <td>{p.role}</td>
+                      <td style={{ textAlign: 'center' }}>{p.monthsOfService}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <span className="badge badge-info">
+                          {((p.achievementPct || 0) * 100).toFixed(2)}%
+                        </span>
                       </td>
-                      <td style={{ padding: '10px 12px', textAlign: 'right' }}>
-                        {(p.grossSalary || 0).toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                        })}
+                      <td style={{ textAlign: 'right' }}>
+                        {formatCurrency(p.grossSalary || 0)}
                       </td>
-                      <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#2e7d32' }}>
-                        {(p.netSalary || 0).toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                        })}
+                      <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--success)' }}>
+                        {formatCurrency(p.netSalary || 0)}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
 
-            {/* Summary Stats */}
-            <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-              <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '4px', textAlign: 'center' }}>
-                <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Total Paysheets</div>
-                <div style={{ fontSize: '20px', fontWeight: 700 }}>{paysheets.length}</div>
-              </div>
-              <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '4px', textAlign: 'center' }}>
-                <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Total Gross</div>
-                <div style={{ fontSize: '16px', fontWeight: 700 }}>
-                  {paysheets.reduce((sum, p) => sum + (p.grossSalary || 0), 0).toLocaleString('en-US', {
-                    minimumFractionDigits: 0,
-                  })}
+              {/* Summary Stats */}
+              <div className="stats-grid" style={{ padding: 24 }}>
+                <div className="stat-card">
+                  <div className="stat-info">
+                    <h3>{paysheets.length}</h3>
+                    <p>Total Paysheets</p>
+                  </div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-info">
+                    <h3>{formatCurrency(paysheets.reduce((sum, p) => sum + (p.grossSalary || 0), 0))}</h3>
+                    <p>Total Gross</p>
+                  </div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-info">
+                    <h3 style={{ color: 'var(--gold-400)' }}>
+                      {formatCurrency(paysheets.reduce((sum, p) => sum + (p.netSalary || 0), 0))}
+                    </h3>
+                    <p>Total Net</p>
+                  </div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-info">
+                    <h3>
+                      {formatCurrency(
+                        paysheets.reduce((sum, p) => sum + (p.netSalary || 0), 0) / paysheets.length
+                      )}
+                    </h3>
+                    <p>Avg Net</p>
+                  </div>
                 </div>
               </div>
-              <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '4px', textAlign: 'center' }}>
-                <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Total Net</div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: '#2e7d32' }}>
-                  {paysheets.reduce((sum, p) => sum + (p.netSalary || 0), 0).toLocaleString('en-US', {
-                    minimumFractionDigits: 0,
-                  })}
-                </div>
-              </div>
-              <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '4px', textAlign: 'center' }}>
-                <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Avg Net</div>
-                <div style={{ fontSize: '16px', fontWeight: 700 }}>
-                  {(
-                    paysheets.reduce((sum, p) => sum + (p.netSalary || 0), 0) / paysheets.length
-                  ).toLocaleString('en-US', {
-                    minimumFractionDigits: 0,
-                  })}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
 export default PaysheetExport;
-

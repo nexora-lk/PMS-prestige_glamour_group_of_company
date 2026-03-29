@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { FiCheckCircle, FiXCircle, FiInfo } from 'react-icons/fi';
 
 interface Toast {
   id: number;
@@ -36,9 +37,9 @@ export function ToastContainer() {
     <div style={{ position: 'fixed', top: 24, right: 24, zIndex: 2000, display: 'flex', flexDirection: 'column', gap: 8 }}>
       {toasts.map((toast) => (
         <div key={toast.id} className={`toast toast-${toast.type}`}>
-          {toast.type === 'success' && '✓'}
-          {toast.type === 'error' && '✕'}
-          {toast.type === 'info' && 'ℹ'}
+          {toast.type === 'success' && <FiCheckCircle size={20} />}
+          {toast.type === 'error' && <FiXCircle size={20} />}
+          {toast.type === 'info' && <FiInfo size={20} />}
           {toast.message}
         </div>
       ))}

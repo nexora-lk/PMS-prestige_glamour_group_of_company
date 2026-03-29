@@ -28,7 +28,7 @@ export async function exportUsersToExcel(users: User[]): Promise<string> {
     { header: 'Last Name', key: 'lastName', width: 18 },
     { header: 'Email', key: 'email', width: 28 },
     { header: 'Phone', key: 'phone', width: 16 },
-    { header: 'Department', key: 'department', width: 18 },
+    { header: 'Branch', key: 'branch', width: 18 },
     { header: 'Role', key: 'role', width: 16 },
     { header: 'Designation', key: 'designation', width: 20 },
     { header: 'Join Date', key: 'joinDate', width: 14 },
@@ -85,7 +85,7 @@ export async function exportPayrollToExcel(records: PayrollRecord[]): Promise<st
 
   sheet.columns = [
     { header: 'Employee', key: 'userName', width: 24 },
-    { header: 'Department', key: 'department', width: 18 },
+    { header: 'Branch', key: 'branch', width: 18 },
     { header: 'Designation', key: 'designation', width: 20 },
     { header: 'Period', key: 'period', width: 12 },
     { header: 'Basic Salary', key: 'basicSalary', width: 14 },

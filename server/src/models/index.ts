@@ -4,14 +4,14 @@ export interface User {
   lastName: string;
   email: string;
   phone: string;
-  department: string;
+  branch: string;
   role: string;
   designation: string;
   joinDate: string;
   basicSalary: number;
   allowances: number;
   deductions: number;
-  status: 'active' | 'inactive';
+  status: 'active' | 'delete';
   createdAt: string;
   updatedAt: string;
 }
@@ -27,7 +27,7 @@ export interface PayrollRecord {
   tax: number;
   grossSalary: number;
   netSalary: number;
-  department: string;
+  branch: string;
   designation: string;
   generatedAt: string;
 }

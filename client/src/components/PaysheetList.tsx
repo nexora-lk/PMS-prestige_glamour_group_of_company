@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
+import { FiSearch, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { paysheetService } from '../services/paysheetService';
 import type { MonthlyPaysheet } from '../types';
 import { showToast } from './Toast';
-import { pgwcsTheme } from '../theme/colors';
 
 interface PaysheetListProps {
   onEdit?: (paysheet: MonthlyPaysheet) => void;
@@ -51,138 +51,96 @@ export function PaysheetList({ onEdit, onDelete, refreshTrigger }: PaysheetListP
     p.role.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  const formatCurrency = (num: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-    }).format(num);
-  };
+  const formatCurrency = (num: number) =>
+    `Rs. ${num.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 
   return (
     <div style={{ width: '100%' }}>
       {/* Filter Controls */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 20, alignItems: 'center' }}>
-        <div style={{ flex: 1 }}>
+      <div className="filter-bar">
+        <div className="search-input">
+          <FiSearch className="search-icon" />
           <input
             type="text"
             placeholder="Search by code or role..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: `1px solid ${pgwcsTheme.neutral[300]}`,
-              borderRadius: '4px',
-              fontSize: '14px',
-              color: pgwcsTheme.navy[900],
-            }}
           />
         </div>
-        <div>
-          <input
-            type="month"
-            value={filterMonth}
-            onChange={(e) => setFilterMonth(e.target.value)}
-            style={{
-              padding: '8px 12px',
-              border: `1px solid ${pgwcsTheme.neutral[300]}`,
-              borderRadius: '4px',
-              fontSize: '14px',
-              color: pgwcsTheme.navy[900],
-            }}
-          />
-        </div>
+        <input
+          type="month"
+          className="form-input"
+          value={filterMonth}
+          onChange={(e) => setFilterMonth(e.target.value)}
+          style={{ width: 'auto' }}
+        />
         <button
           onClick={fetchPaysheets}
           className="btn btn-secondary"
-          style={{ padding: '8px 16px' }}
           disabled={loading}
         >
-          🔄 Refresh
+          Refresh
         </button>
       </div>
 
       {/* Table */}
-      <div style={{ overflowX: 'auto', border: `1px solid ${pgwcsTheme.neutral[200]}`, borderRadius: '4px' }}>
+      <div className="table-wrapper">
         {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: pgwcsTheme.neutral[500] }}>
-            ⏳ Loading paysheets...
+          <div className="loading-spinner">
+            <div className="spinner"></div>
           </div>
         ) : filteredPaysheets.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: pgwcsTheme.neutral[500] }}>
-            📋 No paysheets found for {filterMonth}
+          <div className="empty-state">
+            <div className="empty-state-icon">📋</div>
+            <p>No paysheets found for {filterMonth}</p>
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+          <table className="data-table">
             <thead>
-              <tr style={{ backgroundColor: pgwcsTheme.neutral[100], borderBottom: `2px solid ${pgwcsTheme.neutral[200]}` }}>
-                <th style={{ padding: '12px', textAlign: 'left', fontWeight: 600, color: pgwcsTheme.navy[900] }}>Code</th>
-                <th style={{ padding: '12px', textAlign: 'left', fontWeight: 600, color: pgwcsTheme.navy[900] }}>Role</th>
-                <th style={{ padding: '12px', textAlign: 'left', fontWeight: 600, color: pgwcsTheme.navy[900] }}>Months</th>
-                <th style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: pgwcsTheme.navy[900] }}>Achievement %</th>
-                <th style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: pgwcsTheme.navy[900] }}>Gross Salary</th>
-                <th style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: pgwcsTheme.navy[900] }}>Net Salary</th>
-                <th style={{ padding: '12px', textAlign: 'center', fontWeight: 600, color: pgwcsTheme.navy[900] }}>Actions</th>
+              <tr>
+                <th>Code</th>
+                <th>Role</th>
+                <th>Months</th>
+                <th>Achievement %</th>
+                <th>Gross Salary</th>
+                <th>Net Salary</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredPaysheets.map((paysheet, index) => (
-                <tr
-                  key={paysheet.id}
-                  style={{
-                    backgroundColor: index % 2 === 0 ? pgwcsTheme.neutral[100] : pgwcsTheme.neutral[50],
-                    borderBottom: `1px solid ${pgwcsTheme.neutral[200]}`,
-                  }}
-                >
-                  <td style={{ padding: '12px', fontWeight: 500, color: pgwcsTheme.navy[900] }}>{paysheet.codeNo}</td>
-                  <td style={{ padding: '12px', color: pgwcsTheme.navy[900] }}>{paysheet.role}</td>
-                  <td style={{ padding: '12px', textAlign: 'center', color: pgwcsTheme.navy[900] }}>{paysheet.monthsOfService}</td>
-                  <td style={{ padding: '12px', textAlign: 'right' }}>
-                    <span style={{
-                      backgroundColor: pgwcsTheme.neutral[100],
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      color: pgwcsTheme.navy[600],
-                      fontWeight: 600,
-                    }}>
+              {filteredPaysheets.map((paysheet) => (
+                <tr key={paysheet.id}>
+                  <td style={{ fontWeight: 500 }}>{paysheet.codeNo}</td>
+                  <td>{paysheet.role}</td>
+                  <td style={{ textAlign: 'center' }}>{paysheet.monthsOfService}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span className="badge badge-info">
                       {((paysheet.achievementPct || 0) * 100).toFixed(2)}%
                     </span>
                   </td>
-                  <td style={{ padding: '12px', textAlign: 'right', fontWeight: 500, color: pgwcsTheme.navy[900] }}>
+                  <td style={{ textAlign: 'right', fontWeight: 500 }}>
                     {formatCurrency(paysheet.grossSalary || 0)}
                   </td>
-                  <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: pgwcsTheme.gold[700] }}>
+                  <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--gold-400)' }}>
                     {formatCurrency(paysheet.netSalary || 0)}
                   </td>
-                  <td style={{ padding: '12px', textAlign: 'center' }}>
-                    <button
-                      onClick={() => onEdit?.(paysheet)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        marginRight: '8px',
-                      }}
-                      aria-label="Edit"
-                      title="Edit"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      onClick={() => handleDelete(paysheet.id!)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                      }}
-                      aria-label="Delete"
-                      title="Delete"
-                    >
-                      🗑️
-                    </button>
+                  <td>
+                    <div className="actions">
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => onEdit?.(paysheet)}
+                        title="Edit"
+                      >
+                        <FiEdit2 size={16} />
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-danger btn-sm"
+                        onClick={() => handleDelete(paysheet.id!)}
+                        title="Delete"
+                      >
+                        <FiTrash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -193,27 +151,33 @@ export function PaysheetList({ onEdit, onDelete, refreshTrigger }: PaysheetListP
 
       {/* Stats */}
       {filteredPaysheets.length > 0 && (
-        <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-          <div style={{ backgroundColor: pgwcsTheme.neutral[100], padding: 12, borderRadius: 4, textAlign: 'center' }}>
-            <div style={{ fontSize: '12px', color: pgwcsTheme.neutral[500], marginBottom: 4 }}>Total Paysheets</div>
-            <div style={{ fontSize: '20px', fontWeight: 700, color: pgwcsTheme.navy[900] }}>{filteredPaysheets.length}</div>
-          </div>
-          <div style={{ backgroundColor: pgwcsTheme.neutral[100], padding: 12, borderRadius: 4, textAlign: 'center' }}>
-            <div style={{ fontSize: '12px', color: pgwcsTheme.neutral[500], marginBottom: 4 }}>Total Gross</div>
-            <div style={{ fontSize: '16px', fontWeight: 700, color: pgwcsTheme.navy[900] }}>
-              {formatCurrency(filteredPaysheets.reduce((sum, p) => sum + (p.grossSalary || 0), 0))}
+        <div className="stats-grid" style={{ marginTop: 20 }}>
+          <div className="stat-card">
+            <div className="stat-info">
+              <h3>{filteredPaysheets.length}</h3>
+              <p>Total Paysheets</p>
             </div>
           </div>
-          <div style={{ backgroundColor: pgwcsTheme.neutral[100], padding: 12, borderRadius: 4, textAlign: 'center' }}>
-            <div style={{ fontSize: '12px', color: pgwcsTheme.neutral[500], marginBottom: 4 }}>Total Net</div>
-            <div style={{ fontSize: '16px', fontWeight: 700, color: pgwcsTheme.gold[700] }}>
-              {formatCurrency(filteredPaysheets.reduce((sum, p) => sum + (p.netSalary || 0), 0))}
+          <div className="stat-card">
+            <div className="stat-info">
+              <h3>{formatCurrency(filteredPaysheets.reduce((sum, p) => sum + (p.grossSalary || 0), 0))}</h3>
+              <p>Total Gross</p>
             </div>
           </div>
-          <div style={{ backgroundColor: pgwcsTheme.neutral[100], padding: 12, borderRadius: 4, textAlign: 'center' }}>
-            <div style={{ fontSize: '12px', color: pgwcsTheme.neutral[500], marginBottom: 4 }}>Avg Net</div>
-            <div style={{ fontSize: '16px', fontWeight: 700, color: pgwcsTheme.navy[900] }}>
-              {formatCurrency(filteredPaysheets.reduce((sum, p) => sum + (p.netSalary || 0), 0) / filteredPaysheets.length)}
+          <div className="stat-card">
+            <div className="stat-info">
+              <h3 style={{ color: 'var(--gold-400)' }}>
+                {formatCurrency(filteredPaysheets.reduce((sum, p) => sum + (p.netSalary || 0), 0))}
+              </h3>
+              <p>Total Net</p>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-info">
+              <h3>
+                {formatCurrency(filteredPaysheets.reduce((sum, p) => sum + (p.netSalary || 0), 0) / filteredPaysheets.length)}
+              </h3>
+              <p>Avg Net</p>
             </div>
           </div>
         </div>
@@ -221,4 +185,3 @@ export function PaysheetList({ onEdit, onDelete, refreshTrigger }: PaysheetListP
     </div>
   );
 }
-

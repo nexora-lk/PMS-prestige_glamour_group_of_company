@@ -80,7 +80,7 @@ router.get('/history', (req: Request, res: Response): void => {
       records = records.filter(
         (r) =>
           r.userName.toLowerCase().includes(q) ||
-          r.department.toLowerCase().includes(q)
+          r.branch.toLowerCase().includes(q)
       );
     }
 

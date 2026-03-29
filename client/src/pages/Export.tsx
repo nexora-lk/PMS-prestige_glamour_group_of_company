@@ -1,43 +1,32 @@
 import { useState } from 'react';
-import api from '../services/api';
+import { exportService } from '../services/exportService';
 import { showToast } from '../components/Toast';
 
 export default function Export() {
   const [isExportingUsers, setIsExportingUsers] = useState(false);
   const [isExportingPayroll, setIsExportingPayroll] = useState(false);
-  const [isBackingUp, setIsBackingUp] = useState(false);
 
-  const handleDownload = async (url: string, filename: string, setLoader: (val: boolean) => void) => {
+  const handleExportUsers = async () => {
     try {
-      setLoader(true);
-      const res = await api.get(url, { responseType: 'blob' });
-      const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      showToast('Export successful', 'success');
+      setIsExportingUsers(true);
+      await exportService.downloadUsersExcel();
+      showToast('Users export successful', 'success');
     } catch (err: any) {
-      showToast(
-        err.response?.data?.error || 'Export failed. Ensure data exists before exporting.',
-        'error'
-      );
+      showToast(err.message || 'Export failed', 'error');
     } finally {
-      setLoader(false);
+      setIsExportingUsers(false);
     }
   };
 
-  const handleBackup = async () => {
+  const handleExportPayroll = async () => {
     try {
-      setIsBackingUp(true);
-      const res = await api.post('/export/backup');
-      showToast(res.data.message, 'info');
-    } catch (err) {
-      showToast('Backup failed', 'error');
+      setIsExportingPayroll(true);
+      await exportService.downloadPayrollExcel();
+      showToast('Payroll export successful', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Export failed', 'error');
     } finally {
-      setIsBackingUp(false);
+      setIsExportingPayroll(false);
     }
   };
 
@@ -52,7 +41,7 @@ export default function Export() {
           <p>Download a complete Excel (.xlsx) report of all employee profiles and salary information.</p>
           <button
             className="btn btn-primary btn-full"
-            onClick={() => handleDownload('/export/users-excel', 'employee_data.xlsx', setIsExportingUsers)}
+            onClick={handleExportUsers}
             disabled={isExportingUsers}
           >
             {isExportingUsers ? 'Exporting...' : 'Export to Excel'}
@@ -67,7 +56,7 @@ export default function Export() {
           <p>Download a complete Excel (.xlsx) report of all generated pay sheets and tax deductions.</p>
           <button
             className="btn btn-primary btn-full"
-            onClick={() => handleDownload('/export/payroll-excel', 'payroll_history.xlsx', setIsExportingPayroll)}
+            onClick={handleExportPayroll}
             disabled={isExportingPayroll}
           >
             {isExportingPayroll ? 'Exporting...' : 'Export to Excel'}
@@ -76,16 +65,15 @@ export default function Export() {
 
         <div className="export-card stagger-3">
           <div className="export-icon" style={{ background: 'rgba(168, 85, 247, 0.1)', color: '#a855f7' }}>
-            ☁️
+            ℹ️
           </div>
-          <h3>Google Drive Backup</h3>
-          <p>Auto-sync the latest Excel backups directly to your connected Google drive.</p>
+          <h3>Backup Information</h3>
+          <p>Google Drive backup feature requires OAuth2 setup. See documentation for configuration details.</p>
           <button
             className="btn btn-secondary btn-full"
-            onClick={handleBackup}
-            disabled={isBackingUp}
+            disabled
           >
-            {isBackingUp ? 'Syncing...' : 'Trigger Backup Now'}
+            Setup Backup
           </button>
         </div>
       </div>

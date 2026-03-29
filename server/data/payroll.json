@@ -13,5 +13,35 @@
     "designation": "sdfgsd",
     "id": "a0a4c849-b6d1-42bf-9ef1-1a123abc452b",
     "generatedAt": "2026-03-27T18:17:00.625Z"
+  },
+  {
+    "userId": "42feece8-ce8a-4b26-af06-de747e024f34",
+    "userName": "test  test",
+    "period": "2026-03",
+    "basicSalary": 0,
+    "allowances": 0.01,
+    "deductions": 0.01,
+    "tax": 0,
+    "grossSalary": 0.01,
+    "netSalary": 0,
+    "department": "sdfg",
+    "designation": "sdgf",
+    "id": "e398e66d-bf86-41f7-a2d6-e38d225649c1",
+    "generatedAt": "2026-03-29T06:04:13.039Z"
+  },
+  {
+    "userId": "e455a767-0714-478a-843c-2221a7f8ade4",
+    "userName": "Heshan Kavinda",
+    "period": "2026-03",
+    "basicSalary": 200000,
+    "allowances": 10000,
+    "deductions": 500,
+    "tax": 22499.8,
+    "grossSalary": 210000,
+    "netSalary": 187000.2,
+    "department": "HR",
+    "designation": "HR&Finantial Head",
+    "id": "68210821-ae69-4a5a-a4ba-2bc8d01087bd",
+    "generatedAt": "2026-03-29T07:25:08.101Z"
   }
 ]

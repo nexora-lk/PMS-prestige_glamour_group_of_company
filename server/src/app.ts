@@ -4,6 +4,7 @@ import path from 'path';
 import authRoutes from './controllers/auth';
 import userRoutes from './controllers/users';
 import payrollRoutes from './controllers/payroll';
+import paysheetRoutes from './controllers/paysheets';
 import exportRoutes from './controllers/export';
 import { authMiddleware } from './middleware/auth';
 
@@ -25,6 +26,7 @@ app.use('/exports', express.static(path.join(__dirname, '..', 'exports')));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', authMiddleware, userRoutes);
 app.use('/api/payroll', authMiddleware, payrollRoutes);
+app.use('/api/paysheets', authMiddleware, paysheetRoutes);
 app.use('/api/export', authMiddleware, exportRoutes);
 
 // Health check

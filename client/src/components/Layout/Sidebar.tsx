@@ -14,6 +14,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     { path: '/', label: 'Dashboard', icon: '📊' },
     { path: '/users', label: 'Users', icon: '👥' },
     { path: '/payroll', label: 'Payroll', icon: '💰' },
+    { path: '/paysheets', label: 'Monthly Paysheets', icon: '📋' },
     { path: '/export', label: 'Export & Backup', icon: '💾' },
   ];
 

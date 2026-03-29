@@ -15,5 +15,22 @@
     "status": "active",
     "createdAt": "2026-03-27T18:15:09.582Z",
     "updatedAt": "2026-03-27T18:15:54.768Z"
+  },
+  {
+    "id": "42feece8-ce8a-4b26-af06-de747e024f34",
+    "firstName": "test ",
+    "lastName": "test",
+    "email": "sdafa@gmail.com",
+    "phone": "1241234",
+    "department": "sdfg",
+    "role": "sdfgds",
+    "designation": "sdgf",
+    "joinDate": "2026-03-20",
+    "basicSalary": 0,
+    "allowances": 0.01,
+    "deductions": 0.01,
+    "status": "active",
+    "createdAt": "2026-03-29T05:46:46.014Z",
+    "updatedAt": "2026-03-29T05:46:46.014Z"
   }
 ]

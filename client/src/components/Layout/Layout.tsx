@@ -8,6 +8,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/users': { title: 'User Management', subtitle: 'Manage employees and their data' },
   '/users/new': { title: 'Add New User', subtitle: 'Create a new employee record' },
   '/payroll': { title: 'Payroll', subtitle: 'Generate and manage pay sheets' },
+  '/paysheets': { title: 'Monthly Paysheets', subtitle: 'Create and manage monthly paysheets' },
   '/export': { title: 'Export & Backup', subtitle: 'Download data and manage backups' },
 };
 

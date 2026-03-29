@@ -68,3 +68,53 @@ export interface PayrollHistoryResponse {
   records: PayrollRecord[];
   total: number;
 }
+
+export interface MonthlyPaysheet {
+  id?: string;
+  employeeId: string;
+  codeNo: string;
+  payMonth: string;
+  role: string;
+  monthsOfService: number;
+
+  // Input Fields
+  achieve: number;
+  allowance: number;
+  nopay: number;
+  late: number;
+  epfAvailability: boolean;
+  etfAvailability: boolean;
+  welfare: number;
+  otherOfficers: number;
+
+  // Calculated Results
+  basicSalary?: number;
+  assignedTarget?: number;
+  achievementPct?: number;
+  grossSalary?: number;
+  vehicleAllowance?: number;
+  fuelAllowance?: number;
+  generalAllowance?: number;
+  otherOffer?: number;
+  orc?: number;
+  subTotal?: number;
+  nopayDeduction?: number;
+  lateDeduction?: number;
+  epfEmployee?: number;
+  epfEmployer?: number;
+  etf?: number;
+  netSalary?: number;
+
+  // Metadata
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PaysheetResponse {
+  paysheets: MonthlyPaysheet[];
+  total: number;
+}
+
+export interface PaysheetDetailResponse {
+  paysheet: MonthlyPaysheet;
+}

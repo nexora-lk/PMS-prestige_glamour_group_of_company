@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import UserForm from './pages/UserForm';
 import Payroll from './pages/Payroll';
+import MonthlyPaysheets from './pages/MonthlyPaysheets';
 import Export from './pages/Export';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="users" element={<Users />} />
             <Route path="users/:id" element={<UserForm />} />
             <Route path="payroll" element={<Payroll />} />
+            <Route path="paysheets" element={<MonthlyPaysheets />} />
             <Route path="export" element={<Export />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

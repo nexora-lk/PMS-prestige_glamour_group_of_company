@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import { userService } from '../services/userService';
 import type { StatsResponse } from '../types';
 import { showToast } from '../components/Toast';
 
@@ -12,10 +12,10 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await api.get<StatsResponse>('/users/stats');
-        setStats(res.data);
-      } catch (err) {
-        showToast('Failed to load dashboard stats', 'error');
+        const res = await userService.getStats();
+        setStats(res);
+      } catch (err: any) {
+        showToast(err.message || 'Failed to load dashboard stats', 'error');
       } finally {
         setLoading(false);
       }

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import api from '../services/api';
-import type { User, PayrollRecord, PayrollHistoryResponse } from '../types';
+import { payrollService } from '../services/payrollService';
+import { userService } from '../services/userService';
+import type { User, PayrollRecord } from '../types';
 import { showToast } from '../components/Toast';
 
 export default function Payroll() {
@@ -11,9 +12,10 @@ export default function Payroll() {
   const [loading, setLoading] = useState(false);
 
   // Generate State
-  const [selectedUserId, setSelectedUserId] = useState<string>('all');
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
   const [generatedRecords, setGeneratedRecords] = useState<PayrollRecord[]>([]);
+  const [generating, setGenerating] = useState(false);
 
   // Print Ref
   const printRef = useRef<HTMLDivElement>(null);
@@ -30,20 +32,20 @@ export default function Payroll() {
 
   const fetchUsers = async () => {
     try {
-      const res = await api.get('/users?limit=1000&status=active');
-      setUsers(res.data.users);
-    } catch (err) {
-      showToast('Failed to load active employees', 'error');
+      const res = await userService.listUsers({ status: 'active', limit: 1000 });
+      setUsers(res.users);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to load active employees', 'error');
     }
   };
 
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      const res = await api.get<PayrollHistoryResponse>('/payroll/history');
-      setHistory(res.data.records);
-    } catch (err) {
-      showToast('Failed to load payroll history', 'error');
+      const res = await payrollService.getPayrollHistory();
+      setHistory(res.records);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to load payroll history', 'error');
     } finally {
       setLoading(false);
     }
@@ -53,20 +55,19 @@ export default function Payroll() {
     e.preventDefault();
     if (!period) return showToast('Please select a period', 'error');
 
-    setLoading(true);
+    setGenerating(true);
     try {
-      const payload = {
-        userIds: selectedUserId === 'all' ? undefined : [selectedUserId],
+      const res = await payrollService.generatePayroll({
+        userIds: selectedUserIds.length > 0 ? selectedUserIds : undefined,
         period,
-      };
-      const res = await api.post('/payroll/generate', payload);
-      setGeneratedRecords(res.data.records);
-      showToast(res.data.message, 'success');
+      });
+      setGeneratedRecords(res.records);
+      showToast(res.message, 'success');
       fetchHistory(); // Refresh history
     } catch (err: any) {
-      showToast(err.response?.data?.error || 'Failed to generate payroll', 'error');
+      showToast(err.message || 'Failed to generate payroll', 'error');
     } finally {
-      setLoading(false);
+      setGenerating(false);
     }
   };
 
@@ -74,6 +75,7 @@ export default function Payroll() {
     setGeneratedRecords([record]);
     setActiveTab('generate');
   };
+
 
   return (
     <div className="animate-in">
@@ -115,10 +117,14 @@ export default function Payroll() {
                   <label>Select Employee(s)</label>
                   <select
                     className="form-select"
-                    value={selectedUserId}
-                    onChange={(e) => setSelectedUserId(e.target.value)}
+                    multiple
+                    value={selectedUserIds}
+                    onChange={(e) =>
+                      setSelectedUserIds(
+                        Array.from(e.target.selectedOptions, (option) => option.value)
+                      )
+                    }
                   >
-                    <option value="all">All Active Employees ({users.length})</option>
                     {users.map((u) => (
                       <option key={u.id} value={u.id}>
                         {u.firstName} {u.lastName} ({u.department})
@@ -126,11 +132,15 @@ export default function Payroll() {
                     ))}
                   </select>
                   <p className="text-muted" style={{ fontSize: 11, marginTop: 6 }}>
-                    Note: Generates paysheet based on current salary info in Employee profile.
+                    Note: Leave empty to generate for all active employees. Hold Ctrl/Cmd to select multiple.
                   </p>
                 </div>
-                <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
-                  {loading ? 'Processing...' : 'Generate Pay Sheet'}
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-full"
+                  disabled={generating}
+                >
+                  {generating ? 'Processing...' : 'Generate Pay Sheet'}
                 </button>
               </form>
             </div>

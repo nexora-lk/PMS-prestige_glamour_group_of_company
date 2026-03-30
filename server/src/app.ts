@@ -7,6 +7,7 @@ import userRoutes from './controllers/users';
 import payrollRoutes from './controllers/payroll';
 import paysheetRoutes from './controllers/paysheets';
 import payslipRoutes from './controllers/payslips';
+import dotMatrixRoutes from './controllers/dotMatrix';
 import exportRoutes from './controllers/export';
 import { authMiddleware } from './middleware/auth';
 import logger from './utils/logger';
@@ -31,6 +32,7 @@ app.use('/api/users', authMiddleware, userRoutes);
 app.use('/api/payroll', authMiddleware, payrollRoutes);
 app.use('/api/paysheets', authMiddleware, paysheetRoutes);
 app.use('/api/payslips', authMiddleware, payslipRoutes);
+app.use('/api/dot-matrix', authMiddleware, dotMatrixRoutes);
 app.use('/api/export', authMiddleware, exportRoutes);
 
 // Health check

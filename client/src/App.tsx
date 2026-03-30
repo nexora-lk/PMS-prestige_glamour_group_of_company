@@ -11,6 +11,7 @@ import UserForm from './pages/UserForm';
 import Payroll from './pages/Payroll';
 import MonthlyPaysheets from './pages/MonthlyPaysheets';
 import PayslipGeneration from './pages/PayslipGeneration';
+import DotMatrixPrinting from './pages/DotMatrixPrinting';
 import Export from './pages/Export';
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="payroll" element={<Payroll />} />
             <Route path="paysheets" element={<MonthlyPaysheets />} />
             <Route path="payslip-generation" element={<PayslipGeneration />} />
+            <Route path="dot-matrix" element={<DotMatrixPrinting />} />
             <Route path="export" element={<Export />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

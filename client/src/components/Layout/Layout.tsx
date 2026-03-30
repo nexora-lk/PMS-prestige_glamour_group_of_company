@@ -10,6 +10,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/payroll': { title: 'Payroll', subtitle: 'Generate and manage pay sheets' },
   '/paysheets': { title: 'Monthly Paysheets', subtitle: 'Create and manage monthly paysheets' },
   '/payslip-generation': { title: 'Payslip PDFs', subtitle: 'Generate bulk PDF payslips with high performance' },
+  '/dot-matrix': { title: 'Dot Matrix Printing', subtitle: 'Generate and print text payslips for dot matrix printers' },
   '/export': { title: 'Export & Backup', subtitle: 'Download data and manage backups' },
 };
 

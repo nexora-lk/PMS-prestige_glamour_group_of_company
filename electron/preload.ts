@@ -1,6 +1,8 @@
-import { contextBridge } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
 
-// Expose safe APIs to the renderer process
+// Expose a minimal, safe API to the renderer process.
+// Never expose full Node.js or Electron APIs.
 contextBridge.exposeInMainWorld('electronAPI', {
-  // Add backend-specific electron APIs here if necessary
+  getAppVersion: (): Promise<string> => ipcRenderer.invoke('get-app-version'),
+  isProduction: (): boolean => process.env.NODE_ENV === 'production',
 });

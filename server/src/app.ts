@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -5,8 +6,10 @@ import authRoutes from './controllers/auth';
 import userRoutes from './controllers/users';
 import payrollRoutes from './controllers/payroll';
 import paysheetRoutes from './controllers/paysheets';
+import payslipRoutes from './controllers/payslips';
 import exportRoutes from './controllers/export';
 import { authMiddleware } from './middleware/auth';
+import logger from './utils/logger';
 
 const app = express();
 const PORT = process.env.PORT || 4500;
@@ -27,6 +30,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', authMiddleware, userRoutes);
 app.use('/api/payroll', authMiddleware, payrollRoutes);
 app.use('/api/paysheets', authMiddleware, paysheetRoutes);
+app.use('/api/payslips', authMiddleware, payslipRoutes);
 app.use('/api/export', authMiddleware, exportRoutes);
 
 // Health check
@@ -45,9 +49,9 @@ app.get('*', (_req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`\n🚀 PMS Application Server running on http://localhost:${PORT}`);
-  console.log(`📁 Data stored in: ${path.join(__dirname, '..', 'data')}`);
-  console.log(`🔐 Default login: admin / admin123\n`);
+  logger.info(`PMS Application Server running on http://localhost:${PORT}`);
+  logger.info(`Data stored in: ${path.join(__dirname, '..', 'data')}`);
+  logger.info('Default login: admin / admin123');
 });
 
 export default app;

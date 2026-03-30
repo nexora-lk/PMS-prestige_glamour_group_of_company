@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { readSingleJSON, writeSingleJSON } from '../services/jsonStore';
-import { generateToken } from '../middleware/auth';
+import { generateToken, authMiddleware } from '../middleware/auth';
 import { AdminCredentials } from '../models';
 
 const router = Router();
@@ -63,8 +63,8 @@ router.post('/login', (req: Request, res: Response): void => {
   }
 });
 
-// GET /api/auth/me
-router.get('/me', (req: Request, res: Response): void => {
+// GET /api/auth/me — Protected: requires valid JWT
+router.get('/me', authMiddleware, (req: Request, res: Response): void => {
   const admin = readSingleJSON<AdminCredentials>('admin.json');
   if (!admin) {
     res.status(404).json({ error: 'Admin not found.' });

@@ -58,5 +58,35 @@
     "designation": "sbsg",
     "id": "93d8b2b6-53ec-4905-8ca3-64727171731f",
     "generatedAt": "2026-03-29T13:37:46.694Z"
+  },
+  {
+    "userId": "f45d0353-9273-47d1-8c38-8551a93245cd",
+    "userName": "Heshan Kavinda",
+    "period": "2026-03",
+    "basicSalary": 275000,
+    "allowances": 0,
+    "deductions": 0,
+    "tax": 35499.8,
+    "grossSalary": 275000,
+    "netSalary": 239500.2,
+    "branch": ",ajecbljkcdnd",
+    "designation": "mjhgwcbhj",
+    "id": "f1640acb-eb3a-4d69-9b91-3721dca30c82",
+    "generatedAt": "2026-03-30T04:47:31.294Z"
+  },
+  {
+    "userId": "766bca78-2dc6-473c-8456-d44d006cfd48",
+    "userName": "Nidarsha Liyanaarachchi",
+    "period": "2026-03",
+    "basicSalary": 275000,
+    "allowances": 0,
+    "deductions": 0,
+    "tax": 35499.8,
+    "grossSalary": 275000,
+    "netSalary": 239500.2,
+    "branch": "Maggona",
+    "designation": "",
+    "id": "f633b199-9ed6-46a6-a6d5-bb7a0b1671d1",
+    "generatedAt": "2026-03-30T04:54:15.889Z"
   }
 ]

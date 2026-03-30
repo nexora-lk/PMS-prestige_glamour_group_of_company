@@ -26,8 +26,8 @@ export const usePaysheets = (options: UsePaysheetOptions = {}) => {
         const data = await paysheetService.listPaysheets(options);
         setPaysheets(data.paysheets);
         setResponse(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch paysheets');
       } finally {
         setLoading(false);
       }
@@ -37,35 +37,20 @@ export const usePaysheets = (options: UsePaysheetOptions = {}) => {
   }, [options.employeeId, options.payMonth, options.role, options.search, options.skip]);
 
   const createPaysheet = async (data: Omit<MonthlyPaysheet, 'id' | 'createdAt' | 'updatedAt'>) => {
-    try {
-      const result = await paysheetService.createPaysheet(data);
-      setPaysheets([...paysheets, result.paysheet]);
-      return result.paysheet;
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    }
+    const result = await paysheetService.createPaysheet(data);
+    setPaysheets([...paysheets, result.paysheet]);
+    return result.paysheet;
   };
 
   const updatePaysheet = async (id: string, updates: Partial<MonthlyPaysheet>) => {
-    try {
-      const result = await paysheetService.updatePaysheet(id, updates);
-      setPaysheets(paysheets.map((p) => (p.id === id ? result.paysheet : p)));
-      return result.paysheet;
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    }
+    const result = await paysheetService.updatePaysheet(id, updates);
+    setPaysheets(paysheets.map((p) => (p.id === id ? result.paysheet : p)));
+    return result.paysheet;
   };
 
   const deletePaysheet = async (id: string) => {
-    try {
-      await paysheetService.deletePaysheet(id);
-      setPaysheets(paysheets.filter((p) => p.id !== id));
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    }
+    await paysheetService.deletePaysheet(id);
+    setPaysheets(paysheets.filter((p) => p.id !== id));
   };
 
   const refreshPaysheets = async () => {
@@ -73,20 +58,10 @@ export const usePaysheets = (options: UsePaysheetOptions = {}) => {
       const data = await paysheetService.listPaysheets(options);
       setPaysheets(data.paysheets);
       setResponse(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch paysheets');
     }
   };
 
-  return {
-    paysheets,
-    loading,
-    error,
-    response,
-    createPaysheet,
-    updatePaysheet,
-    deletePaysheet,
-    refreshPaysheets,
-  };
+  return { paysheets, loading, error, response, createPaysheet, updatePaysheet, deletePaysheet, refreshPaysheets };
 };
-

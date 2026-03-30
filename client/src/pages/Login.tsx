@@ -22,8 +22,9 @@ export default function Login() {
       await login(username, password);
       showToast('Login successful', 'success');
       navigate('/');
-    } catch (err: any) {
-      showToast(err.response?.data?.error || 'Login failed', 'error');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Login failed';
+      showToast(message, 'error');
     } finally {
       setIsLoading(false);
     }

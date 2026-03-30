@@ -43,8 +43,8 @@ export function MonthlyPaysheetForm({
     try {
       const res = await userService.listUsers({ status: 'active', limit: 1000 });
       setUsers(res.users);
-    } catch (err: any) {
-      showToast(err.message || 'Failed to load employees', 'error');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to load employees', 'error');
     }
   };
 
@@ -98,8 +98,8 @@ export function MonthlyPaysheetForm({
         showToast('Paysheet created successfully', 'success');
       }
       onSuccess?.();
-    } catch (error: any) {
-      showToast(error.message || 'Failed to save paysheet', 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed to save paysheet', 'error');
     } finally {
       setLoading(false);
     }

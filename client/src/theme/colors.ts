@@ -66,14 +66,15 @@ export const pgwcsTheme = {
  */
 export function getColor(path: string): string {
   const keys = path.split('.');
-  let value: any = pgwcsTheme;
-  
+  let value: unknown = pgwcsTheme;
+
   for (const key of keys) {
-    value = value[key];
+    if (typeof value !== 'object' || value === null) return '#000000';
+    value = (value as Record<string, unknown>)[key];
     if (value === undefined) return '#000000';
   }
-  
-  return value as string;
+
+  return typeof value === 'string' ? value : '#000000';
 }
 
 export default pgwcsTheme;

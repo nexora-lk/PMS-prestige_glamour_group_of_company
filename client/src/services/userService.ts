@@ -12,13 +12,18 @@ interface UserListParams {
   limit?: number;
 }
 
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
+
 export const userService = {
   async listUsers(params: UserListParams = {}): Promise<UsersResponse> {
     try {
       const response = await api.get<UsersResponse>('/users', { params });
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to fetch users');
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to fetch users'));
     }
   },
 
@@ -26,19 +31,17 @@ export const userService = {
     try {
       const response = await api.get<User>(`/users/${id}`);
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to fetch user');
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to fetch user'));
     }
   },
 
-  async createUser(
-    user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>
-  ): Promise<User> {
+  async createUser(user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
     try {
       const response = await api.post<User>('/users', user);
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to create user');
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to create user'));
     }
   },
 
@@ -46,8 +49,8 @@ export const userService = {
     try {
       const response = await api.put<User>(`/users/${id}`, updates);
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to update user');
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to update user'));
     }
   },
 
@@ -55,8 +58,8 @@ export const userService = {
     try {
       const response = await api.delete(`/users/${id}`);
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to delete user');
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to delete user'));
     }
   },
 
@@ -64,9 +67,8 @@ export const userService = {
     try {
       const response = await api.get<StatsResponse>('/users/stats');
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to fetch stats');
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to fetch stats'));
     }
   },
 };
-

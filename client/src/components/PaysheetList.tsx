@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FiSearch, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { paysheetService } from '../services/paysheetService';
+import { formatCurrency } from '../utils/format';
 import type { MonthlyPaysheet } from '../types';
 import { showToast } from './Toast';
 
@@ -25,8 +26,8 @@ export function PaysheetList({ onEdit, onDelete, refreshTrigger }: PaysheetListP
     try {
       const res = await paysheetService.getMonthPaysheets(filterMonth);
       setPaysheets(res.paysheets);
-    } catch (err: any) {
-      showToast(err.message || 'Failed to load paysheets', 'error');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to load paysheets', 'error');
     } finally {
       setLoading(false);
     }
@@ -41,8 +42,8 @@ export function PaysheetList({ onEdit, onDelete, refreshTrigger }: PaysheetListP
       showToast('Paysheet deleted successfully', 'success');
       fetchPaysheets();
       onDelete?.(paysheet!);
-    } catch (error: any) {
-      showToast(error.message || 'Failed to delete paysheet', 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed to delete paysheet', 'error');
     }
   };
 
@@ -50,9 +51,6 @@ export function PaysheetList({ onEdit, onDelete, refreshTrigger }: PaysheetListP
     p.codeNo.toLowerCase().includes(searchText.toLowerCase()) ||
     p.role.toLowerCase().includes(searchText.toLowerCase())
   );
-
-  const formatCurrency = (num: number) =>
-    `Rs. ${num.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 
   return (
     <div style={{ width: '100%' }}>

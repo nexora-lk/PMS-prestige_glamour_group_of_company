@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
+import { FiSearch } from 'react-icons/fi';
 import { useReactToPrint } from 'react-to-print';
 import { payrollService } from '../services/payrollService';
 import { userService } from '../services/userService';
+import { BRANCHES } from '../constants/branches';
+import { formatCurrency } from '../utils/format';
 import type { User, PayrollRecord, MonthlyPaysheet } from '../types';
 import { showToast } from '../components/Toast';
 import { PaysheetGeneration } from '../components/PaysheetGeneration';
@@ -63,6 +66,11 @@ export default function Payroll() {
   const [history, setHistory] = useState<PayrollRecord[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // History Filter State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterPeriod, setFilterPeriod] = useState('');
+  const [filterBranch, setFilterBranch] = useState('');
+
   // Generate State
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7));
@@ -86,8 +94,8 @@ export default function Payroll() {
     try {
       const res = await userService.listUsers({ status: 'active', limit: 1000 });
       setUsers(res.users);
-    } catch (err: any) {
-      showToast(err.message || 'Failed to load active employees', 'error');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to load active employees', 'error');
     }
   };
 
@@ -96,8 +104,8 @@ export default function Payroll() {
       setLoading(true);
       const res = await payrollService.getPayrollHistory();
       setHistory(res.records);
-    } catch (err: any) {
-      showToast(err.message || 'Failed to load payroll history', 'error');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to load payroll history', 'error');
     } finally {
       setLoading(false);
     }
@@ -116,8 +124,8 @@ export default function Payroll() {
       setGeneratedRecords(res.records);
       showToast(res.message, 'success');
       fetchHistory();
-    } catch (err: any) {
-      showToast(err.message || 'Failed to generate payroll', 'error');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to generate payroll', 'error');
     } finally {
       setGenerating(false);
     }
@@ -127,6 +135,23 @@ export default function Payroll() {
     setGeneratedRecords([record]);
     setActiveTab('generate');
   };
+
+  // Filter history records
+  const filteredHistory = history.filter((record) => {
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch =
+      record.userName.toLowerCase().includes(searchLower) ||
+      record.period.toLowerCase().includes(searchLower) ||
+      record.designation.toLowerCase().includes(searchLower);
+
+    const matchesPeriod = !filterPeriod || record.period === filterPeriod;
+    const matchesBranch = !filterBranch || record.branch === filterBranch;
+
+    return matchesSearch && matchesPeriod && matchesBranch;
+  });
+
+  // Get unique periods from history
+  const uniquePeriods = Array.from(new Set(history.map((r) => r.period))).sort().reverse();
 
   return (
     <div className="animate-in">
@@ -251,15 +276,53 @@ export default function Payroll() {
 
       {activeTab === 'history' && (
         <div className="card">
+          <div className="filter-bar">
+            <div className="search-input">
+              <FiSearch className="search-icon" />
+              <input
+                type="text"
+                placeholder="Search by employee name, period, or role..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <select
+              className="filter-select"
+              value={filterPeriod}
+              onChange={(e) => setFilterPeriod(e.target.value)}
+            >
+              <option value="">All Periods</option>
+              {uniquePeriods.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="filter-select"
+              value={filterBranch}
+              onChange={(e) => setFilterBranch(e.target.value)}
+            >
+              <option value="">All Branches</option>
+              {BRANCHES.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="table-wrapper">
             {loading ? (
               <div className="loading-spinner">
                 <div className="spinner"></div>
               </div>
-            ) : history.length === 0 ? (
+            ) : filteredHistory.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-state-icon">🕒</div>
-                <p>No payroll history found</p>
+                <p>No payroll records found</p>
               </div>
             ) : (
               <table className="data-table">
@@ -275,16 +338,16 @@ export default function Payroll() {
                   </tr>
                 </thead>
                 <tbody>
-                  {history.map((record) => (
+                  {filteredHistory.map((record) => (
                     <tr key={record.id}>
                       <td>
                         <span className="badge badge-info">{record.period}</span>
                       </td>
                       <td style={{ fontWeight: 500 }}>{record.userName}</td>
                       <td>{record.branch}</td>
-                      <td>Rs. {record.grossSalary.toFixed(2)}</td>
+                      <td>{formatCurrency(record.grossSalary)}</td>
                       <td style={{ fontWeight: 600, color: 'var(--success)' }}>
-                        Rs. {record.netSalary.toFixed(2)}
+                        {formatCurrency(record.netSalary)}
                       </td>
                       <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>
                         {new Date(record.generatedAt).toLocaleString()}

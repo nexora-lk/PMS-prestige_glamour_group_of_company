@@ -12,9 +12,9 @@
     "basicSalary": 10000,
     "allowances": 10,
     "deductions": 10,
-    "status": "active",
+    "status": "delete",
     "createdAt": "2026-03-27T18:15:09.582Z",
-    "updatedAt": "2026-03-27T18:15:54.768Z"
+    "updatedAt": "2026-03-30T04:49:18.288Z"
   },
   {
     "id": "9d763db0-ee20-4e72-ab04-38ac84d49e13",
@@ -29,9 +29,9 @@
     "basicSalary": 1000,
     "allowances": 10000,
     "deductions": 100000,
-    "status": "active",
+    "status": "delete",
     "createdAt": "2026-03-29T13:18:19.054Z",
-    "updatedAt": "2026-03-29T13:18:19.054Z"
+    "updatedAt": "2026-03-30T04:49:20.415Z"
   },
   {
     "id": "f45d0353-9273-47d1-8c38-8551a93245cd",
@@ -46,8 +46,25 @@
     "basicSalary": 275000,
     "allowances": 0,
     "deductions": 0,
-    "status": "active",
+    "status": "delete",
     "createdAt": "2026-03-29T18:27:25.814Z",
-    "updatedAt": "2026-03-29T18:27:25.814Z"
+    "updatedAt": "2026-03-30T04:49:25.822Z"
+  },
+  {
+    "id": "766bca78-2dc6-473c-8456-d44d006cfd48",
+    "firstName": "Nidarsha",
+    "lastName": "Liyanaarachchi",
+    "email": "nidarsha.20240400@iit.ac.lk",
+    "phone": "132431431",
+    "branch": "Maggona",
+    "role": "General Manager",
+    "designation": "",
+    "joinDate": "2026-03-02",
+    "basicSalary": 275000,
+    "allowances": 0,
+    "deductions": 0,
+    "status": "active",
+    "createdAt": "2026-03-30T04:53:04.158Z",
+    "updatedAt": "2026-03-30T04:53:04.158Z"
   }
 ]

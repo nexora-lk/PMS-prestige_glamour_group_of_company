@@ -9,7 +9,8 @@ const USERS_FILE = 'users.json';
 // GET /api/users — List all users with search, filter, sort, pagination
 router.get('/', (req: Request, res: Response): void => {
   try {
-    let users = readJSON<User>(USERS_FILE);
+    const allUsers = readJSON<User>(USERS_FILE);
+    let users = [...allUsers];
     const { search, branch, role, status, sortBy, sortOrder, page, limit } = req.query;
 
     // Search filter
@@ -26,17 +27,12 @@ router.get('/', (req: Request, res: Response): void => {
       );
     }
 
-    // Branch filter
     if (branch && typeof branch === 'string' && branch !== 'all') {
       users = users.filter((u) => u.branch.toLowerCase() === branch.toLowerCase());
     }
-
-    // Role filter
     if (role && typeof role === 'string' && role !== 'all') {
       users = users.filter((u) => u.role.toLowerCase() === role.toLowerCase());
     }
-
-    // Status filter
     if (status && typeof status === 'string' && status !== 'all') {
       users = users.filter((u) => u.status === status);
     }
@@ -46,13 +42,13 @@ router.get('/', (req: Request, res: Response): void => {
     // Sort
     const sortField = (sortBy as string) || 'createdAt';
     const order = (sortOrder as string) || 'desc';
-    users.sort((a: any, b: any) => {
-      const aVal = a[sortField];
-      const bVal = b[sortField];
-      if (typeof aVal === 'string') {
+    users.sort((a, b) => {
+      const aVal = (a as unknown as Record<string, unknown>)[sortField];
+      const bVal = (b as unknown as Record<string, unknown>)[sortField];
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
         return order === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
-      return order === 'asc' ? aVal - bVal : bVal - aVal;
+      return order === 'asc' ? Number(aVal) - Number(bVal) : Number(bVal) - Number(aVal);
     });
 
     // Pagination
@@ -61,8 +57,7 @@ router.get('/', (req: Request, res: Response): void => {
     const startIndex = (pageNum - 1) * limitNum;
     const paginatedUsers = users.slice(startIndex, startIndex + limitNum);
 
-    // Get unique branches and roles for filter options
-    const allUsers = readJSON<User>(USERS_FILE);
+    // Derive filter options from full dataset (single read)
     const branches = [...new Set(allUsers.map((u) => u.branch).filter(Boolean))];
     const roles = [...new Set(allUsers.map((u) => u.role).filter(Boolean))];
 

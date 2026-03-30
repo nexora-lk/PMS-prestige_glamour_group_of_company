@@ -32,117 +32,15 @@ export interface PayrollRecord {
   generatedAt: string;
 }
 
-export interface Role {
-  id: number;
-
-  roleCode: string;
-  roleName: string;
-  category: "A" | "B";
-
-  basicSalary: number;
-  baseTarget: number;
-  vehicleAllowance: number;
-  fuelAllowance: number;
-  orcValue: number;
-  defaultOtherOffer: number;
-
-  employees: Employee[];
-
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Employee {
-  id: number;
-
-  codeNo: string;
-  name: string;
-
-  bankAcc?: string;
-  bankName?: string;
-
-  joinDate: Date;
-
-  roleId: number;
-  role: Role;
-
-  epfAvailability: boolean;
-  otherOffer: number;
-  isActive: boolean;
-
-  paysheets: MonthlyPaysheet[];
-
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface MonthlyPaysheet {
-  id: number;
-
-  employeeId: number;
-  employee: Employee; // make sure you already have Employee interface
-
-  payMonth: Date;
-  monthsOfService: number;
-
-  // Target (Cat A)
-  assignedTarget: number;
-  achievementAmount: number;
-  achievementPct: number;
-
-  // Earnings
-  grossSalary: number;
-  vehicleAllowance: number;
-  fuelAllowance: number;
-  generalAllowance: number;
-  otherOffer: number;
-  orc: number;
-  subTotal: number;
-
-  // Attendance
-  nopayDays: number;
-  lateHours: number;
-  lateMinutes: number;
-
-  // Deductions
-  nopayDeduction: number;
-  lateDeduction: number;
-  epfEmployee: number;
-  epfEmployer: number;
-  etf: number;
-  welfare: number;
-
-  // Final
-  netSalary: number;
-  status: "draft" | "approved" | "paid";
-
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface AdminCredentials {
-  username: string;
-  password: string;
-  name: string;
-  role: string;
-}
-
-export interface AuthPayload {
-  username: string;
-  role: string;
-  iat?: number;
-  exp?: number;
-}
-
 export interface MonthlyPaysheetDTO {
   id?: string;
   employeeId: string;
   codeNo: string;
-  payMonth: string; // YYYY-MM format
+  payMonth: string;
   role: string;
   monthsOfService: number;
 
-  // Input Fields
+  // Input fields
   achieve: number;
   allowance: number;
   nopay: number;
@@ -152,7 +50,7 @@ export interface MonthlyPaysheetDTO {
   welfare: number;
   otherOfficers: number;
 
-  // Calculated Results (from PaysheetResult)
+  // Calculated results
   basicSalary?: number;
   assignedTarget?: number;
   achievementPct?: number;
@@ -173,4 +71,18 @@ export interface MonthlyPaysheetDTO {
   // Metadata
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface AdminCredentials {
+  username: string;
+  password: string;
+  name: string;
+  role: string;
+}
+
+export interface AuthPayload {
+  username: string;
+  role: string;
+  iat?: number;
+  exp?: number;
 }

@@ -60,8 +60,8 @@ export default function UserForm() {
             deductions: user.deductions,
             status: user.status,
           });
-        } catch (err: any) {
-          showToast(err.message || 'Failed to fetch user details', 'error');
+        } catch (err: unknown) {
+          showToast(err instanceof Error ? err.message : 'Failed to fetch user details', 'error');
           navigate('/users');
         } finally {
           setLoading(false);
@@ -92,16 +92,21 @@ export default function UserForm() {
     e.preventDefault();
     setSaving(true);
     try {
+      // Send both role and designation with the same value for consistency
+      const submitData = {
+        ...formData,
+        designation: formData.role,
+      };
       if (isEdit) {
-        await userService.updateUser(id, formData);
+        await userService.updateUser(id, submitData);
         showToast('Employee updated successfully', 'success');
       } else {
-        await userService.createUser(formData as Omit<User, 'id' | 'createdAt' | 'updatedAt'>);
+        await userService.createUser(submitData as unknown as Omit<User, 'id' | 'createdAt' | 'updatedAt'>);
         showToast('Employee created successfully', 'success');
       }
       navigate('/users');
-    } catch (err: any) {
-      showToast(err.message || 'Failed to save employee', 'error');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to save employee', 'error');
     } finally {
       setSaving(false);
     }

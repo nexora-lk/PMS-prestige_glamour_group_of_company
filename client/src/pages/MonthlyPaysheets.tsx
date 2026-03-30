@@ -5,7 +5,6 @@ import { showToast } from '../components/Toast';
 import { MonthlyPaysheetForm } from '../components/MonthlyPaysheetForm';
 import { PaysheetList } from '../components/PaysheetList';
 import PaySheet from '../components/PaySheet';
-import { userService } from '../services/userService';
 
 export default function MonthlyPaysheets() {
   const [showForm, setShowForm] = useState(false);
@@ -32,26 +31,6 @@ export default function MonthlyPaysheets() {
     setShowForm(true);
     setTimeout(() => {
       document.querySelector('.card')?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  };
-
-  const handlePreview = async (paysheet: MonthlyPaysheet) => {
-    setShowForm(false);
-    setEditingId(null);
-    setEditingData(null);
-    setPreviewPaysheet(paysheet);
-
-    if (paysheet.employeeId) {
-      try {
-        const user = await userService.getUser(paysheet.employeeId);
-        setPreviewEmployee(user);
-      } catch {
-        setPreviewEmployee(null);
-      }
-    }
-
-    setTimeout(() => {
-      document.getElementById('paysheet-preview')?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
   };
 
@@ -175,7 +154,6 @@ export default function MonthlyPaysheets() {
         <div className="card-body">
           <PaysheetList
             onEdit={handleEdit}
-            onView={handlePreview}
             refreshTrigger={refreshTrigger}
           />
         </div>

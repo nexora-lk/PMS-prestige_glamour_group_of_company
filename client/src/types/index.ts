@@ -53,7 +53,7 @@ export interface UsersResponse {
 export interface StatsResponse {
   totalUsers: number;
   activeUsers: number;
-  inactiveUsers: number;
+  deletedUsers: number;
   totalBranches: number;
   branches: string[];
   totalMonthlySalary: number;

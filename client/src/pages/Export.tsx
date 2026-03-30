@@ -12,8 +12,8 @@ export default function Export() {
       setIsExportingUsers(true);
       await exportService.downloadUsersExcel();
       showToast('Users export successful', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Export failed', 'error');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Export failed', 'error');
     } finally {
       setIsExportingUsers(false);
     }
@@ -24,8 +24,8 @@ export default function Export() {
       setIsExportingPayroll(true);
       await exportService.downloadPayrollExcel();
       showToast('Payroll export successful', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Export failed', 'error');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Export failed', 'error');
     } finally {
       setIsExportingPayroll(false);
     }

@@ -12,28 +12,27 @@ interface PayrollHistoryParams {
   search?: string;
 }
 
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
+
 export const payrollService = {
-  async generatePayroll(
-    request: PayrollGenerateRequest
-  ): Promise<PayrollResponse> {
+  async generatePayroll(request: PayrollGenerateRequest): Promise<PayrollResponse> {
     try {
       const response = await api.post<PayrollResponse>('/payroll/generate', request);
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to generate payroll');
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to generate payroll'));
     }
   },
 
-  async getPayrollHistory(
-    filters: PayrollHistoryParams = {}
-  ): Promise<PayrollHistoryResponse> {
+  async getPayrollHistory(filters: PayrollHistoryParams = {}): Promise<PayrollHistoryResponse> {
     try {
-      const response = await api.get<PayrollHistoryResponse>('/payroll/history', {
-        params: filters,
-      });
+      const response = await api.get<PayrollHistoryResponse>('/payroll/history', { params: filters });
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to fetch payroll history');
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to fetch payroll history'));
     }
   },
 
@@ -41,8 +40,8 @@ export const payrollService = {
     try {
       const response = await api.get<PayrollRecord>(`/payroll/${id}`);
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to fetch payroll');
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to fetch payroll'));
     }
   },
 
@@ -50,9 +49,8 @@ export const payrollService = {
     try {
       const response = await api.delete(`/payroll/${id}`);
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to delete payroll');
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to delete payroll'));
     }
   },
 };
-

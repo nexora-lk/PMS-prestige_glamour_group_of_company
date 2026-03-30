@@ -8,16 +8,9 @@ interface PaysheetListParams {
   search?: string;
 }
 
-interface PaysheetCalculationRequest {
-  role: string;
-  monthsOfService: number;
-  achieve?: number;
-  allowance?: number;
-  nopay: number;
-  late: number;
-  epfAvailability: boolean;
-  welfare?: number;
-  otherOfficers?: number;
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) return error.message;
+  return fallback;
 }
 
 export const paysheetService = {
@@ -27,21 +20,17 @@ export const paysheetService = {
     try {
       const response = await api.post('/paysheets', data);
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to create paysheet');
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to create paysheet'));
     }
   },
 
-  async listPaysheets(
-    filters: PaysheetListParams = {}
-  ): Promise<PaysheetResponse> {
+  async listPaysheets(filters: PaysheetListParams = {}): Promise<PaysheetResponse> {
     try {
-      const response = await api.get<PaysheetResponse>('/paysheets', {
-        params: filters,
-      });
+      const response = await api.get<PaysheetResponse>('/paysheets', { params: filters });
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to fetch paysheets');
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to fetch paysheets'));
     }
   },
 
@@ -49,8 +38,8 @@ export const paysheetService = {
     try {
       const response = await api.get<PaysheetDetailResponse>(`/paysheets/${id}`);
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to fetch paysheet');
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to fetch paysheet'));
     }
   },
 
@@ -61,31 +50,17 @@ export const paysheetService = {
     try {
       const response = await api.put(`/paysheets/${id}`, updates);
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to update paysheet');
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to update paysheet'));
     }
   },
 
-  async deletePaysheet(
-    id: string
-  ): Promise<{ message: string; paysheet: MonthlyPaysheet }> {
+  async deletePaysheet(id: string): Promise<{ message: string; paysheet: MonthlyPaysheet }> {
     try {
       const response = await api.delete(`/paysheets/${id}`);
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to delete paysheet');
-    }
-  },
-
-  async calculatePaysheet(data: PaysheetCalculationRequest): Promise<{
-    message: string;
-    calculation: Record<string, any>;
-  }> {
-    try {
-      const response = await api.post('/paysheets/calculate', data);
-      return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Calculation failed');
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to delete paysheet'));
     }
   },
 
@@ -93,9 +68,8 @@ export const paysheetService = {
     try {
       const response = await api.get(`/paysheets/month/${payMonth}`);
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to fetch month paysheets');
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to fetch month paysheets'));
     }
   },
 };
-

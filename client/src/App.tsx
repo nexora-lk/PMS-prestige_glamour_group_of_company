@@ -1,4 +1,4 @@
-import React from 'react';
+import { type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastContainer } from './components/Toast';
@@ -12,7 +12,7 @@ import Payroll from './pages/Payroll';
 import MonthlyPaysheets from './pages/MonthlyPaysheets';
 import Export from './pages/Export';
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
   
   if (isLoading) return <div className="login-page"><div className="spinner" /></div>;

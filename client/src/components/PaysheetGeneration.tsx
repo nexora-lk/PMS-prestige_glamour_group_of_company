@@ -40,8 +40,8 @@ export function PaysheetGeneration({ onSuccess }: PaysheetGenerationProps) {
       setUsers(filteredUsers);
       const uniqueRoles = [...new Set(res.users.map((u) => u.role).filter(Boolean))];
       setRoles(uniqueRoles as string[]);
-    } catch (err: any) {
-      showToast(err.message || 'Failed to load employees', 'error');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to load employees', 'error');
     } finally {
       setLoading(false);
     }
@@ -75,8 +75,8 @@ export function PaysheetGeneration({ onSuccess }: PaysheetGenerationProps) {
       showToast(res.message, 'success');
       setSelectedUserIds([]);
       onSuccess?.();
-    } catch (err: any) {
-      showToast(err.message || 'Failed to generate paysheets', 'error');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to generate paysheets', 'error');
     } finally {
       setGenerating(false);
     }

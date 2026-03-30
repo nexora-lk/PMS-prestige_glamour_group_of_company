@@ -4,6 +4,8 @@ import { FiSearch, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { useUsers } from '../hooks/useUsers';
 import { userService } from '../services/userService';
 import { BRANCHES } from '../constants/branches';
+import { ROLES } from '../constants/roleSalaries';
+import { formatCurrency } from '../utils/format';
 import { showToast } from '../components/Toast';
 import type { User } from '../types';
 
@@ -11,13 +13,15 @@ export default function Users() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [branch, setBranch] = useState('');
+  const [role, setRole] = useState('');
   const [status, setStatus] = useState('all');
   const [page, setPage] = useState(1);
 
   const { users, loading, error, response, refreshUsers } = useUsers({
     search,
     branch: branch || undefined,
-    status: (status as any) || 'all',
+    role: role || undefined,
+    status: (status as 'active' | 'delete' | 'all') || 'all',
     page,
     limit: 15,
   });
@@ -26,11 +30,11 @@ export default function Users() {
     async (id: string, name: string) => {
       if (!window.confirm(`Are you sure you want to delete ${name}?`)) return;
       try {
-        await userService.updateUser(id, { status: 'delete' } as any);
+        await userService.updateUser(id, { status: 'delete' });
         showToast('User status changed to Delete', 'success');
         refreshUsers();
-      } catch (err: any) {
-        showToast(err.message || 'Failed to delete user', 'error');
+      } catch (err: unknown) {
+        showToast(err instanceof Error ? err.message : 'Failed to delete user', 'error');
       }
     },
     [refreshUsers]
@@ -43,6 +47,11 @@ export default function Users() {
 
   const handleBranchChange = (value: string) => {
     setBranch(value);
+    setPage(1);
+  };
+
+  const handleRoleChange = (value: string) => {
+    setRole(value);
     setPage(1);
   };
 
@@ -84,6 +93,19 @@ export default function Users() {
 
           <select
             className="filter-select"
+            value={role}
+            onChange={(e) => handleRoleChange(e.target.value)}
+          >
+            <option value="">All Roles</option>
+            {ROLES.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="filter-select"
             value={status}
             onChange={(e) => handleStatusChange(e.target.value)}
           >
@@ -94,7 +116,6 @@ export default function Users() {
 
           <button
             className="btn btn-primary"
-            style={{ marginLeft: 'auto' }}
             onClick={() => navigate('/users/new')}
           >
             + Add User
@@ -125,7 +146,8 @@ export default function Users() {
                 <tr>
                   <th>Employee</th>
                   <th>Contact</th>
-                  <th>Branch / Role</th>
+                  <th>Branch</th>
+                  <th>Role</th>
                   <th>Salary</th>
                   <th>Status</th>
                   <th>Actions</th>
@@ -153,15 +175,12 @@ export default function Users() {
                     </td>
                     <td>
                       <div>{user.branch}</div>
-                      <div className="user-email">{user.designation}</div>
                     </td>
                     <td>
-                      <div>
-                        Rs. {user.basicSalary.toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </div>
+                      <div>{user.role || user.designation}</div>
+                    </td>
+                    <td>
+                      <div>{formatCurrency(user.basicSalary)}</div>
                     </td>
                     <td>
                       <span className={`badge badge-${user.status}`}>{user.status}</span>

@@ -30,8 +30,8 @@ export const useUsers = (options: UseUsersOptions = {}) => {
         const data = await userService.listUsers(options);
         setUsers(data.users);
         setResponse(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch users');
       } finally {
         setLoading(false);
       }
@@ -39,47 +39,25 @@ export const useUsers = (options: UseUsersOptions = {}) => {
 
     fetchUsers();
   }, [
-    options.search,
-    options.branch,
-    options.role,
-    options.status,
-    options.page,
-    options.limit,
-    options.sortBy,
-    options.sortOrder,
-    options.skip,
+    options.search, options.branch, options.role, options.status,
+    options.page, options.limit, options.sortBy, options.sortOrder, options.skip,
   ]);
 
   const createUser = async (userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'>) => {
-    try {
-      const newUser = await userService.createUser(userData);
-      setUsers([...users, newUser]);
-      return newUser;
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    }
+    const newUser = await userService.createUser(userData);
+    setUsers([...users, newUser]);
+    return newUser;
   };
 
   const updateUser = async (id: string, updates: Partial<User>) => {
-    try {
-      const updated = await userService.updateUser(id, updates);
-      setUsers(users.map((u) => (u.id === id ? updated : u)));
-      return updated;
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    }
+    const updated = await userService.updateUser(id, updates);
+    setUsers(users.map((u) => (u.id === id ? updated : u)));
+    return updated;
   };
 
   const deleteUser = async (id: string) => {
-    try {
-      await userService.deleteUser(id);
-      setUsers(users.filter((u) => u.id !== id));
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    }
+    await userService.deleteUser(id);
+    setUsers(users.filter((u) => u.id !== id));
   };
 
   const refreshUsers = async () => {
@@ -87,21 +65,10 @@ export const useUsers = (options: UseUsersOptions = {}) => {
       const data = await userService.listUsers(options);
       setUsers(data.users);
       setResponse(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch users');
     }
   };
 
-  return {
-    users,
-    loading,
-    error,
-    response,
-    createUser,
-    updateUser,
-    deleteUser,
-    refreshUsers,
-  };
+  return { users, loading, error, response, createUser, updateUser, deleteUser, refreshUsers };
 };
-
-

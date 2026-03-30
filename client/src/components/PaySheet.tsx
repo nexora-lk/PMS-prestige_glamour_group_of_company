@@ -1,24 +1,11 @@
 import type { CSSProperties } from 'react';
 import type { MonthlyPaysheet, User } from '../types';
+import { formatCurrency, formatMonth } from '../utils/format';
 
 interface PaySheetProps {
   paysheet: MonthlyPaysheet;
   employee?: User | null;
 }
-
-const formatCurrency = (amount: number): string => {
-  if (amount === 0) return 'Rs.';
-  return `Rs. ${amount.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-};
-
-const formatMonth = (payMonth: string): string => {
-  const [year, month] = payMonth.split('-');
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
-  return `${months[parseInt(month, 10) - 1]} ${year}`;
-};
 
 export default function PaySheet({ paysheet, employee }: PaySheetProps) {
   const earnings = {

@@ -18,16 +18,16 @@ app.setName('PMS Application');
 // In packaged app: resources are inside app.asar under process.resourcesPath
 // In dev: files are relative to the project root
 
-function getResourcePath(...segments: string[]): string {
+function getAsarPath(...segments: string[]): string {
   if (IS_PACKAGED) {
     return path.join(process.resourcesPath, 'app.asar', ...segments);
   }
   return path.join(__dirname, '..', ...segments);
 }
 
-function getUnpackedPath(...segments: string[]): string {
+function getExtraResourcePath(...segments: string[]): string {
   if (IS_PACKAGED) {
-    return path.join(process.resourcesPath, 'app.asar.unpacked', ...segments);
+    return path.join(process.resourcesPath, ...segments);
   }
   return path.join(__dirname, '..', ...segments);
 }
@@ -44,8 +44,8 @@ function ensureDefaultData(): void {
     fs.mkdirSync(userDataDir, { recursive: true });
   }
 
-  // Source: bundled default data files
-  const sourceDir = getResourcePath('server', 'data');
+  // Source: bundled default data files (in extraResources)
+  const sourceDir = getExtraResourcePath('server', 'data');
   if (!fs.existsSync(sourceDir)) return;
 
   const files = fs.readdirSync(sourceDir);
@@ -138,8 +138,8 @@ app.whenReady().then(() => {
   ensureDefaultData();
 
   // Resolve server entry point
-  // In packaged app, server is inside asar.unpacked so worker_threads and puppeteer work
-  const serverEntry = getUnpackedPath('server', 'dist', 'app.js');
+  // In packaged app, server is in extraResources so node_modules, worker_threads, and puppeteer work
+  const serverEntry = getExtraResourcePath('server', 'dist', 'app.js');
 
   // Environment variables for the server process
   const serverEnv: Record<string, string> = {
@@ -150,7 +150,7 @@ app.whenReady().then(() => {
     LOG_DIR: getUserDataPath('logs'),
     TEMP_DIR: getUserDataPath('temp'),
     OUTPUT_DIR: getUserDataPath('exports'),
-    CLIENT_PATH: getResourcePath('client', 'dist'),
+    CLIENT_PATH: getAsarPath('client', 'dist'),
   };
 
   // Fork the compiled Express backend

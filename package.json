@@ -29,15 +29,28 @@
   "build": {
     "appId": "com.payroll.system",
     "productName": "PMS Application",
-    "icon": "client/public/icon.png",
+    "icon": "client/public/icon",
     "asar": true,
-    "asarUnpack": [
-      "server/**/*"
-    ],
     "extraResources": [
       {
         "from": "client/public/icon.png",
         "to": "icon.png"
+      },
+      {
+        "from": "server/dist",
+        "to": "server/dist"
+      },
+      {
+        "from": "server/data",
+        "to": "server/data"
+      },
+      {
+        "from": "server/package.json",
+        "to": "server/package.json"
+      },
+      {
+        "from": "server/node_modules",
+        "to": "server/node_modules"
       }
     ],
     "mac": {
@@ -53,7 +66,7 @@
         "portable",
         "zip"
       ],
-      "icon": "client/public/icon.png"
+      "icon": "client/public/icon.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -61,8 +74,8 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "PMS Application",
-      "installerIcon": "client/public/icon.png",
-      "uninstallerIcon": "client/public/icon.png"
+      "installerIcon": "client/public/icon.ico",
+      "uninstallerIcon": "client/public/icon.ico"
     },
     "linux": {
       "target": [
@@ -72,10 +85,6 @@
     },
     "files": [
       "electron/dist/**/*",
-      "server/dist/**/*",
-      "server/data/**/*",
-      "server/package.json",
-      "server/node_modules/**/*",
       "client/dist/**/*",
       "client/public/icon.png"
     ]

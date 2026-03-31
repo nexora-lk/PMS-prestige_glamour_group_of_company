@@ -1,1 +1,40 @@
-[]
+[
+  {
+    "codeNo": "Nidarsha-766b",
+    "firstName": "next",
+    "lastName": "ora",
+    "email": "nextora.platform@gmail.com",
+    "phone": "0772766145",
+    "branch": "Maggona",
+    "role": "Branch Manager",
+    "designation": "Branch Manager",
+    "joinDate": "2026-03-10",
+    "bankAccount": "10200480056",
+    "bankName": "HNB",
+    "basicSalary": 50000,
+    "allowances": 0,
+    "deductions": 0,
+    "status": "delete",
+    "createdAt": "2026-03-31T10:04:20.197Z",
+    "updatedAt": "2026-03-31T10:21:47.245Z"
+  },
+  {
+    "codeNo": "nbnhgcj7",
+    "firstName": "jytfec",
+    "lastName": "kuygfyscda",
+    "email": "kjhbdvs@gmail.com",
+    "phone": "0772766145",
+    "branch": "Ehaliyagoda",
+    "role": "Branch Manager",
+    "designation": "Branch Manager",
+    "joinDate": "2026-03-10",
+    "bankAccount": "10200480056",
+    "bankName": "HNB",
+    "basicSalary": 50000,
+    "allowances": 0,
+    "deductions": 0,
+    "status": "active",
+    "createdAt": "2026-03-31T10:23:16.111Z",
+    "updatedAt": "2026-03-31T10:23:16.111Z"
+  }
+]

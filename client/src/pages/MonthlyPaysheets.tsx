@@ -139,7 +139,7 @@ export default function MonthlyPaysheets() {
               padding: 24,
             }}
           >
-            <div ref={printRef}>
+            <div ref={printRef} className="print-area">
               <PaySheet paysheet={previewPaysheet} employee={previewEmployee} />
             </div>
           </div>

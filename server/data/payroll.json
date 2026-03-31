@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "codeNo": "Nidarsha-766b",
+    "userName": "next ora",
+    "period": "2026-03",
+    "basicSalary": 200000,
+    "allowances": 0,
+    "deductions": 0,
+    "tax": 20499.85,
+    "grossSalary": 200000,
+    "netSalary": 179500.15,
+    "branch": "Maggona",
+    "designation": "HR & Finance Head",
+    "id": "3ba0a036-0923-4f47-ad95-076a175a2049",
+    "generatedAt": "2026-03-31T10:04:31.662Z"
+  }
+]

@@ -1,72 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { FiSearch, FiPrinter, FiDownload, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import { useReactToPrint } from 'react-to-print';
-import { payrollService } from '../services/payrollService';
+import { paysheetService } from '../services/paysheetService';
 import { userService } from '../services/userService';
 import { BRANCHES } from '../constants/branches';
 import { formatCurrency } from '../utils/format';
-import type { User, PayrollRecord, MonthlyPaysheet } from '../types';
+import type { User, MonthlyPaysheet } from '../types';
 import { showToast } from '../components/Toast';
-import { PaysheetGeneration } from '../components/PaysheetGeneration';
 import PaySheet from '../components/PaySheet';
 import api from '../services/api';
-
-// ── Type conversions for PaySheet component ─────────────────
-
-function recordToPaysheet(record: PayrollRecord): MonthlyPaysheet {
-  return {
-    id: record.id,
-    codeNo: record.codeNo,
-    payMonth: record.period,
-    role: record.designation,
-    monthsOfService: 0,
-    achieve: 0,
-    allowance: record.allowances,
-    nopay: 0,
-    late: 0,
-    lateHours: 0,
-    lateMinutes: 0,
-    epfAvailability: record.tax > 0,
-    etfAvailability: record.tax > 0,
-    welfare: 0,
-    otherOffer: 0,
-    customEarningName: '',
-    customEarningAmount: 0,
-    customDeductionName: '',
-    customDeductionAmount: 0,
-    basicSalary: record.basicSalary,
-    grossSalary: record.grossSalary,
-    netSalary: record.netSalary,
-    generalAllowance: record.allowances,
-    epfEmployee: record.tax,
-    nopayDeduction: 0,
-    lateDeduction: 0,
-    createdAt: record.generatedAt,
-  };
-}
-
-function recordToUser(record: PayrollRecord): User {
-  const nameParts = record.userName.split(' ');
-  return {
-    codeNo: record.codeNo,
-    firstName: nameParts[0] || '',
-    lastName: nameParts.slice(1).join(' ') || '',
-    email: '',
-    phone: '',
-    branch: record.branch,
-    role: record.designation,
-    designation: record.designation,
-    joinDate: '',
-    bankAccount: '',
-    bankName: '',
-    basicSalary: record.basicSalary,
-    allowances: record.allowances,
-    deductions: record.deductions,
-    status: 'active',
-    createdAt: '',
-    updatedAt: '',
-  };
-}
 
 // ── Bulk PDF job progress type ──────────────────────────────
 
@@ -83,17 +25,18 @@ interface JobProgress {
 // ── Main Component ──────────────────────────────────────────
 
 export default function Payroll() {
-  const [activeTab, setActiveTab] = useState<'generate' | 'branch-role' | 'bulk-pdf' | 'history'>('generate');
+  const [activeTab, setActiveTab] = useState<'generate' | 'bulk-pdf' | 'history'>('generate');
 
   // ── Generate & Preview state ──────────────────────────────
   const [users, setUsers] = useState<User[]>([]);
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [userMap, setUserMap] = useState<Map<string, User>>(new Map());
+  const [selectedCodeNos, setSelectedCodeNos] = useState<string[]>([]);
   const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7));
-  const [generatedRecords, setGeneratedRecords] = useState<PayrollRecord[]>([]);
-  const [generating, setGenerating] = useState(false);
+  const [previewPaysheets, setPreviewPaysheets] = useState<MonthlyPaysheet[]>([]);
+  const [fetching, setFetching] = useState(false);
 
   // ── History state ─────────────────────────────────────────
-  const [history, setHistory] = useState<PayrollRecord[]>([]);
+  const [historyPaysheets, setHistoryPaysheets] = useState<MonthlyPaysheet[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPeriod, setFilterPeriod] = useState('');
@@ -121,13 +64,15 @@ export default function Payroll() {
 
   useEffect(() => {
     fetchUsers();
-    fetchHistory();
   }, []);
 
   const fetchUsers = async () => {
     try {
       const res = await userService.listUsers({ status: 'active', limit: 1000 });
       setUsers(res.users);
+      const map = new Map<string, User>();
+      res.users.forEach((u) => map.set(u.codeNo, u));
+      setUserMap(map);
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : 'Failed to load active employees', 'error');
     }
@@ -136,39 +81,48 @@ export default function Payroll() {
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      const res = await payrollService.getPayrollHistory();
-      setHistory(res.records);
+      const res = await paysheetService.listPaysheets();
+      setHistoryPaysheets(res.paysheets);
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : 'Failed to load payroll history', 'error');
+      showToast(err instanceof Error ? err.message : 'Failed to load paysheet history', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Generate handlers ─────────────────────────────────────
+  // ── Fetch paysheets for preview ───────────────────────────
 
-  const handleGenerate = async (e: React.FormEvent) => {
+  const handleFetchPreview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!period) return showToast('Please select a period', 'error');
 
-    setGenerating(true);
+    setFetching(true);
     try {
-      const res = await payrollService.generatePayroll({
-        codeNos: selectedUserIds.length > 0 ? selectedUserIds : undefined,
-        period,
-      });
-      setGeneratedRecords(res.records);
-      showToast(res.message, 'success');
-      fetchHistory();
+      const res = await paysheetService.getMonthPaysheets(period);
+      let paysheets = res.paysheets;
+
+      // Filter by selected employees if any
+      if (selectedCodeNos.length > 0) {
+        const codeSet = new Set(selectedCodeNos);
+        paysheets = paysheets.filter((p) => codeSet.has(p.codeNo));
+      }
+
+      if (paysheets.length === 0) {
+        showToast('No monthly paysheets found for the selected period/employees. Create paysheets first in Monthly Paysheets.', 'error');
+      } else {
+        showToast(`Loaded ${paysheets.length} paysheet(s)`, 'success');
+      }
+
+      setPreviewPaysheets(paysheets);
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : 'Failed to generate payroll', 'error');
+      showToast(err instanceof Error ? err.message : 'Failed to fetch paysheets', 'error');
     } finally {
-      setGenerating(false);
+      setFetching(false);
     }
   };
 
-  const viewRecord = (record: PayrollRecord) => {
-    setGeneratedRecords([record]);
+  const viewPaysheet = (paysheet: MonthlyPaysheet) => {
+    setPreviewPaysheets([paysheet]);
     setActiveTab('generate');
   };
 
@@ -287,18 +241,21 @@ export default function Payroll() {
 
   // ── Filter history ────────────────────────────────────────
 
-  const filteredHistory = history.filter((record) => {
+  const filteredHistory = historyPaysheets.filter((ps) => {
+    const user = userMap.get(ps.codeNo);
+    const name = user ? `${user.firstName} ${user.lastName}` : ps.codeNo;
+    const branch = user?.branch || '';
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch =
-      record.userName.toLowerCase().includes(searchLower) ||
-      record.period.toLowerCase().includes(searchLower) ||
-      record.designation.toLowerCase().includes(searchLower);
-    const matchesPeriod = !filterPeriod || record.period === filterPeriod;
-    const matchesBranch = !filterBranch || record.branch === filterBranch;
+      name.toLowerCase().includes(searchLower) ||
+      ps.codeNo.toLowerCase().includes(searchLower) ||
+      ps.role.toLowerCase().includes(searchLower);
+    const matchesPeriod = !filterPeriod || ps.payMonth === filterPeriod;
+    const matchesBranch = !filterBranch || branch.toLowerCase() === filterBranch.toLowerCase();
     return matchesSearch && matchesPeriod && matchesBranch;
   });
 
-  const uniquePeriods = Array.from(new Set(history.map((r) => r.period))).sort().reverse();
+  const uniquePeriods = Array.from(new Set(historyPaysheets.map((p) => p.payMonth))).sort().reverse();
 
   const statusLabel = (status: string) => {
     switch (status) {
@@ -318,33 +275,35 @@ export default function Payroll() {
       {/* Tab Navigation */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
         {([
-          ['generate', 'Generate & Preview'],
-          ['branch-role', 'By Branch & Role'],
+          ['generate', 'Preview & Print'],
           ['bulk-pdf', 'Bulk PDF Export'],
           ['history', 'History & Reports'],
         ] as const).map(([key, label]) => (
           <button
             key={key}
             className={`btn ${activeTab === key ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setActiveTab(key)}
+            onClick={() => {
+              setActiveTab(key);
+              if (key === 'history') fetchHistory();
+            }}
           >
             {label}
           </button>
         ))}
       </div>
 
-      {/* ═══════════════ TAB 1: Generate & Preview ═══════════════ */}
+      {/* ═══════════════ TAB 1: Preview & Print ═══════════════ */}
       {activeTab === 'generate' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 24 }}>
           {/* Controls */}
           <div className="card h-fit">
             <div className="card-header">
-              <h2>Generate Pay Sheet</h2>
+              <h2>View Pay Sheets</h2>
             </div>
             <div className="card-body">
-              <form onSubmit={handleGenerate}>
+              <form onSubmit={handleFetchPreview}>
                 <div className="form-group">
-                  <label>Payroll Period</label>
+                  <label>Pay Month</label>
                   <input
                     type="month"
                     className="form-input"
@@ -354,13 +313,13 @@ export default function Payroll() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Select Employee(s)</label>
+                  <label>Filter by Employee(s)</label>
                   <select
                     className="form-select"
                     multiple
-                    value={selectedUserIds}
+                    value={selectedCodeNos}
                     onChange={(e) =>
-                      setSelectedUserIds(
+                      setSelectedCodeNos(
                         Array.from(e.target.selectedOptions, (option) => option.value)
                       )
                     }
@@ -372,16 +331,16 @@ export default function Payroll() {
                     ))}
                   </select>
                   <p className="text-muted" style={{ fontSize: 11, marginTop: 6 }}>
-                    Note: Leave empty to generate for all active employees. Hold Ctrl/Cmd to
-                    select multiple.
+                    Leave empty to view all paysheets for the month. Hold Ctrl/Cmd to select
+                    multiple.
                   </p>
                 </div>
                 <button
                   type="submit"
                   className="btn btn-primary btn-full"
-                  disabled={generating}
+                  disabled={fetching}
                 >
-                  {generating ? 'Processing...' : 'Generate Pay Sheet'}
+                  {fetching ? 'Loading...' : 'Load Pay Sheets'}
                 </button>
               </form>
             </div>
@@ -391,7 +350,7 @@ export default function Payroll() {
           <div className="card" style={{ minHeight: 500 }}>
             <div className="card-header">
               <h2>Preview</h2>
-              {generatedRecords.length > 0 && (
+              {previewPaysheets.length > 0 && (
                 <button className="btn btn-secondary btn-sm" onClick={() => handlePrint()}>
                   <FiPrinter size={14} style={{ marginRight: 6 }} />
                   Print
@@ -399,27 +358,32 @@ export default function Payroll() {
               )}
             </div>
             <div className="card-body">
-              {generatedRecords.length === 0 ? (
+              {previewPaysheets.length === 0 ? (
                 <div className="empty-state">
                   <div className="empty-state-icon">📄</div>
-                  <p>Generate a pay sheet to view preview</p>
+                  <p>Select a month and click "Load Pay Sheets" to preview.</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8 }}>
+                    Paysheets must be created first in the Monthly Paysheets section.
+                  </p>
                 </div>
               ) : (
                 <div
                   ref={printRef}
+                  className="print-area"
                   style={{
                     background: '#eaeaea',
-                    padding: 24,
+                    padding: 20,
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 40,
+                    alignItems: 'center',
+                    gap: 30,
                   }}
                 >
-                  {generatedRecords.map((record) => (
+                  {previewPaysheets.map((ps) => (
                     <PaySheet
-                      key={record.id}
-                      paysheet={recordToPaysheet(record)}
-                      employee={recordToUser(record)}
+                      key={ps.id || ps.codeNo}
+                      paysheet={ps}
+                      employee={userMap.get(ps.codeNo) || null}
                     />
                   ))}
                 </div>
@@ -429,12 +393,7 @@ export default function Payroll() {
         </div>
       )}
 
-      {/* ═══════════════ TAB 2: By Branch & Role ═══════════════ */}
-      {activeTab === 'branch-role' && (
-        <PaysheetGeneration onSuccess={() => fetchHistory()} />
-      )}
-
-      {/* ═══════════════ TAB 3: Bulk PDF Export ═══════════════ */}
+      {/* ═══════════════ TAB 2: Bulk PDF Export ═══════════════ */}
       {activeTab === 'bulk-pdf' && (
         <div>
           {/* Controls */}
@@ -642,6 +601,7 @@ export default function Payroll() {
             </div>
             <div className="card-body" style={{ fontSize: 14, lineHeight: 1.8, color: 'var(--text-secondary)' }}>
               <ol style={{ paddingLeft: 20 }}>
+                <li>Create paysheets in the <strong>Monthly Paysheets</strong> section first.</li>
                 <li>Select the pay month for which paysheets have been created.</li>
                 <li>Adjust the number of worker threads (more = faster, but uses more resources).</li>
                 <li>Click <strong>Generate PDF Payslips</strong> to start PDF generation.</li>
@@ -657,7 +617,7 @@ export default function Payroll() {
         </div>
       )}
 
-      {/* ═══════════════ TAB 4: History & Reports ═══════════════ */}
+      {/* ═══════════════ TAB 3: History & Reports ═══════════════ */}
       {activeTab === 'history' && (
         <div className="card">
           <div className="filter-bar">
@@ -665,7 +625,7 @@ export default function Payroll() {
               <FiSearch className="search-icon" />
               <input
                 type="text"
-                placeholder="Search by employee name, period, or role..."
+                placeholder="Search by employee, code, or role..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -706,46 +666,48 @@ export default function Payroll() {
             ) : filteredHistory.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-state-icon">🕒</div>
-                <p>No payroll records found</p>
+                <p>No paysheet records found</p>
               </div>
             ) : (
               <table className="data-table">
                 <thead>
                   <tr>
                     <th>Period</th>
+                    <th>Code No</th>
                     <th>Employee</th>
-                    <th>Branch</th>
+                    <th>Role</th>
                     <th>Gross Pay</th>
                     <th>Net Pay</th>
-                    <th>Date Generated</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredHistory.map((record) => (
-                    <tr key={record.id}>
-                      <td>
-                        <span className="badge badge-info">{record.period}</span>
-                      </td>
-                      <td style={{ fontWeight: 500 }}>{record.userName}</td>
-                      <td>{record.branch}</td>
-                      <td>{formatCurrency(record.grossSalary)}</td>
-                      <td style={{ fontWeight: 600, color: 'var(--success)' }}>
-                        {formatCurrency(record.netSalary)}
-                      </td>
-                      <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                        {new Date(record.generatedAt).toLocaleString()}
-                      </td>
-                      <td>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => viewRecord(record)}
-                        >
-                          View / Print
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredHistory.map((ps) => {
+                    const user = userMap.get(ps.codeNo);
+                    const name = user ? `${user.firstName} ${user.lastName}` : ps.codeNo;
+                    return (
+                      <tr key={ps.id || ps.codeNo + ps.payMonth}>
+                        <td>
+                          <span className="badge badge-info">{ps.payMonth}</span>
+                        </td>
+                        <td style={{ fontSize: 13 }}>{ps.codeNo}</td>
+                        <td style={{ fontWeight: 500 }}>{name}</td>
+                        <td>{ps.role}</td>
+                        <td>{formatCurrency(ps.grossSalary || 0)}</td>
+                        <td style={{ fontWeight: 600, color: 'var(--success)' }}>
+                          {formatCurrency(ps.netSalary || 0)}
+                        </td>
+                        <td>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => viewPaysheet(ps)}
+                          >
+                            View / Print
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
@@ -755,4 +717,3 @@ export default function Payroll() {
     </div>
   );
 }
-

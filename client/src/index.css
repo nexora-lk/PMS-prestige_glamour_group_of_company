@@ -1487,22 +1487,61 @@ body {
   background: rgba(212, 52, 74, 0.08);
 }
 
-/* ═══ Print styles ═══ */
+/* ═══ Print styles — A5 paysheet ═══ */
+@page {
+  size: A5 portrait;
+  margin: 0;
+}
+
 @media print {
+  /* Hide everything except the print area */
+  body,
+  html {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 148mm;
+  }
   body * {
     visibility: hidden;
   }
-  .print-area, .print-area * {
-    visibility: visible;
+  .print-area,
+  .print-area * {
+    visibility: visible !important;
   }
   .print-area {
     position: absolute;
     left: 0;
     top: 0;
-    width: 100%;
+    width: 148mm;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #fff !important;
   }
   .no-print {
     display: none !important;
+  }
+
+  /* Force browsers to print background colors */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Each paysheet on its own A5 page, no break inside */
+  .print-area > div {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    page-break-after: always;
+    break-after: page;
+    box-shadow: none !important;
+    width: 148mm !important;
+    max-width: 148mm !important;
+    margin: 0 !important;
+  }
+  .print-area > div:last-child {
+    page-break-after: auto;
+    break-after: auto;
   }
 }
 

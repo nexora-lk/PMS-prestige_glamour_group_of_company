@@ -15,8 +15,8 @@ import type {
 
 // ── Directories ─────────────────────────────────────────────
 
-const TEMP_DIR = path.join(__dirname, '..', '..', 'temp');
-const OUTPUT_DIR = path.join(__dirname, '..', '..', 'exports');
+const TEMP_DIR = process.env.TEMP_DIR || path.join(__dirname, '..', '..', 'temp');
+const OUTPUT_DIR = process.env.OUTPUT_DIR || path.join(__dirname, '..', '..', 'exports');
 const WORKER_CONCURRENCY = 4; // batch workers for file writing
 
 function ensureDirs(): void {

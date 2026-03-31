@@ -4,13 +4,15 @@
   "description": "PMS Application",
   "main": "electron/dist/main.js",
   "scripts": {
+    "build:client": "cd client && npm run build",
     "build:server": "cd server && npm run build",
     "build:electron": "tsup electron/main.ts electron/preload.ts --out-dir electron/dist --format cjs --external electron",
-    "start": "npm run build:server && npm run build:electron && electron .",
-    "pack": "npm run build:server && npm run build:electron && electron-builder --dir",
-    "dist": "npm run build:server && npm run build:electron && electron-builder",
-    "build:win": "npm run build:server && npm run build:electron && electron-builder --win --x64",
-    "build:mac": "npm run build:server && npm run build:electron && electron-builder --mac"
+    "build:all": "npm run build:client && npm run build:server && npm run build:electron",
+    "start": "npm run build:all && electron .",
+    "pack": "npm run build:all && electron-builder --dir",
+    "dist": "npm run build:all && electron-builder",
+    "build:win": "npm run build:all && electron-builder --win --x64",
+    "build:mac": "npm run build:all && electron-builder --mac"
   },
   "keywords": [],
   "author": "",
@@ -28,6 +30,16 @@
     "appId": "com.payroll.system",
     "productName": "PMS Application",
     "icon": "client/public/icon.png",
+    "asar": true,
+    "asarUnpack": [
+      "server/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "client/public/icon.png",
+        "to": "icon.png"
+      }
+    ],
     "mac": {
       "target": [
         "dmg"
@@ -61,6 +73,7 @@
     "files": [
       "electron/dist/**/*",
       "server/dist/**/*",
+      "server/data/**/*",
       "server/package.json",
       "server/node_modules/**/*",
       "client/dist/**/*",

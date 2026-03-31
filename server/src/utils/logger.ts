@@ -2,7 +2,7 @@ import winston from 'winston';
 import path from 'path';
 import fs from 'fs';
 
-const LOG_DIR = path.join(__dirname, '..', '..', 'logs');
+const LOG_DIR = process.env.LOG_DIR || path.join(__dirname, '..', '..', 'logs');
 if (!fs.existsSync(LOG_DIR)) {
   fs.mkdirSync(LOG_DIR, { recursive: true });
 }

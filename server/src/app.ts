@@ -1,4 +1,4 @@
-import 'dotenv/config';
+try { require('dotenv/config'); } catch { /* no .env in production */ }
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -17,14 +17,15 @@ const PORT = process.env.PORT || 4500;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  origin: ['http://localhost:5173', 'http://localhost:3000', `http://localhost:${PORT}`],
   credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve exported files
-app.use('/exports', express.static(path.join(__dirname, '..', 'exports')));
+// Serve exported files — use writable OUTPUT_DIR if set, else relative
+const exportsDir = process.env.OUTPUT_DIR || path.join(__dirname, '..', 'exports');
+app.use('/exports', express.static(exportsDir));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -41,7 +42,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 // Serve frontend static files
-const clientPath = path.join(__dirname, '../../client/dist');
+const clientPath = process.env.CLIENT_PATH || path.join(__dirname, '../../client/dist');
 app.use(express.static(clientPath));
 
 // React router fallback
@@ -52,7 +53,7 @@ app.get('*', (_req, res) => {
 // Start server
 app.listen(PORT, () => {
   logger.info(`PMS Application Server running on http://localhost:${PORT}`);
-  logger.info(`Data stored in: ${path.join(__dirname, '..', 'data')}`);
+  logger.info(`Data stored in: ${process.env.DATA_DIR || path.join(__dirname, '..', 'data')}`);
   logger.info('Default login: admin / admin123');
 });
 

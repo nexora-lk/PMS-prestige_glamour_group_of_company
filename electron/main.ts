@@ -1,25 +1,75 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { fork, ChildProcess } from 'child_process';
 import * as path from 'path';
+import * as fs from 'fs';
 import * as net from 'net';
 
 let mainWindow: BrowserWindow | null = null;
 let backendProcess: ChildProcess | null = null;
 
-const IS_PRODUCTION = process.env.NODE_ENV === 'production' || app.isPackaged;
+const IS_PACKAGED = app.isPackaged;
 const SERVER_PORT = process.env.PORT || '4500';
 
 // Set OS-level application name
 app.name = 'PMS Application';
 app.setName('PMS Application');
 
+// ── Path helpers ──────────────────────────────────────────────
+// In packaged app: resources are inside app.asar under process.resourcesPath
+// In dev: files are relative to the project root
+
+function getResourcePath(...segments: string[]): string {
+  if (IS_PACKAGED) {
+    return path.join(process.resourcesPath, 'app.asar', ...segments);
+  }
+  return path.join(__dirname, '..', ...segments);
+}
+
+function getUnpackedPath(...segments: string[]): string {
+  if (IS_PACKAGED) {
+    return path.join(process.resourcesPath, 'app.asar.unpacked', ...segments);
+  }
+  return path.join(__dirname, '..', ...segments);
+}
+
+// Writable user data directory for JSON data, logs, temp, exports
+function getUserDataPath(...segments: string[]): string {
+  return path.join(app.getPath('userData'), ...segments);
+}
+
+// Copy default data files on first run
+function ensureDefaultData(): void {
+  const userDataDir = getUserDataPath('data');
+  if (!fs.existsSync(userDataDir)) {
+    fs.mkdirSync(userDataDir, { recursive: true });
+  }
+
+  // Source: bundled default data files
+  const sourceDir = getResourcePath('server', 'data');
+  if (!fs.existsSync(sourceDir)) return;
+
+  const files = fs.readdirSync(sourceDir);
+  for (const file of files) {
+    const dest = path.join(userDataDir, file);
+    if (!fs.existsSync(dest)) {
+      fs.copyFileSync(path.join(sourceDir, file), dest);
+    }
+  }
+}
+
+// ── Window ────────────────────────────────────────────────────
+
 function createWindow(): void {
+  const iconPath = IS_PACKAGED
+    ? path.join(process.resourcesPath, 'icon.png')
+    : path.join(__dirname, '..', 'client', 'public', 'icon.png');
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 1024,
     minHeight: 600,
-    icon: path.join(__dirname, '../../client/public/icon.png'),
+    icon: iconPath,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -31,7 +81,7 @@ function createWindow(): void {
   });
 
   // Disable DevTools in production
-  if (IS_PRODUCTION) {
+  if (IS_PACKAGED) {
     mainWindow.webContents.on('devtools-opened', () => {
       mainWindow?.webContents.closeDevTools();
     });
@@ -78,12 +128,34 @@ ipcMain.handle('get-app-version', () => app.getVersion());
 app.whenReady().then(() => {
   // Set macOS Dock icon
   if (process.platform === 'darwin') {
-    app.dock.setIcon(path.join(__dirname, '../../client/public/icon.png'));
+    const iconPath = IS_PACKAGED
+      ? path.join(process.resourcesPath, 'icon.png')
+      : path.join(__dirname, '..', 'client', 'public', 'icon.png');
+    app.dock.setIcon(iconPath);
   }
 
+  // Ensure default data files exist in user data dir
+  ensureDefaultData();
+
+  // Resolve server entry point
+  // In packaged app, server is inside asar.unpacked so worker_threads and puppeteer work
+  const serverEntry = getUnpackedPath('server', 'dist', 'app.js');
+
+  // Environment variables for the server process
+  const serverEnv: Record<string, string> = {
+    ...process.env as Record<string, string>,
+    PORT: SERVER_PORT,
+    NODE_ENV: IS_PACKAGED ? 'production' : 'development',
+    DATA_DIR: getUserDataPath('data'),
+    LOG_DIR: getUserDataPath('logs'),
+    TEMP_DIR: getUserDataPath('temp'),
+    OUTPUT_DIR: getUserDataPath('exports'),
+    CLIENT_PATH: getResourcePath('client', 'dist'),
+  };
+
   // Fork the compiled Express backend
-  backendProcess = fork(path.join(__dirname, '../../server/dist/app.js'), [], {
-    env: { ...process.env, PORT: SERVER_PORT, NODE_ENV: IS_PRODUCTION ? 'production' : 'development' },
+  backendProcess = fork(serverEntry, [], {
+    env: serverEnv,
     stdio: 'inherit',
   });
 

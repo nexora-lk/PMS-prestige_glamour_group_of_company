@@ -17,8 +17,8 @@ import type {
 // ── Job store (in-memory) ───────────────────────────────────
 
 const jobs = new Map<string, Job>();
-const TEMP_DIR = path.join(__dirname, '..', '..', 'temp');
-const OUTPUT_DIR = path.join(__dirname, '..', '..', 'exports');
+const TEMP_DIR = process.env.TEMP_DIR || path.join(__dirname, '..', '..', 'temp');
+const OUTPUT_DIR = process.env.OUTPUT_DIR || path.join(__dirname, '..', '..', 'exports');
 
 function ensureDirs(): void {
   for (const dir of [TEMP_DIR, OUTPUT_DIR]) {

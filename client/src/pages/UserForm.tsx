@@ -26,7 +26,7 @@ const initialFormData = {
 
 export default function UserForm() {
   const { id } = useParams<{ id: string }>();
-  const isEdit = id && id !== 'new' && id !== undefined;
+  const isEdit = !!(id && id !== 'new');
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState<{

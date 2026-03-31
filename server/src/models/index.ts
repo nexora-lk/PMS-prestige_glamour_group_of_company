@@ -1,5 +1,6 @@
 export interface User {
   id: string;
+  codeNo: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -20,7 +21,7 @@ export interface User {
 
 export interface PayrollRecord {
   id: string;
-  userId: string;
+  codeNo: string;
   userName: string;
   period: string;
   basicSalary: number;
@@ -36,7 +37,6 @@ export interface PayrollRecord {
 
 export interface MonthlyPaysheetDTO {
   id?: string;
-  employeeId: string;
   codeNo: string;
   payMonth: string;
   role: string;
@@ -52,7 +52,7 @@ export interface MonthlyPaysheetDTO {
   epfAvailability: boolean;
   etfAvailability: boolean;
   welfare: number;
-  otherOfficers: number;
+  otherOffer: number;
   customEarningName: string;
   customEarningAmount: number;
   customDeductionName: string;
@@ -66,7 +66,6 @@ export interface MonthlyPaysheetDTO {
   vehicleAllowance?: number;
   fuelAllowance?: number;
   generalAllowance?: number;
-  otherOffer?: number;
   orc?: number;
   subTotal?: number;
   nopayDeduction?: number;

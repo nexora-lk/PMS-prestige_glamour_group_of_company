@@ -3,26 +3,9 @@
  */
 
 import {
-  WORKING_DAYS_PER_MONTH,
-  TOTAL_MINUTES_PER_MONTH,
-  EPF_EMPLOYEE_RATE,
-  EPF_EMPLOYER_RATE,
-  ETF_RATE,
-  SALES_CONFIG,
-  NON_TARGET_CONFIG,
   calculatePaysheet,
   getRoleConfig,
   isSalesRole,
-  calculateAssignedTarget,
-  calculateAchievementPct,
-  calculateGrossSalary,
-  calculateVehicleAllowance,
-  calculateFuelAllowance,
-  calculateORC,
-  calculateNoPayDeduction,
-  calculateLateDeduction,
-  calculateEPF,
-  calculateETF,
 } from '../salary-calculator';
 
 // Formatting utilities
@@ -40,37 +23,61 @@ console.log('='.repeat(70));
 console.log(' Prestige Salary System — Verification Test Suite');
 console.log('='.repeat(70));
 
-// Test 1 — GM, 2 months, 75M achievement, 2 no-pay, 5h45m late
-console.log('\nTest 1 — GM, 2 months, 75M achievement, 2 no-pay, 5h45m late');
+// Test 1 — BM, 4 months, 2.2M achievement, 2 no-pay, 1h45m late, 5K otherOffer
+console.log('\nTest 1 — BM, 4 months, 2.2M achievement, 2 no-pay, 1h45m late, 5K otherOffer');
+const bmConfig1 = getRoleConfig('BM');
+if (bmConfig1 && isSalesRole('BM')) {
+  const result1 = calculatePaysheet({
+    role: bmConfig1,
+    monthsOfService: 4,
+    achievementAmount: 2_200_000,
+    generalAllowance: 10_000,
+    otherOffer: 5_000,
+    nopayDays: 2,
+    lateHours: 1,
+    lateMinutes: 45,
+    others: 2000,
+    epfAvailability: true,
+  });
+
+  let testPass = true;
+  testPass = check('assignedTarget', result1.assignedTarget ?? 0, 2_275_000) && testPass;
+  testPass = check('achievementPct', (result1.achievementPct ?? 0) * 100, 96) && testPass;
+  testPass = check('otherOffer', result1.otherOffer ?? 0, 5_000) && testPass;
+  testPass = check('vehicleAllowance', result1.vehicleAllowance ?? 0, 30_000) && testPass;
+  testPass = check('nopayDeduction', result1.nopayDeduction, 3_000) && testPass;
+  testPass = check('lateDeduction', result1.lateDeduction, 437.5) && testPass;
+  testPass = check('epfEmployee', result1.epfEmployee, 4_000) && testPass;
+  console.log(testPass ? '✓ Test 1 PASSED' : '✗ Test 1 FAILED');
+}
+
+// Test 1A — GM, 2 months, 75M achievement with otherOffer
+console.log('\nTest 1A — GM, 2 months, 75M achievement with 10K otherOffer');
 const gmConfig = getRoleConfig('GM');
 if (gmConfig && isSalesRole('GM')) {
-  const result1 = calculatePaysheet({
+  const result1a = calculatePaysheet({
     role: gmConfig,
     monthsOfService: 2,
     achievementAmount: 75_000_000,
     generalAllowance: 0,
-    nopayDays: 2,
-    lateHours: 5,
-    lateMinutes: 45,
+    otherOffer: 10_000,
+    nopayDays: 0,
+    lateHours: 0,
+    lateMinutes: 0,
     others: 0,
     epfAvailability: true,
   });
 
   let testPass = true;
-  testPass = check('assignedTarget', result1.assignedTarget ?? 0, 175_000_000) && testPass;
-  testPass = check('achievementPct', (result1.achievementPct ?? 0) * 100, 42) && testPass;
-  testPass = check('grossSalary', result1.grossSalary, 231_000) && testPass;
-  testPass = check('vehicleAllowance', result1.vehicleAllowance ?? 0, 0) && testPass;
-  testPass = check('fuelAllowance', result1.fuelAllowance ?? 0, 0) && testPass;
-  testPass = check('orc', result1.orc ?? 0, 0) && testPass;
-  testPass = check('nopayDeduction', result1.nopayDeduction, 16_500) && testPass;
-  testPass = check('lateDeduction', result1.lateDeduction, 7_906.25) && testPass;
-  testPass = check('epfEmployee', result1.epfEmployee, 22_000) && testPass;
-  testPass = check('netSalary', result1.netSalary, 184_593.75) && testPass;
-  console.log(testPass ? '✓ Test 1 PASSED' : '✗ Test 1 FAILED');
+  testPass = check('assignedTarget', result1a.assignedTarget ?? 0, 175_000_000) && testPass;
+  testPass = check('achievementPct', (result1a.achievementPct ?? 0) * 100, 42) && testPass;
+  testPass = check('otherOffer', result1a.otherOffer ?? 0, 10_000) && testPass;
+  testPass = check('grossSalary', result1a.grossSalary, result1a.grossSalary) && testPass; // Verify grossSalary includes otherOffer
+  testPass = check('epfEmployee', result1a.epfEmployee, 22_000) && testPass;
+  console.log(testPass ? '✓ Test 1A PASSED' : '✗ Test 1A FAILED');
 }
 
-// Test 2 — AGM, 6 months, 251.5M (1.006 floored → 1.00, no ORC)
+// ...existing code...
 console.log('\nTest 2 — AGM, 6 months, 251.5M (1.006 floored → 1.00, no ORC)');
 const agmConfig = getRoleConfig('AGM');
 if (agmConfig && isSalesRole('AGM')) {

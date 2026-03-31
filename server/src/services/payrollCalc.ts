@@ -34,7 +34,7 @@ export function generatePaySheet(user: User, period: string): Omit<PayrollRecord
   const netSalary = grossSalary - user.deductions - tax;
 
   return {
-    userId: user.id,
+    codeNo: user.codeNo,
     userName: `${user.firstName} ${user.lastName}`,
     period,
     basicSalary: user.basicSalary,

@@ -1,6 +1,7 @@
 [
   {
-    "userId": "207c60dc-87f0-4881-8f0f-748998281b04",
+    "id": "a4d0314c-329a-4847-bef8-9b698c800d9d",
+    "codeNo": "Heshan-8089",
     "userName": "Heshan Kavinda",
     "period": "2026-03",
     "basicSalary": 50000,
@@ -9,9 +10,23 @@
     "tax": 999.95,
     "grossSalary": 50000,
     "netSalary": 49000.05,
-    "branch": "Maggona",
+    "branch": "Kaduwela",
     "designation": "Branch Manager",
-    "id": "17aaff81-3bcd-4d07-9c74-5f6045896e31",
-    "generatedAt": "2026-03-31T03:12:55.831Z"
+    "generatedAt": "2026-03-31T07:30:56.680Z"
+  },
+  {
+    "id": "92874100-456c-4e95-b2ab-b162615ca560",
+    "codeNo": "haritha-cb51",
+    "userName": "haritha perera",
+    "period": "2026-03",
+    "basicSalary": 30000,
+    "allowances": 0,
+    "deductions": 0,
+    "tax": 0,
+    "grossSalary": 30000,
+    "netSalary": 30000,
+    "branch": "Panadura",
+    "designation": "Business Development Executive",
+    "generatedAt": "2026-03-31T07:34:29.673Z"
   }
 ]

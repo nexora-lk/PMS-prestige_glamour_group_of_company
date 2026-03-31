@@ -43,7 +43,7 @@ export function getActiveJob(): Job | undefined {
 
 export function startPayslipGeneration(
   payMonth: string,
-  employeeIds: string[] | undefined,
+  codeNos: string[] | undefined,
   concurrency: number
 ): Job {
   // Prevent duplicate concurrent jobs
@@ -53,7 +53,7 @@ export function startPayslipGeneration(
   }
 
   // Gather data
-  const employees = buildPayslipData(payMonth, employeeIds);
+  const employees = buildPayslipData(payMonth, codeNos);
   if (employees.length === 0) {
     throw new Error(`No paysheets found for ${payMonth}`);
   }
@@ -88,22 +88,22 @@ export function startPayslipGeneration(
 
 function buildPayslipData(
   payMonth: string,
-  employeeIds: string[] | undefined
+  codeNos: string[] | undefined
 ): PayslipEmployee[] {
   const paysheets = readJSON<MonthlyPaysheetDTO>('monthly-paysheets.json');
   const users = readJSON<User>('users.json');
-  const userMap = new Map(users.map((u) => [u.id, u]));
+  const userMap = new Map(users.map((u) => [u.codeNo, u]));
 
   let filtered = paysheets.filter((p) => p.payMonth === payMonth);
-  if (employeeIds && employeeIds.length > 0) {
-    const idSet = new Set(employeeIds);
-    filtered = filtered.filter((p) => idSet.has(p.employeeId));
+  if (codeNos && codeNos.length > 0) {
+    const codeSet = new Set(codeNos);
+    filtered = filtered.filter((p) => codeSet.has(p.codeNo));
   }
 
   return filtered.map((p): PayslipEmployee => {
-    const user = userMap.get(p.employeeId);
+    const user = userMap.get(p.codeNo);
     return {
-      id: p.id || p.employeeId,
+      id: p.id || p.codeNo,
       codeNo: p.codeNo,
       firstName: user?.firstName || p.codeNo,
       lastName: user?.lastName || '',

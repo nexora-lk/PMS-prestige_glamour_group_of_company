@@ -1,10 +1,14 @@
 import { Router, Request, Response } from 'express';
-import { v4 as uuidv4 } from 'uuid';
 import { readJSON, writeJSON } from '../services/jsonStore';
 import { User } from '../models';
 
 const router = Router();
 const USERS_FILE = 'users.json';
+
+// Helper function to validate codeNo uniqueness
+function isCodeNoDuplicate(codeNo: string, existingUsers: User[], excludeCodeNo?: string): boolean {
+  return existingUsers.some(u => u.codeNo === codeNo && u.codeNo !== excludeCodeNo);
+}
 
 // GET /api/users — List all users with search, filter, sort, pagination
 router.get('/', (req: Request, res: Response): void => {
@@ -98,11 +102,11 @@ router.get('/stats', (_req: Request, res: Response): void => {
   }
 });
 
-// GET /api/users/:id — Get single user
-router.get('/:id', (req: Request, res: Response): void => {
+// GET /api/users/:codeNo — Get single user by codeNo
+router.get('/:codeNo', (req: Request, res: Response): void => {
   try {
     const users = readJSON<User>(USERS_FILE);
-    const user = users.find((u) => u.id === req.params.id);
+    const user = users.find((u) => u.codeNo === req.params.codeNo);
     if (!user) {
       res.status(404).json({ error: 'User not found.' });
       return;
@@ -118,14 +122,14 @@ router.post('/', (req: Request, res: Response): void => {
   try {
     const users = readJSON<User>(USERS_FILE);
     const {
-      firstName, lastName, email, phone, branch,
+      codeNo, firstName, lastName, email, phone, branch,
       role, designation, joinDate, bankAccount, bankName,
       basicSalary, allowances, deductions, status,
     } = req.body;
 
     // Validation
-    if (!firstName || !lastName || !email) {
-      res.status(400).json({ error: 'First name, last name, and email are required.' });
+    if (!codeNo || !firstName || !lastName || !email) {
+      res.status(400).json({ error: 'CodeNo, first name, last name, and email are required.' });
       return;
     }
 
@@ -135,9 +139,15 @@ router.post('/', (req: Request, res: Response): void => {
       return;
     }
 
+    // Check duplicate codeNo
+    if (isCodeNoDuplicate(codeNo, users)) {
+      res.status(409).json({ error: 'A user with this CodeNo already exists.' });
+      return;
+    }
+
     const now = new Date().toISOString();
     const newUser: User = {
-      id: uuidv4(),
+      codeNo: codeNo,
       firstName: firstName || '',
       lastName: lastName || '',
       email: email || '',
@@ -164,11 +174,11 @@ router.post('/', (req: Request, res: Response): void => {
   }
 });
 
-// PUT /api/users/:id — Update user
-router.put('/:id', (req: Request, res: Response): void => {
+// PUT /api/users/:codeNo — Update user by codeNo
+router.put('/:codeNo', (req: Request, res: Response): void => {
   try {
     const users = readJSON<User>(USERS_FILE);
-    const index = users.findIndex((u) => u.id === req.params.id);
+    const index = users.findIndex((u) => u.codeNo === req.params.codeNo);
 
     if (index === -1) {
       res.status(404).json({ error: 'User not found.' });
@@ -178,7 +188,7 @@ router.put('/:id', (req: Request, res: Response): void => {
     // Check duplicate email (exclude self)
     if (req.body.email) {
       const duplicate = users.find(
-        (u) => u.email.toLowerCase() === req.body.email.toLowerCase() && u.id !== req.params.id
+        (u) => u.email.toLowerCase() === req.body.email.toLowerCase() && u.codeNo !== req.params.codeNo
       );
       if (duplicate) {
         res.status(409).json({ error: 'A user with this email already exists.' });
@@ -189,7 +199,7 @@ router.put('/:id', (req: Request, res: Response): void => {
     const updatedUser: User = {
       ...users[index],
       ...req.body,
-      id: users[index].id, // prevent id change
+      codeNo: users[index].codeNo, // prevent codeNo change
       createdAt: users[index].createdAt,
       updatedAt: new Date().toISOString(),
       basicSalary: Number(req.body.basicSalary ?? users[index].basicSalary),
@@ -205,11 +215,11 @@ router.put('/:id', (req: Request, res: Response): void => {
   }
 });
 
-// DELETE /api/users/:id — Delete user
-router.delete('/:id', (req: Request, res: Response): void => {
+// DELETE /api/users/:codeNo — Delete user by codeNo
+router.delete('/:codeNo', (req: Request, res: Response): void => {
   try {
     const users = readJSON<User>(USERS_FILE);
-    const index = users.findIndex((u) => u.id === req.params.id);
+    const index = users.findIndex((u) => u.codeNo === req.params.codeNo);
 
     if (index === -1) {
       res.status(404).json({ error: 'User not found.' });

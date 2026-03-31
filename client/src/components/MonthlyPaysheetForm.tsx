@@ -26,14 +26,14 @@ export function MonthlyPaysheetForm({
     role: initialData?.role || '',
     monthsOfService: initialData?.monthsOfService || 0,
     achieve: initialData?.achieve || 0,
-    allowance: initialData?.allowance || 0,
+    x: initialData?.allowance || 0,
     nopay: initialData?.nopay || 0,
     lateHours: initialData?.lateHours || 0,
     lateMinutes: initialData?.lateMinutes || 0,
     epfAvailability: initialData?.epfAvailability || false,
     etfAvailability: initialData?.etfAvailability || false,
     welfare: initialData?.welfare || 0,
-    otherOfficers: initialData?.otherOfficers || 0,
+    otherOffer: initialData?.otherOffer || 0,
     customEarningName: initialData?.customEarningName || '',
     customEarningAmount: initialData?.customEarningAmount || 0,
     customDeductionName: initialData?.customDeductionName || '',
@@ -92,6 +92,9 @@ export function MonthlyPaysheetForm({
       showToast('Please fill all required fields', 'error');
       return;
     }
+
+    console.log('[Form Submit] formData.otherOffer:', formData.otherOffer);
+    console.log('[Form Submit] Complete formData:', formData);
 
     setLoading(true);
     try {
@@ -264,12 +267,12 @@ export function MonthlyPaysheetForm({
           </div>
 
           <div className="form-group">
-            <label>Other Officers</label>
+            <label>Other Offers</label>
             <input
               type="number"
               className="form-input"
-              name="otherOfficers"
-              value={formData.otherOfficers || 0}
+              name="otherOffer"
+              value={formData.otherOffer || 0}
               onChange={handleInputChange}
               placeholder="0.00"
               step="0.01"

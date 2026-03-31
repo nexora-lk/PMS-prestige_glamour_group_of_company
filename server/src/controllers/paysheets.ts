@@ -30,7 +30,7 @@ function buildPaysheetInput(
     monthsOfService: number;
     achieve?: number;
     allowance?: number;
-    otherOfficers?: number;
+    otherOffer?: number;
     nopay: number;
     lateHours: number;
     lateMinutes: number;
@@ -48,6 +48,7 @@ function buildPaysheetInput(
       monthsOfService: fields.monthsOfService,
       achievementAmount: fields.achieve || 0,
       generalAllowance: fields.allowance || 0,
+      otherOffer: fields.otherOffer || 0,
       nopayDays: fields.nopay,
       lateHours: fields.lateHours,
       lateMinutes: fields.lateMinutes,
@@ -61,7 +62,7 @@ function buildPaysheetInput(
   return {
     role: roleConfig,
     monthsOfService: fields.monthsOfService,
-    otherOffer: fields.otherOfficers || 0,
+    otherOffer: fields.otherOffer || 0,
     nopayDays: fields.nopay,
     lateHours: fields.lateHours,
     lateMinutes: fields.lateMinutes,
@@ -83,7 +84,7 @@ router.post('/calculate', (req: Request, res: Response): void => {
   try {
     const {
       role, achieve, allowance, nopay, lateHours, lateMinutes,
-      epfAvailability, monthsOfService, welfare, otherOfficers,
+      epfAvailability, monthsOfService, welfare, otherOffer,
       customEarningAmount, customDeductionAmount,
     } = req.body;
 
@@ -115,7 +116,7 @@ router.post('/calculate', (req: Request, res: Response): void => {
       lateHours: Number(lateHours) || 0,
       lateMinutes: Number(lateMinutes) || 0,
       welfare,
-      otherOfficers,
+      otherOffer,
       epfAvailability: coerceBool(epfAvailability),
       customEarningAmount: Number(customEarningAmount) || 0,
       customDeductionAmount: Number(customDeductionAmount) || 0,
@@ -149,16 +150,18 @@ router.get('/month/:payMonth', (req: Request, res: Response): void => {
 router.post('/', (req: Request, res: Response): void => {
   try {
     const {
-      employeeId, codeNo, payMonth, role,
+      codeNo, payMonth, role,
       achieve, allowance, nopay, lateHours, lateMinutes,
       epfAvailability, etfAvailability,
-      monthsOfService, welfare, otherOfficers,
+      monthsOfService, welfare, otherOffer,
       customEarningName, customEarningAmount,
       customDeductionName, customDeductionAmount,
     } = req.body;
 
-    if (!employeeId || !codeNo || !payMonth || !role || typeof monthsOfService !== 'number') {
-      res.status(400).json({ error: 'Missing required fields: employeeId, codeNo, payMonth, role, monthsOfService' });
+    console.log('[Paysheet POST] otherOffer received from client:', otherOffer, 'type:', typeof otherOffer);
+
+    if (!codeNo || !payMonth || !role || typeof monthsOfService !== 'number') {
+      res.status(400).json({ error: 'Missing required fields: codeNo, payMonth, role, monthsOfService' });
       return;
     }
     if (typeof nopay !== 'number') {
@@ -178,13 +181,13 @@ router.post('/', (req: Request, res: Response): void => {
     }
 
     const users = readJSON<User>('users.json');
-    if (!users.find((u) => u.id === employeeId)) {
-      res.status(400).json({ error: `User not found: ${employeeId}` });
+    if (!users.find((u) => u.codeNo === codeNo)) {
+      res.status(400).json({ error: `User not found: ${codeNo}` });
       return;
     }
 
     const paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
-    if (paysheets.find((p) => p.employeeId === employeeId && p.payMonth === payMonth)) {
+    if (paysheets.find((p) => p.codeNo === codeNo && p.payMonth === payMonth)) {
       res.status(400).json({ error: `Paysheet already exists for ${codeNo} in ${payMonth}` });
       return;
     }
@@ -194,7 +197,7 @@ router.post('/', (req: Request, res: Response): void => {
       monthsOfService, achieve, allowance, nopay,
       lateHours: Number(lateHours) || 0,
       lateMinutes: Number(lateMinutes) || 0,
-      welfare, otherOfficers, epfAvailability: epf,
+      welfare, otherOffer, epfAvailability: epf,
       customEarningAmount: Number(customEarningAmount) || 0,
       customDeductionAmount: Number(customDeductionAmount) || 0,
     });
@@ -203,7 +206,6 @@ router.post('/', (req: Request, res: Response): void => {
 
     const newPaysheet: MonthlyPaysheetDTO = {
       id: uuidv4(),
-      employeeId,
       codeNo,
       payMonth,
       role,
@@ -216,16 +218,18 @@ router.post('/', (req: Request, res: Response): void => {
       lateMinutes: Number(lateMinutes) || 0,
       epfAvailability: epf,
       etfAvailability: coerceBool(etfAvailability),
-      otherOfficers: otherOfficers || 0,
       customEarningName: customEarningName || '',
       customEarningAmount: Number(customEarningAmount) || 0,
       customDeductionName: customDeductionName || '',
       customDeductionAmount: Number(customDeductionAmount) || 0,
       ...calculated,
       welfare: welfare || 0,
+      otherOffer: Number(otherOffer) || 0,
       createdAt: now,
       updatedAt: now,
     };
+
+    console.log('[Paysheet POST] Input otherOffer:', otherOffer, '| Saved otherOffer:', newPaysheet.otherOffer);
 
     paysheets.push(newPaysheet);
     writeJSON(PAYSHEETS_FILE, paysheets);
@@ -318,7 +322,7 @@ router.put('/:id', (req: Request, res: Response): void => {
     const lateMinutes = Number(req.body.lateMinutes ?? existing.lateMinutes) || 0;
     const monthsOfService = req.body.monthsOfService ?? existing.monthsOfService;
     const welfare = req.body.welfare ?? existing.welfare;
-    const otherOfficers = req.body.otherOfficers ?? existing.otherOfficers;
+    const otherOffer = req.body.otherOffer ?? existing.otherOffer;
     const epfAvailability = req.body.epfAvailability !== undefined
       ? coerceBool(req.body.epfAvailability)
       : existing.epfAvailability;
@@ -333,7 +337,7 @@ router.put('/:id', (req: Request, res: Response): void => {
     const input = buildPaysheetInput(existing.role, roleConfig, {
       monthsOfService, achieve, allowance, nopay,
       lateHours, lateMinutes,
-      welfare, otherOfficers, epfAvailability,
+      welfare, otherOffer, epfAvailability,
       customEarningAmount, customDeductionAmount,
     });
     const calculated: PaysheetResult = calculatePaysheet(input);
@@ -349,13 +353,13 @@ router.put('/:id', (req: Request, res: Response): void => {
       epfAvailability,
       etfAvailability,
       monthsOfService,
-      otherOfficers,
       customEarningName,
       customEarningAmount,
       customDeductionName,
       customDeductionAmount,
       ...calculated,
       welfare,
+      otherOffer: Number(otherOffer) || 0,
       updatedAt: new Date().toISOString(),
     };
 

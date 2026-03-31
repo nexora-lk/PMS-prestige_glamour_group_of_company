@@ -3,7 +3,7 @@ import { paysheetService } from '../services/paysheetService';
 import type { MonthlyPaysheet, PaysheetResponse } from '../types';
 
 interface UsePaysheetOptions {
-  employeeId?: string;
+  codeNo?: string;
   payMonth?: string;
   role?: string;
   search?: string;
@@ -34,7 +34,7 @@ export const usePaysheets = (options: UsePaysheetOptions = {}) => {
     };
 
     fetchPaysheets();
-  }, [options.employeeId, options.payMonth, options.role, options.search, options.skip]);
+  }, [options.codeNo, options.payMonth, options.role, options.search, options.skip]);
 
   const createPaysheet = async (data: Omit<MonthlyPaysheet, 'id' | 'createdAt' | 'updatedAt'>) => {
     const result = await paysheetService.createPaysheet(data);

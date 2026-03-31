@@ -35,7 +35,8 @@ export default function PaySheet({ paysheet, employee }: PaySheetProps) {
     earnings.fuelAllowance +
     earnings.orc +
     earnings.otherOffers +
-    earnings.generalAllowance
+    earnings.generalAllowance +
+    earnings.customEarning
   );
 
   const totalDeductions =

@@ -28,7 +28,7 @@ function recordToPaysheet(record: PayrollRecord): MonthlyPaysheet {
     epfAvailability: record.tax > 0,
     etfAvailability: record.tax > 0,
     welfare: 0,
-    otherOfficers: 0,
+    otherOffer: 0,
     basicSalary: record.basicSalary,
     grossSalary: record.grossSalary,
     netSalary: record.netSalary,

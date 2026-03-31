@@ -12,7 +12,7 @@ interface PaysheetGenerationProps {
 export function PaysheetGeneration({ onSuccess }: PaysheetGenerationProps) {
   const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [selectedCodeNos, setSelectedCodeNos] = useState<string[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
   const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7));
@@ -47,33 +47,33 @@ export function PaysheetGeneration({ onSuccess }: PaysheetGenerationProps) {
     }
   };
 
-  const handleUserToggle = (userId: string) => {
-    setSelectedUserIds((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+  const handleUserToggle = (codeNo: string) => {
+    setSelectedCodeNos((prev) =>
+      prev.includes(codeNo) ? prev.filter((code) => code !== codeNo) : [...prev, codeNo]
     );
   };
 
   const handleSelectAll = () => {
-    if (selectedUserIds.length === users.length) {
-      setSelectedUserIds([]);
+    if (selectedCodeNos.length === users.length) {
+      setSelectedCodeNos([]);
     } else {
-      setSelectedUserIds(users.map((u) => u.id));
+      setSelectedCodeNos(users.map((u) => u.codeNo));
     }
   };
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!period) return showToast('Please select a period', 'error');
-    if (selectedUserIds.length === 0) return showToast('Please select at least one employee', 'error');
+    if (selectedCodeNos.length === 0) return showToast('Please select at least one employee', 'error');
 
     setGenerating(true);
     try {
       const res = await payrollService.generatePayroll({
-        userIds: selectedUserIds,
+        codeNos: selectedCodeNos,
         period,
       });
       showToast(res.message, 'success');
-      setSelectedUserIds([]);
+      setSelectedCodeNos([]);
       onSuccess?.();
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : 'Failed to generate paysheets', 'error');
@@ -178,7 +178,7 @@ export function PaysheetGeneration({ onSuccess }: PaysheetGenerationProps) {
                 >
                   {users.map((user) => (
                     <label
-                      key={user.id}
+                      key={user.codeNo}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -186,15 +186,15 @@ export function PaysheetGeneration({ onSuccess }: PaysheetGenerationProps) {
                         cursor: 'pointer',
                         borderRadius: 4,
                         marginBottom: 4,
-                        backgroundColor: selectedUserIds.includes(user.id)
+                        backgroundColor: selectedCodeNos.includes(user.codeNo)
                           ? 'var(--primary-light)'
                           : 'transparent',
                       }}
                     >
                       <input
                         type="checkbox"
-                        checked={selectedUserIds.includes(user.id)}
-                        onChange={() => handleUserToggle(user.id)}
+                        checked={selectedCodeNos.includes(user.codeNo)}
+                        onChange={() => handleUserToggle(user.codeNo)}
                         style={{ marginRight: 12, cursor: 'pointer' }}
                       />
                       <div>

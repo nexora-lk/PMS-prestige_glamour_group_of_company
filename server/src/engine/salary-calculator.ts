@@ -162,7 +162,7 @@ export interface PaysheetInput {
 
 export interface PaysheetResult {
   basicSalary: number;
-  grossSalary: number;
+  achievedSalary: number;
   vehicleAllowance?: number;
   fuelAllowance?: number;
   generalAllowance?: number;
@@ -171,7 +171,7 @@ export interface PaysheetResult {
   achievementPct?: number;
   orc?: number;
   customEarningAmount?: number;
-  subTotal?: number;
+  grossSalary: number;
   nopayDeduction: number;
   lateDeduction: number;
   epfEmployee: number;
@@ -228,7 +228,7 @@ export function calculateAchievementPct(achieveAmount: number, assignedTarget: n
 }
 
 /** Col K — Gross salary Cat A: >=50% → full basic, <50% → basic × ach × 2 */
-export function calculateGrossSalary(achPct: number, basicSalary: number): number {
+export function calculateAchieveSalary(achPct: number, basicSalary: number): number {
   if (achPct >= 1.0) return basicSalary;
   if (achPct >= 0.5) return basicSalary;
   return basicSalary * achPct * 2;
@@ -265,7 +265,7 @@ export function calculateORC(
 }
 
 /** Col H Cat B — grossSalary = basic + otherOffer */
-export function calculateGrossSalaryCatB(basicSalary: number, otherOffer: number): number {
+export function calculateAchieveSalaryCatB(basicSalary: number, otherOffer: number): number {
   return basicSalary + (otherOffer || 0);
 }
 
@@ -316,10 +316,11 @@ export function calculatePaysheet(input: PaysheetInput): PaysheetResult {
     const assignedTarget = calculateAssignedTarget(input.monthsOfService, saleConfig.baseTarget);
     const achievementAmount = input.achievementAmount || 0;
     const achievementPct = calculateAchievementPct(achievementAmount, assignedTarget);
-    const grossSalary = calculateGrossSalary(achievementPct, basicSalary);
+    const achievedSalary = calculateAchieveSalary(achievementPct, basicSalary);
     const vehicleAllowance = calculateVehicleAllowance(achievementPct, saleConfig.vehicleAllowance);
     const fuelAllowance = calculateFuelAllowance(achievementPct, saleConfig.fuelAllowance);
     const generalAllowance = input.generalAllowance || 0;
+    const otherOffer = input.otherOffer || 0;
     const orc = calculateORC(
       achievementPct,
       achievementAmount,
@@ -327,26 +328,27 @@ export function calculatePaysheet(input: PaysheetInput): PaysheetResult {
       saleConfig.orcValue
     );
     const customEarningAmount = input.customEarningAmount || 0;
-    const subTotal = grossSalary + vehicleAllowance + fuelAllowance + generalAllowance + orc + customEarningAmount;
+    const grossSalary = achievedSalary + vehicleAllowance + fuelAllowance + generalAllowance + orc + customEarningAmount + otherOffer;
     const nopayDeduction = calculateNoPayDeduction(input.nopayDays, basicSalary);
     const lateDeduction = calculateLateDeduction(input.lateHours, input.lateMinutes, basicSalary);
     const epf = calculateEPF(basicSalary, input.epfAvailability);
     const etf = calculateETF(basicSalary, input.epfAvailability);
     const welfare = input.others || 0;
     const customDeductionAmount = input.customDeductionAmount || 0;
-    const netSalary = subTotal - (nopayDeduction + lateDeduction + epf.employee + welfare + customDeductionAmount);
+    const netSalary = grossSalary - (nopayDeduction + lateDeduction + epf.employee + welfare + customDeductionAmount);
 
     return {
       basicSalary,
-      grossSalary,
+      achievedSalary,
       vehicleAllowance,
       fuelAllowance,
       generalAllowance,
+      otherOffer,
       assignedTarget,
       achievementPct,
       orc,
       customEarningAmount,
-      subTotal,
+      grossSalary,
       nopayDeduction,
       lateDeduction,
       epfEmployee: epf.employee,
@@ -360,20 +362,21 @@ export function calculatePaysheet(input: PaysheetInput): PaysheetResult {
     // Category B (Non-Target) calculation
     const otherOffer = input.otherOffer || 0;
     const customEarningAmount = input.customEarningAmount || 0;
-    const grossSalary = calculateGrossSalaryCatB(basicSalary, otherOffer) + customEarningAmount;
+    const achievedSalary = calculateAchieveSalaryCatB(basicSalary, otherOffer) + customEarningAmount;
     const nopayDeduction = calculateNoPayDeduction(input.nopayDays, basicSalary);
     const lateDeduction = calculateLateDeduction(input.lateHours, input.lateMinutes, basicSalary);
     const epf = calculateEPF(basicSalary, input.epfAvailability);
     const etf = calculateETF(basicSalary, input.epfAvailability);
     const welfare = input.others || 0;
     const customDeductionAmount = input.customDeductionAmount || 0;
-    const netSalary = grossSalary - (nopayDeduction + lateDeduction + epf.employee + welfare + customDeductionAmount);
+    const netSalary = achievedSalary - (nopayDeduction + lateDeduction + epf.employee + welfare + customDeductionAmount);
 
     return {
       basicSalary,
-      grossSalary,
+      achievedSalary,
       otherOffer,
       customEarningAmount,
+      grossSalary: achievedSalary,
       nopayDeduction,
       lateDeduction,
       epfEmployee: epf.employee,
@@ -387,4 +390,4 @@ export function calculatePaysheet(input: PaysheetInput): PaysheetResult {
 }
 
 
-
+console.log()

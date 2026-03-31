@@ -2,12 +2,12 @@ import api from './api';
 import type { PayrollRecord, PayrollResponse, PayrollHistoryResponse } from '../types';
 
 interface PayrollGenerateRequest {
-  userIds?: string[];
+  codeNos?: string[];
   period: string;
 }
 
 interface PayrollHistoryParams {
-  userId?: string;
+  codeNo?: string;
   period?: string;
   search?: string;
 }

@@ -2,7 +2,7 @@ import api from './api';
 import type { MonthlyPaysheet, PaysheetResponse, PaysheetDetailResponse } from '../types';
 
 interface PaysheetListParams {
-  employeeId?: string;
+  codeNo?: string;
   payMonth?: string;
   role?: string;
   search?: string;
@@ -19,6 +19,7 @@ export const paysheetService = {
   ): Promise<{ message: string; paysheet: MonthlyPaysheet }> {
     try {
       const response = await api.post('/paysheets', data);
+      console.log(response.data)
       return response.data;
     } catch (error: unknown) {
       throw new Error(extractErrorMessage(error, 'Failed to create paysheet'));

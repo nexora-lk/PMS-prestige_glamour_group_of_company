@@ -11,7 +11,7 @@ const USERS_FILE = 'users.json';
 // POST /api/payroll/generate — Generate paysheet for user(s)
 router.post('/generate', (req: Request, res: Response): void => {
   try {
-    const { userIds, period } = req.body;
+    const { codeNos, period } = req.body;
 
     if (!period) {
       res.status(400).json({ error: 'Period (YYYY-MM) is required.' });
@@ -22,18 +22,18 @@ router.post('/generate', (req: Request, res: Response): void => {
     const payrollRecords = readJSON<PayrollRecord>(PAYROLL_FILE);
     const generatedRecords: PayrollRecord[] = [];
 
-    // If no userIds, generate for all active users
-    const targetIds: string[] = userIds && userIds.length > 0
-      ? userIds
-      : users.filter((u) => u.status === 'active').map((u) => u.id);
+    // If no codeNos, generate for all active users
+    const targetCodeNos: string[] = codeNos && codeNos.length > 0
+      ? codeNos
+      : users.filter((u) => u.status === 'active').map((u) => u.codeNo);
 
-    for (const userId of targetIds) {
-      const user = users.find((u) => u.id === userId);
+    for (const codeNo of targetCodeNos) {
+      const user = users.find((u) => u.codeNo === codeNo);
       if (!user) continue;
 
       // Check if payroll already exists for this user/period
       const existing = payrollRecords.find(
-        (r) => r.userId === userId && r.period === period
+        (r) => r.codeNo === codeNo && r.period === period
       );
       if (existing) {
         generatedRecords.push(existing);
@@ -65,10 +65,10 @@ router.post('/generate', (req: Request, res: Response): void => {
 router.get('/history', (req: Request, res: Response): void => {
   try {
     let records = readJSON<PayrollRecord>(PAYROLL_FILE);
-    const { userId, period, search } = req.query;
+    const { codeNo, period, search } = req.query;
 
-    if (userId && typeof userId === 'string') {
-      records = records.filter((r) => r.userId === userId);
+    if (codeNo && typeof codeNo === 'string') {
+      records = records.filter((r) => r.codeNo === codeNo);
     }
 
     if (period && typeof period === 'string') {
@@ -80,7 +80,8 @@ router.get('/history', (req: Request, res: Response): void => {
       records = records.filter(
         (r) =>
           r.userName.toLowerCase().includes(q) ||
-          r.branch.toLowerCase().includes(q)
+          r.branch.toLowerCase().includes(q) ||
+          r.codeNo.toLowerCase().includes(q)
       );
     }
 

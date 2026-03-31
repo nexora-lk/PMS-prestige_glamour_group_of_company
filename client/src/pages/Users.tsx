@@ -155,7 +155,7 @@ export default function Users() {
               </thead>
               <tbody>
                 {users.map((user: User) => (
-                  <tr key={user.id}>
+                  <tr key={user.codeNo}>
                     <td>
                       <div className="user-cell">
                         <div className="user-avatar">{user.firstName.charAt(0)}</div>
@@ -164,7 +164,7 @@ export default function Users() {
                             {user.firstName} {user.lastName}
                           </div>
                           <div className="user-email" style={{ fontSize: 11 }}>
-                            ID: {user.id.substring(0, 8)}
+                            Code: {user.codeNo}
                           </div>
                         </div>
                       </div>
@@ -189,14 +189,14 @@ export default function Users() {
                       <div className="actions">
                         <button
                           className="btn btn-ghost btn-sm"
-                          onClick={() => navigate(`/users/${user.id}`)}
+                          onClick={() => navigate(`/users/${user.codeNo}`)}
                           title="Edit"
                         >
                           <FiEdit2 size={16} />
                         </button>
                         <button
                           className="btn btn-ghost btn-danger btn-sm"
-                          onClick={() => handleDelete(user.id, user.firstName)}
+                          onClick={() => handleDelete(user.codeNo, user.firstName)}
                           title="Delete"
                         >
                           <FiTrash2 size={16} />

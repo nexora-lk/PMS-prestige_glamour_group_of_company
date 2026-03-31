@@ -8,6 +8,7 @@ import type { User } from '../types';
 import { showToast } from '../components/Toast';
 
 const initialFormData = {
+  codeNo: '',
   firstName: '',
   lastName: '',
   email: '',
@@ -29,6 +30,7 @@ export default function UserForm() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState<{
+    codeNo: string;
     firstName: string;
     lastName: string;
     email: string;
@@ -52,6 +54,7 @@ export default function UserForm() {
         try {
           const user = await userService.getUser(id);
           setFormData({
+            codeNo: user.codeNo,
             firstName: user.firstName,
             lastName: user.lastName,
             email: user.email,
@@ -104,10 +107,10 @@ export default function UserForm() {
         designation: formData.role,
       };
       if (isEdit) {
-        await userService.updateUser(id, submitData);
+        await userService.updateUser(formData.codeNo, submitData);
         showToast('Employee updated successfully', 'success');
       } else {
-        await userService.createUser(submitData as unknown as Omit<User, 'id' | 'createdAt' | 'updatedAt'>);
+        await userService.createUser(submitData as unknown as Omit<User, 'createdAt' | 'updatedAt'>);
         showToast('Employee created successfully', 'success');
       }
       navigate('/users');
@@ -139,6 +142,22 @@ export default function UserForm() {
           <h3 style={{ marginBottom: 16, fontSize: 14, color: 'var(--accent)' }}>
             Personal Information
           </h3>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Employee Code (CodeNo) *</label>
+              <input
+                required
+                type="text"
+                className="form-input"
+                name="codeNo"
+                value={formData.codeNo}
+                onChange={handleChange}
+                disabled={isEdit}
+                style={isEdit ? { backgroundColor: 'var(--surface-secondary)', cursor: 'not-allowed' } : {}}
+                placeholder="e.g., E001, EMP-001"
+              />
+            </div>
+          </div>
           <div className="form-row">
             <div className="form-group">
               <label>First Name *</label>

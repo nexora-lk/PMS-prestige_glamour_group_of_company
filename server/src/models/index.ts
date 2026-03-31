@@ -59,6 +59,7 @@ export interface MonthlyPaysheetDTO {
 
   // Calculated results
   basicSalary?: number;
+  achievedSalary?: number;
   assignedTarget?: number;
   achievementPct?: number;
   grossSalary?: number;

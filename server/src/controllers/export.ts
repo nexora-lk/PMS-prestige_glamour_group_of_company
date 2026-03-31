@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import path from 'path';
 import { readJSON } from '../services/jsonStore';
-import { exportUsersToExcel, exportPayrollToExcel } from '../utils/excelExport';
-import { User, PayrollRecord } from '../models';
+import { exportUsersToExcel, exportMonthlyPaysheetsToExcel } from '../utils/excelExport';
+import { User, MonthlyPaysheetDTO } from '../models';
 
 const router = Router();
 
@@ -27,16 +27,16 @@ router.get('/users-excel', async (_req: Request, res: Response): Promise<void> =
   }
 });
 
-// GET /api/export/payroll-excel — Export payroll to Excel
-router.get('/payroll-excel', async (_req: Request, res: Response): Promise<void> => {
+// GET /api/export/paysheets-excel — Export monthly paysheets to Excel (sheets per role + month)
+router.get('/paysheets-excel', async (_req: Request, res: Response): Promise<void> => {
   try {
-    const records = readJSON<PayrollRecord>('payroll.json');
+    const records = readJSON<MonthlyPaysheetDTO>('monthly-paysheets.json');
     if (records.length === 0) {
-      res.status(400).json({ error: 'No payroll data to export.' });
+      res.status(400).json({ error: 'No monthly paysheet data to export.' });
       return;
     }
 
-    const filePath = await exportPayrollToExcel(records);
+    const filePath = await exportMonthlyPaysheetsToExcel(records);
     res.download(filePath, path.basename(filePath), (err) => {
       if (err) {
         console.error('Download error:', err);
@@ -44,7 +44,7 @@ router.get('/payroll-excel', async (_req: Request, res: Response): Promise<void>
     });
   } catch (error) {
     console.error('Export error:', error);
-    res.status(500).json({ error: 'Failed to export payroll.' });
+    res.status(500).json({ error: 'Failed to export monthly paysheets.' });
   }
 });
 

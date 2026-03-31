@@ -5,13 +5,13 @@ import { showToast } from '../components/Toast';
 
 export default function Export() {
   const [isExportingUsers, setIsExportingUsers] = useState(false);
-  const [isExportingPayroll, setIsExportingPayroll] = useState(false);
+  const [isExportingPaysheets, setIsExportingPaysheets] = useState(false);
 
   const handleExportUsers = async () => {
     try {
       setIsExportingUsers(true);
       await exportService.downloadUsersExcel();
-      showToast('Users export successful', 'success');
+      showToast('Employees export successful', 'success');
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : 'Export failed', 'error');
     } finally {
@@ -19,15 +19,15 @@ export default function Export() {
     }
   };
 
-  const handleExportPayroll = async () => {
+  const handleExportPaysheets = async () => {
     try {
-      setIsExportingPayroll(true);
-      await exportService.downloadPayrollExcel();
-      showToast('Payroll export successful', 'success');
+      setIsExportingPaysheets(true);
+      await exportService.downloadPaysheetsExcel();
+      showToast('Monthly paysheets export successful', 'success');
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : 'Export failed', 'error');
     } finally {
-      setIsExportingPayroll(false);
+      setIsExportingPaysheets(false);
     }
   };
 
@@ -39,7 +39,7 @@ export default function Export() {
             <FiUsers size={40} />
           </div>
           <h3>Employees Data</h3>
-          <p>Download a complete Excel (.xlsx) report of all employee profiles and salary information.</p>
+          <p>Download a complete Excel (.xlsx) report of all employee profiles, bank details and salary information.</p>
           <button
             className="btn btn-primary btn-full"
             onClick={handleExportUsers}
@@ -53,14 +53,14 @@ export default function Export() {
           <div className="export-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
             <FiDollarSign size={40} />
           </div>
-          <h3>Payroll History</h3>
-          <p>Download a complete Excel (.xlsx) report of all generated pay sheets and tax deductions.</p>
+          <h3>Monthly Paysheets</h3>
+          <p>Download Excel (.xlsx) with each sheet organized by role and month, containing all paysheet details.</p>
           <button
             className="btn btn-primary btn-full"
-            onClick={handleExportPayroll}
-            disabled={isExportingPayroll}
+            onClick={handleExportPaysheets}
+            disabled={isExportingPaysheets}
           >
-            {isExportingPayroll ? 'Exporting...' : 'Export to Excel'}
+            {isExportingPaysheets ? 'Exporting...' : 'Export to Excel'}
           </button>
         </div>
 

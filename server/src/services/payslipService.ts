@@ -161,8 +161,9 @@ async function processJob(
   const actualConcurrency = batches.length;
   logger.info(`Job ${job.id}: ${employees.length} payslips in ${actualConcurrency} batches`);
 
-  // Resolve worker script path (compiled JS in dist/)
-  const workerPath = path.join(__dirname, '..', 'workers', 'pdf-worker.js');
+  // Resolve worker script path — use .ts in dev (ts-node), .js in production (compiled dist/)
+  const ext = __filename.endsWith('.ts') ? '.ts' : '.js';
+  const workerPath = path.join(__dirname, '..', 'workers', `pdf-worker${ext}`);
 
   try {
     await runWorkers(job, batches, jobDir, workerPath);
@@ -351,42 +352,25 @@ export async function printPayslips(
   }
 }
 
-function printPdfsWindows(
+async function printPdfsWindows(
   dir: string,
   files: string[],
   printerName?: string,
   copies: number = 1
 ): Promise<void> {
-  return new Promise((resolve, reject) => {
-    // Build PowerShell script to print all PDFs
-    const safePrinter = printerName ? printerName.replace(/['"]/g, '') : '';
-    const pdfPaths = files.map((f) => path.join(dir, f).replace(/\\/g, '\\\\'));
+  // Use pdf-to-printer (bundles SumatraPDF) for silent PDF printing.
+  // Works on any Windows machine without needing a registered PDF viewer.
+  const { print } = await import('pdf-to-printer');
 
-    const commands: string[] = [];
-    for (const pdfPath of pdfPaths) {
-      for (let c = 0; c < copies; c++) {
-        if (safePrinter) {
-          commands.push(
-            `Start-Process -FilePath '${pdfPath}' -Verb PrintTo -ArgumentList '${safePrinter}' -Wait`
-          );
-        } else {
-          commands.push(
-            `Start-Process -FilePath '${pdfPath}' -Verb Print -Wait`
-          );
-        }
-      }
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    const options: Record<string, string | boolean> = {};
+    if (printerName) options.printer = printerName;
+
+    for (let c = 0; c < copies; c++) {
+      await print(filePath, options);
     }
-
-    const script = commands.join('; ');
-
-    execFile('powershell.exe', ['-NoProfile', '-Command', script], { timeout: 300000 }, (err) => {
-      if (err) {
-        reject(new Error(`PDF print failed: ${err.message}`));
-        return;
-      }
-      resolve();
-    });
-  });
+  }
 }
 
 function printPdfsUnix(

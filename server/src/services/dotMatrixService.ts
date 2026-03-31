@@ -197,7 +197,9 @@ async function processJob(
 
   logger.info(`Dot matrix job ${job.id}: ${employees.length} payslips in ${batches.length} batches`);
 
-  const workerPath = path.join(__dirname, '..', 'workers', 'dot-matrix-worker.js');
+  // Resolve worker script path — use .ts in dev (ts-node), .js in production (compiled dist/)
+  const ext = __filename.endsWith('.ts') ? '.ts' : '.js';
+  const workerPath = path.join(__dirname, '..', 'workers', `dot-matrix-worker${ext}`);
 
   try {
     const batchFiles = await runWorkers(job, batches, jobDir, workerPath, useEscP);

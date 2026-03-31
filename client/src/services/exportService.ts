@@ -23,6 +23,6 @@ async function downloadExcel(endpoint: string, filenamePrefix: string): Promise<
 }
 
 export const exportService = {
-  downloadUsersExcel: () => downloadExcel('/export/users-excel', 'users'),
-  downloadPayrollExcel: () => downloadExcel('/export/payroll-excel', 'payroll'),
+  downloadUsersExcel: () => downloadExcel('/export/users-excel', 'employees'),
+  downloadPaysheetsExcel: () => downloadExcel('/export/paysheets-excel', 'monthly-paysheets'),
 };

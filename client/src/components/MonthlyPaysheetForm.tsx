@@ -20,13 +20,12 @@ export function MonthlyPaysheetForm({
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<Partial<MonthlyPaysheet>>({
-    employeeId: initialData?.employeeId || '',
     codeNo: initialData?.codeNo || '',
     payMonth: initialData?.payMonth || new Date().toISOString().slice(0, 7),
     role: initialData?.role || '',
     monthsOfService: initialData?.monthsOfService || 0,
     achieve: initialData?.achieve || 0,
-    x: initialData?.allowance || 0,
+    allowance: initialData?.allowance || 0,
     nopay: initialData?.nopay || 0,
     lateHours: initialData?.lateHours || 0,
     lateMinutes: initialData?.lateMinutes || 0,
@@ -53,13 +52,12 @@ export function MonthlyPaysheetForm({
     }
   };
 
-  const handleUserChange = (userId: string) => {
-    const selected = users.find((u) => u.id === userId);
+  const handleUserChange = (codeNo: string) => {
+    const selected = users.find((u) => u.codeNo === codeNo);
     if (selected) {
       setFormData({
         ...formData,
-        employeeId: userId,
-        codeNo: `${selected.firstName}-${selected.id.slice(0, 4)}`,
+        codeNo: selected.codeNo,
         role: selected.role || selected.designation,
       });
     }
@@ -84,7 +82,6 @@ export function MonthlyPaysheetForm({
     e.preventDefault();
 
     if (
-      !formData.employeeId ||
       !formData.codeNo ||
       !formData.payMonth ||
       !formData.role
@@ -122,14 +119,14 @@ export function MonthlyPaysheetForm({
           </label>
           <select
             className="form-select"
-            value={formData.employeeId || ''}
+            value={formData.codeNo || ''}
             onChange={(e) => handleUserChange(e.target.value)}
             required
             disabled={isEditMode}
           >
             <option value="">Select Employee</option>
             {users.map((u) => (
-              <option key={u.id} value={u.id}>
+              <option key={u.codeNo} value={u.codeNo}>
                 {u.firstName} {u.lastName} ({u.role})
               </option>
             ))}
@@ -397,7 +394,7 @@ export function MonthlyPaysheetForm({
               <input
                 type="checkbox"
                 name="epfAvailability"
-                checked={formData.epfAvailability || false}
+                checked={formData.epfAvailability === true}
                 onChange={handleInputChange}
               />
               EPF (Employee Provident Fund)
@@ -409,7 +406,7 @@ export function MonthlyPaysheetForm({
               <input
                 type="checkbox"
                 name="etfAvailability"
-                checked={formData.etfAvailability || false}
+                checked={formData.etfAvailability === true}
                 onChange={handleInputChange}
               />
               ETF (Employee Trust Fund)

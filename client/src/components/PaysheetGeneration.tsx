@@ -99,7 +99,7 @@ export function PaysheetGeneration({ onSuccess }: PaysheetGenerationProps) {
                 onChange={(e) => {
                   setSelectedBranch(e.target.value);
                   setSelectedRole('');
-                  setSelectedUserIds([]);
+                  setSelectedCodeNos([]);
                 }}
               >
                 <option value="">All Branches</option>
@@ -118,7 +118,7 @@ export function PaysheetGeneration({ onSuccess }: PaysheetGenerationProps) {
                 value={selectedRole}
                 onChange={(e) => {
                   setSelectedRole(e.target.value);
-                  setSelectedUserIds([]);
+                  setSelectedCodeNos([]);
                 }}
                 disabled={roles.length === 0}
               >
@@ -156,14 +156,14 @@ export function PaysheetGeneration({ onSuccess }: PaysheetGenerationProps) {
               <div style={{ marginTop: 24, marginBottom: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <h3 style={{ fontSize: 14, margin: 0 }}>
-                    Employees ({selectedUserIds.length} selected)
+                    Employees ({selectedCodeNos.length} selected)
                   </h3>
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
                     onClick={handleSelectAll}
                   >
-                    {selectedUserIds.length === users.length ? 'Deselect All' : 'Select All'}
+                    {selectedCodeNos.length === users.length ? 'Deselect All' : 'Select All'}
                   </button>
                 </div>
 
@@ -214,9 +214,9 @@ export function PaysheetGeneration({ onSuccess }: PaysheetGenerationProps) {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={generating || selectedUserIds.length === 0}
+                  disabled={generating || selectedCodeNos.length === 0}
                 >
-                  {generating ? 'Generating...' : `Generate Paysheets (${selectedUserIds.length})`}
+                  {generating ? 'Generating...' : `Generate Paysheets (${selectedCodeNos.length})`}
                 </button>
               </div>
             </>

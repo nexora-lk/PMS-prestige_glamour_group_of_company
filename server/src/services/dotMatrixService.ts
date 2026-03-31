@@ -46,7 +46,7 @@ export function getActiveDotMatrixJob(): DotMatrixJob | undefined {
 
 export function startDotMatrixGeneration(
   payMonth: string,
-  employeeIds: string[] | undefined,
+  codeNos: string[] | undefined,
   useEscP: boolean
 ): DotMatrixJob {
   const active = getActiveDotMatrixJob();
@@ -54,7 +54,7 @@ export function startDotMatrixGeneration(
     throw new Error(`A dot matrix generation job is already in progress (ID: ${active.id})`);
   }
 
-  const employees = buildPayslipData(payMonth, employeeIds);
+  const employees = buildPayslipData(payMonth, codeNos);
   if (employees.length === 0) {
     throw new Error(`No paysheets found for ${payMonth}`);
   }

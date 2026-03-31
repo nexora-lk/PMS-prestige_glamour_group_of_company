@@ -1,17 +1,17 @@
 import { z } from 'zod';
 
-export const generateDotPayslipsSchema = z.object({
+export const generateDotMatrixSchema = z.object({
   payMonth: z
     .string()
     .regex(/^\d{4}-\d{2}$/, 'payMonth must be YYYY-MM format'),
-  employeeIds: z
+  codeNos: z
     .array(z.string().min(1))
     .optional()
-    .describe('If omitted, generates for all employees with paysheets for the month'),
+    .describe('If omitted, generates for all active employees with paysheets for the month'),
   useEscP: z
     .boolean()
-    .default(false)
-    .describe('Include ESC/P control codes for dot matrix formatting'),
+    .optional()
+    .default(true)
 });
 
 export const printDotPayslipsSchema = z.object({
@@ -28,5 +28,5 @@ export const printDotPayslipsSchema = z.object({
     .default(1),
 });
 
-export type GenerateDotPayslipsInput = z.infer<typeof generateDotPayslipsSchema>;
+export type GenerateDotMatrixInput = z.infer<typeof generateDotMatrixSchema>;
 export type PrintDotPayslipsInput = z.infer<typeof printDotPayslipsSchema>;

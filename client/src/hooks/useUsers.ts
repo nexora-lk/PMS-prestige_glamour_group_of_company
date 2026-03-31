@@ -43,21 +43,21 @@ export const useUsers = (options: UseUsersOptions = {}) => {
     options.page, options.limit, options.sortBy, options.sortOrder, options.skip,
   ]);
 
-  const createUser = async (userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const createUser = async (userData: Omit<User, 'createdAt' | 'updatedAt'>) => {
     const newUser = await userService.createUser(userData);
     setUsers([...users, newUser]);
     return newUser;
   };
 
-  const updateUser = async (id: string, updates: Partial<User>) => {
-    const updated = await userService.updateUser(id, updates);
-    setUsers(users.map((u) => (u.id === id ? updated : u)));
+  const updateUser = async (codeNo: string, updates: Partial<User>) => {
+    const updated = await userService.updateUser(codeNo, updates);
+    setUsers(users.map((u) => (u.codeNo === codeNo ? updated : u)));
     return updated;
   };
 
-  const deleteUser = async (id: string) => {
-    await userService.deleteUser(id);
-    setUsers(users.filter((u) => u.id !== id));
+  const deleteUser = async (codeNo: string) => {
+    await userService.deleteUser(codeNo);
+    setUsers(users.filter((u) => u.codeNo !== codeNo));
   };
 
   const refreshUsers = async () => {

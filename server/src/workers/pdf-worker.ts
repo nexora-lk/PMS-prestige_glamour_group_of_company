@@ -71,7 +71,7 @@ async function processBatch(task: WorkerTask): Promise<void> {
           type: 'error',
           message: `Failed to render payslip for ${employee.codeNo}: ${lastError.message}`,
           batchIndex,
-          failedId: employee.id,
+          failedId: employee.codeNo,
         };
         parentPort?.postMessage(msg);
       }

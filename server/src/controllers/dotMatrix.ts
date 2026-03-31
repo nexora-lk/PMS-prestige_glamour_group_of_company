@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
-import { generateDotPayslipsSchema, printDotPayslipsSchema } from '../validation/dotMatrix';
+import { generateDotMatrixSchema, printDotPayslipsSchema } from '../validation/dotMatrix';
 import {
   startDotMatrixGeneration,
   getDotMatrixJob,
@@ -13,15 +13,15 @@ const router = Router();
 // POST /api/dot-matrix/generate — Generate text-based payslips
 router.post('/generate', (req: Request, res: Response): void => {
   try {
-    const parsed = generateDotPayslipsSchema.safeParse(req.body);
+    const parsed = generateDotMatrixSchema.safeParse(req.body);
     if (!parsed.success) {
       const errors = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
       res.status(400).json({ error: 'Validation failed', details: errors });
       return;
     }
-
-    const { payMonth, employeeIds, useEscP } = parsed.data;
-    const job = startDotMatrixGeneration(payMonth, employeeIds, useEscP);
+    
+    const { payMonth, codeNos, useEscP } = parsed.data;
+    const job = startDotMatrixGeneration(payMonth, codeNos, useEscP);
 
     res.status(202).json({
       message: 'Dot matrix payslip generation started',

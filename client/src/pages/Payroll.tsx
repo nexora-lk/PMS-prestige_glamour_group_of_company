@@ -16,8 +16,7 @@ import api from '../services/api';
 function recordToPaysheet(record: PayrollRecord): MonthlyPaysheet {
   return {
     id: record.id,
-    employeeId: record.userId,
-    codeNo: record.userId.substring(0, 8),
+    codeNo: record.codeNo,
     payMonth: record.period,
     role: record.designation,
     monthsOfService: 0,
@@ -25,10 +24,16 @@ function recordToPaysheet(record: PayrollRecord): MonthlyPaysheet {
     allowance: record.allowances,
     nopay: 0,
     late: 0,
+    lateHours: 0,
+    lateMinutes: 0,
     epfAvailability: record.tax > 0,
     etfAvailability: record.tax > 0,
     welfare: 0,
     otherOffer: 0,
+    customEarningName: '',
+    customEarningAmount: 0,
+    customDeductionName: '',
+    customDeductionAmount: 0,
     basicSalary: record.basicSalary,
     grossSalary: record.grossSalary,
     netSalary: record.netSalary,
@@ -43,7 +48,7 @@ function recordToPaysheet(record: PayrollRecord): MonthlyPaysheet {
 function recordToUser(record: PayrollRecord): User {
   const nameParts = record.userName.split(' ');
   return {
-    id: record.userId,
+    codeNo: record.codeNo,
     firstName: nameParts[0] || '',
     lastName: nameParts.slice(1).join(' ') || '',
     email: '',
@@ -149,7 +154,7 @@ export default function Payroll() {
     setGenerating(true);
     try {
       const res = await payrollService.generatePayroll({
-        userIds: selectedUserIds.length > 0 ? selectedUserIds : undefined,
+        codeNos: selectedUserIds.length > 0 ? selectedUserIds : undefined,
         period,
       });
       setGeneratedRecords(res.records);
@@ -361,7 +366,7 @@ export default function Payroll() {
                     }
                   >
                     {users.map((u) => (
-                      <option key={u.id} value={u.id}>
+                      <option key={u.codeNo} value={u.codeNo}>
                         {u.firstName} {u.lastName} ({u.branch})
                       </option>
                     ))}

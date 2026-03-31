@@ -4,7 +4,7 @@ export const generatePayslipsSchema = z.object({
   payMonth: z
     .string()
     .regex(/^\d{4}-\d{2}$/, 'payMonth must be YYYY-MM format'),
-  employeeIds: z
+  codeNos: z
     .array(z.string().min(1))
     .optional()
     .describe('If omitted, generates for all active employees with paysheets for the month'),

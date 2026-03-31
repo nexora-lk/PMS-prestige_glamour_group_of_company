@@ -3,7 +3,7 @@ import { payrollService } from '../services/payrollService';
 import type { PayrollRecord } from '../types';
 
 interface UsePayrollOptions {
-  userId?: string;
+  codeNo?: string;
   period?: string;
   search?: string;
   skip?: boolean;
@@ -31,7 +31,7 @@ export const usePayroll = (options: UsePayrollOptions = {}) => {
     };
 
     fetchPayroll();
-  }, [options.userId, options.period, options.search, options.skip]);
+  }, [options.codeNo, options.period, options.search, options.skip]);
 
   const deleteRecord = async (id: string) => {
     await payrollService.deletePayroll(id);

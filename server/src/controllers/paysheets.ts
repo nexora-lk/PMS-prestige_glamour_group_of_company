@@ -229,8 +229,6 @@ router.post('/', (req: Request, res: Response): void => {
       updatedAt: now,
     };
 
-    console.log('[Paysheet POST] Input otherOffer:', otherOffer, '| Saved otherOffer:', newPaysheet.otherOffer);
-
     paysheets.push(newPaysheet);
     writeJSON(PAYSHEETS_FILE, paysheets);
     res.status(201).json({ message: 'Monthly paysheet created successfully', paysheet: newPaysheet });
@@ -240,14 +238,14 @@ router.post('/', (req: Request, res: Response): void => {
   }
 });
 
-// GET /api/paysheets — List paysheets with filters
+// GET /api/paysheets — List all paysheets
 router.get('/', (req: Request, res: Response): void => {
   try {
     let paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
-    const { employeeId, payMonth, role, search } = req.query;
+    const { codeNo, payMonth, role, search } = req.query;
 
-    if (employeeId && typeof employeeId === 'string') {
-      paysheets = paysheets.filter((p) => p.employeeId === employeeId);
+    if (codeNo && typeof codeNo === 'string') {
+      paysheets = paysheets.filter((p) => p.codeNo === codeNo);
     }
     if (payMonth && typeof payMonth === 'string') {
       paysheets = paysheets.filter((p) => p.payMonth === payMonth);
@@ -309,8 +307,8 @@ router.put('/:id', (req: Request, res: Response): void => {
     }
 
     const users = readJSON<User>('users.json');
-    if (!users.find((u) => u.id === existing.employeeId)) {
-      res.status(400).json({ error: `User not found: ${existing.employeeId}` });
+    if (!users.find((u) => u.codeNo === existing.codeNo)) {
+      res.status(400).json({ error: `User not found: ${existing.codeNo}` });
       return;
     }
 

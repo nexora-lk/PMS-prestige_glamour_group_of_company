@@ -46,7 +46,7 @@ async function processBatch(task: DotMatrixTask): Promise<void> {
             type: 'error',
             message: `Failed to render payslip for ${employee.codeNo}: ${err instanceof Error ? err.message : String(err)}`,
             batchIndex,
-            failedId: employee.id,
+            failedId: employee.codeNo,
           };
           parentPort?.postMessage(errorMsg);
         }

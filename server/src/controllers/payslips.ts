@@ -17,8 +17,8 @@ router.post('/generate', (req: Request, res: Response): void => {
       return;
     }
 
-    const { payMonth, employeeIds, concurrency } = parsed.data;
-    const job = startPayslipGeneration(payMonth, employeeIds, concurrency);
+    const { payMonth, codeNos, concurrency } = parsed.data;
+    const job = startPayslipGeneration(payMonth, codeNos, concurrency);
 
     res.status(202).json({
       message: 'Payslip generation started',

@@ -15,13 +15,18 @@ export default function PaySheet({ paysheet, employee }: PaySheetProps) {
     orc: paysheet.orc || 0,
     otherOffers: paysheet.otherOffer || 0,
     generalAllowance: paysheet.generalAllowance || 0,
+    customEarning: paysheet.customEarningAmount || 0,
   };
+
+  const customEarningLabel = paysheet.customEarningName || 'Custom Earning';
+  const customDeductionLabel = paysheet.customDeductionName || 'Custom Deduction';
 
   const deductions = {
     epf8: paysheet.epfEmployee || 0,
     noPay: paysheet.nopayDeduction || 0,
     lateComes: paysheet.lateDeduction || 0,
     welfare: paysheet.welfare || 0,
+    customDeduction: paysheet.customDeductionAmount || 0,
   };
 
   const grossSalary = paysheet.grossSalary || (
@@ -37,7 +42,8 @@ export default function PaySheet({ paysheet, employee }: PaySheetProps) {
     deductions.epf8 +
     deductions.noPay +
     deductions.lateComes +
-    deductions.welfare;
+    deductions.welfare +
+    deductions.customDeduction;
 
   const netSalary = paysheet.netSalary || (grossSalary - totalDeductions);
 
@@ -130,6 +136,20 @@ export default function PaySheet({ paysheet, employee }: PaySheetProps) {
               <span style={styles.infoColon}>:</span>
               <span style={styles.infoValue}>{branch}</span>
             </div>
+            {employee?.bankName && (
+              <div style={styles.infoRow}>
+                <span style={styles.infoLabel}>Bank Name</span>
+                <span style={styles.infoColon}>:</span>
+                <span style={styles.infoValue}>{employee.bankName}</span>
+              </div>
+            )}
+            {employee?.bankAccount && (
+              <div style={styles.infoRow}>
+                <span style={styles.infoLabel}>Bank Account</span>
+                <span style={styles.infoColon}>:</span>
+                <span style={styles.infoValue}>{employee.bankAccount}</span>
+              </div>
+            )}
             <div style={styles.infoRow}>
               <span style={styles.infoLabel}>Generated On</span>
               <span style={styles.infoColon}>:</span>
@@ -183,6 +203,12 @@ export default function PaySheet({ paysheet, employee }: PaySheetProps) {
             <span style={styles.rowAmount}>{formatCurrency(earnings.otherOffers)}</span>
           </div>
         )}
+        {earnings.customEarning > 0 && (
+          <div style={styles.tableRow}>
+            <span style={styles.rowLabel}>{customEarningLabel}</span>
+            <span style={styles.rowAmount}>{formatCurrency(earnings.customEarning)}</span>
+          </div>
+        )}
       </div>
 
       {/* ===== GROSS SALARY ===== */}
@@ -215,6 +241,12 @@ export default function PaySheet({ paysheet, employee }: PaySheetProps) {
           <span style={styles.rowLabel}>Welfare</span>
           <span style={styles.rowAmount}>{formatCurrency(deductions.welfare)}</span>
         </div>
+        {deductions.customDeduction > 0 && (
+          <div style={styles.tableRow}>
+            <span style={styles.rowLabel}>{customDeductionLabel}</span>
+            <span style={styles.rowAmount}>{formatCurrency(deductions.customDeduction)}</span>
+          </div>
+        )}
       </div>
 
       {/* ===== TOTAL DEDUCTIONS ===== */}

@@ -15,6 +15,8 @@ const initialFormData = {
   branch: '',
   role: '',
   joinDate: '',
+  bankAccount: '',
+  bankName: '',
   basicSalary: 0,
   allowances: 0,
   deductions: 0,
@@ -34,6 +36,8 @@ export default function UserForm() {
     branch: string;
     role: string;
     joinDate: string;
+    bankAccount: string;
+    bankName: string;
     basicSalary: number;
     allowances: number;
     deductions: number;
@@ -55,6 +59,8 @@ export default function UserForm() {
             branch: user.branch,
             role: user.role,
             joinDate: user.joinDate.split('T')[0],
+            bankAccount: user.bankAccount || '',
+            bankName: user.bankName || '',
             basicSalary: user.basicSalary,
             allowances: user.allowances,
             deductions: user.deductions,
@@ -228,6 +234,34 @@ export default function UserForm() {
                 name="joinDate"
                 value={formData.joinDate}
                 onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <h3 style={{ margin: '24px 0 16px', fontSize: 14, color: 'var(--accent)' }}>
+            Bank Details
+          </h3>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Bank Name</label>
+              <input
+                type="text"
+                className="form-input"
+                name="bankName"
+                value={formData.bankName}
+                onChange={handleChange}
+                placeholder="e.g., HNB, BOC, Commercial Bank"
+              />
+            </div>
+            <div className="form-group">
+              <label>Bank Account Number</label>
+              <input
+                type="text"
+                className="form-input"
+                name="bankAccount"
+                value={formData.bankAccount}
+                onChange={handleChange}
+                placeholder="e.g., 1234567890"
               />
             </div>
           </div>

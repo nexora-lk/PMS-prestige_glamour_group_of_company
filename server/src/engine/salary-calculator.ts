@@ -156,6 +156,8 @@ export interface PaysheetInput {
   lateMinutes: number;
   others?: number;
   epfAvailability: boolean;
+  customEarningAmount?: number;
+  customDeductionAmount?: number;
 }
 
 export interface PaysheetResult {
@@ -168,6 +170,7 @@ export interface PaysheetResult {
   assignedTarget?: number;
   achievementPct?: number;
   orc?: number;
+  customEarningAmount?: number;
   subTotal?: number;
   nopayDeduction: number;
   lateDeduction: number;
@@ -175,6 +178,7 @@ export interface PaysheetResult {
   epfEmployer: number;
   etf: number;
   welfare: number;
+  customDeductionAmount?: number;
   netSalary: number;
 }
 
@@ -322,13 +326,15 @@ export function calculatePaysheet(input: PaysheetInput): PaysheetResult {
       assignedTarget,
       saleConfig.orcValue
     );
-    const subTotal = grossSalary + vehicleAllowance + fuelAllowance + generalAllowance + orc;
+    const customEarningAmount = input.customEarningAmount || 0;
+    const subTotal = grossSalary + vehicleAllowance + fuelAllowance + generalAllowance + orc + customEarningAmount;
     const nopayDeduction = calculateNoPayDeduction(input.nopayDays, basicSalary);
     const lateDeduction = calculateLateDeduction(input.lateHours, input.lateMinutes, basicSalary);
     const epf = calculateEPF(basicSalary, input.epfAvailability);
     const etf = calculateETF(basicSalary, input.epfAvailability);
     const welfare = input.others || 0;
-    const netSalary = subTotal - (nopayDeduction + lateDeduction + epf.employee + welfare);
+    const customDeductionAmount = input.customDeductionAmount || 0;
+    const netSalary = subTotal - (nopayDeduction + lateDeduction + epf.employee + welfare + customDeductionAmount);
 
     return {
       basicSalary,
@@ -339,6 +345,7 @@ export function calculatePaysheet(input: PaysheetInput): PaysheetResult {
       assignedTarget,
       achievementPct,
       orc,
+      customEarningAmount,
       subTotal,
       nopayDeduction,
       lateDeduction,
@@ -346,29 +353,34 @@ export function calculatePaysheet(input: PaysheetInput): PaysheetResult {
       epfEmployer: epf.employer,
       etf,
       welfare,
+      customDeductionAmount,
       netSalary,
     };
   } else {
     // Category B (Non-Target) calculation
     const otherOffer = input.otherOffer || 0;
-    const grossSalary = calculateGrossSalaryCatB(basicSalary, otherOffer);
+    const customEarningAmount = input.customEarningAmount || 0;
+    const grossSalary = calculateGrossSalaryCatB(basicSalary, otherOffer) + customEarningAmount;
     const nopayDeduction = calculateNoPayDeduction(input.nopayDays, basicSalary);
     const lateDeduction = calculateLateDeduction(input.lateHours, input.lateMinutes, basicSalary);
     const epf = calculateEPF(basicSalary, input.epfAvailability);
     const etf = calculateETF(basicSalary, input.epfAvailability);
     const welfare = input.others || 0;
-    const netSalary = grossSalary - (nopayDeduction + lateDeduction + epf.employee + welfare);
+    const customDeductionAmount = input.customDeductionAmount || 0;
+    const netSalary = grossSalary - (nopayDeduction + lateDeduction + epf.employee + welfare + customDeductionAmount);
 
     return {
       basicSalary,
       grossSalary,
       otherOffer,
+      customEarningAmount,
       nopayDeduction,
       lateDeduction,
       epfEmployee: epf.employee,
       epfEmployer: epf.employer,
       etf,
       welfare,
+      customDeductionAmount,
       netSalary,
     };
   }

@@ -1,4 +1,5 @@
 import { Worker } from 'worker_threads';
+import { execFile } from 'child_process';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import fs from 'fs';
@@ -108,6 +109,8 @@ function buildPayslipData(
       lastName: user?.lastName || '',
       designation: user?.designation || p.role,
       branch: user?.branch || '',
+      bankName: user?.bankName || '',
+      bankAccount: user?.bankAccount || '',
       payMonth: p.payMonth,
       basicSalary: p.basicSalary || 0,
       vehicleAllowance: p.vehicleAllowance || 0,
@@ -115,6 +118,8 @@ function buildPayslipData(
       generalAllowance: p.generalAllowance || 0,
       orc: p.orc || 0,
       otherOffer: p.otherOffer || 0,
+      customEarningName: p.customEarningName || '',
+      customEarningAmount: p.customEarningAmount || 0,
       grossSalary: p.grossSalary || 0,
       epfEmployee: p.epfEmployee || 0,
       epfEmployer: p.epfEmployer || 0,
@@ -122,6 +127,8 @@ function buildPayslipData(
       nopayDeduction: p.nopayDeduction || 0,
       lateDeduction: p.lateDeduction || 0,
       welfare: p.welfare || 0,
+      customDeductionName: p.customDeductionName || '',
+      customDeductionAmount: p.customDeductionAmount || 0,
       netSalary: p.netSalary || 0,
       achievementPct: p.achievementPct || 0,
       assignedTarget: p.assignedTarget || 0,
@@ -292,6 +299,123 @@ function createZip(sourceDir: string, jobId: string): Promise<string> {
     }
 
     archive.finalize();
+  });
+}
+
+// ── Print PDFs ─────────────────────────────────────────────
+
+export async function printPayslips(
+  jobId: string,
+  printerName?: string,
+  copies: number = 1
+): Promise<string> {
+  const job = jobs.get(jobId);
+  if (!job) throw new Error('Job not found');
+  if (job.status !== 'completed' || !job.zipPath) {
+    throw new Error('ZIP not ready for printing');
+  }
+  if (!fs.existsSync(job.zipPath)) {
+    throw new Error('ZIP file has been cleaned up');
+  }
+
+  // Extract ZIP to temp dir for printing
+  const printDir = path.join(TEMP_DIR, `print_${jobId}`);
+  fs.mkdirSync(printDir, { recursive: true });
+
+  // Use archiver's unzip equivalent — read ZIP and extract PDFs
+  const AdmZip = await import('adm-zip');
+  const zip = new AdmZip.default(job.zipPath);
+  zip.extractAllTo(printDir, true);
+
+  const pdfFiles = fs.readdirSync(printDir).filter((f) => f.endsWith('.pdf')).sort();
+
+  if (pdfFiles.length === 0) {
+    cleanup(printDir);
+    throw new Error('No PDF files found in ZIP');
+  }
+
+  logger.info(`Printing ${pdfFiles.length} PDFs (${copies} copies) to ${printerName || 'default printer'}`, { jobId });
+
+  try {
+    if (process.platform === 'win32') {
+      await printPdfsWindows(printDir, pdfFiles, printerName, copies);
+    } else {
+      await printPdfsUnix(printDir, pdfFiles, printerName, copies);
+    }
+
+    const msg = `Sent ${pdfFiles.length} payslips (${copies} copies) to ${printerName || 'default printer'}`;
+    logger.info(msg, { jobId });
+    return msg;
+  } finally {
+    cleanup(printDir);
+  }
+}
+
+function printPdfsWindows(
+  dir: string,
+  files: string[],
+  printerName?: string,
+  copies: number = 1
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // Build PowerShell script to print all PDFs
+    const safePrinter = printerName ? printerName.replace(/['"]/g, '') : '';
+    const pdfPaths = files.map((f) => path.join(dir, f).replace(/\\/g, '\\\\'));
+
+    const commands: string[] = [];
+    for (const pdfPath of pdfPaths) {
+      for (let c = 0; c < copies; c++) {
+        if (safePrinter) {
+          commands.push(
+            `Start-Process -FilePath '${pdfPath}' -Verb PrintTo -ArgumentList '${safePrinter}' -Wait`
+          );
+        } else {
+          commands.push(
+            `Start-Process -FilePath '${pdfPath}' -Verb Print -Wait`
+          );
+        }
+      }
+    }
+
+    const script = commands.join('; ');
+
+    execFile('powershell.exe', ['-NoProfile', '-Command', script], { timeout: 300000 }, (err) => {
+      if (err) {
+        reject(new Error(`PDF print failed: ${err.message}`));
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+function printPdfsUnix(
+  dir: string,
+  files: string[],
+  printerName?: string,
+  copies: number = 1
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let completed = 0;
+    let hasError = false;
+
+    for (const file of files) {
+      const filePath = path.join(dir, file);
+      const args = [filePath];
+      if (printerName) args.push('-d', printerName);
+      if (copies > 1) args.push('-n', String(copies));
+
+      execFile('lp', args, (err) => {
+        if (hasError) return;
+        if (err) {
+          hasError = true;
+          reject(new Error(`Print failed for ${file}: ${err.message}`));
+          return;
+        }
+        completed++;
+        if (completed === files.length) resolve();
+      });
+    }
   });
 }
 

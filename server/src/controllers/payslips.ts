@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
-import { generatePayslipsSchema } from '../validation/payslip';
-import { startPayslipGeneration, getJob } from '../services/payslipService';
+import { generatePayslipsSchema, printPayslipsSchema } from '../validation/payslip';
+import { startPayslipGeneration, getJob, printPayslips } from '../services/payslipService';
 import logger from '../utils/logger';
 
 const router = Router();
@@ -80,6 +80,27 @@ router.get('/download/:jobId', (req: Request, res: Response): void => {
       logger.error('Download error', { error: err.message, jobId: job.id });
     }
   });
+});
+
+// POST /api/payslips/print — Send generated PDFs to printer
+router.post('/print', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const parsed = printPayslipsSchema.safeParse(req.body);
+    if (!parsed.success) {
+      const errors = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
+      res.status(400).json({ error: 'Validation failed', details: errors });
+      return;
+    }
+
+    const { jobId, printerName, copies } = parsed.data;
+    const result = await printPayslips(jobId, printerName, copies);
+
+    res.json({ message: result });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Print failed';
+    logger.error('PDF print failed', { error: message });
+    res.status(500).json({ error: message });
+  }
 });
 
 export default router;

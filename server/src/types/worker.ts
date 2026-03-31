@@ -5,6 +5,8 @@ export interface PayslipEmployee {
   lastName: string;
   designation: string;
   branch: string;
+  bankName: string;
+  bankAccount: string;
   payMonth: string;
   basicSalary: number;
   vehicleAllowance: number;
@@ -12,6 +14,8 @@ export interface PayslipEmployee {
   generalAllowance: number;
   orc: number;
   otherOffer: number;
+  customEarningName: string;
+  customEarningAmount: number;
   grossSalary: number;
   epfEmployee: number;
   epfEmployer: number;
@@ -19,6 +23,8 @@ export interface PayslipEmployee {
   nopayDeduction: number;
   lateDeduction: number;
   welfare: number;
+  customDeductionName: string;
+  customDeductionAmount: number;
   netSalary: number;
   achievementPct: number;
   assignedTarget: number;

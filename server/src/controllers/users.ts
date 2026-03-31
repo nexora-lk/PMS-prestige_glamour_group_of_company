@@ -119,7 +119,8 @@ router.post('/', (req: Request, res: Response): void => {
     const users = readJSON<User>(USERS_FILE);
     const {
       firstName, lastName, email, phone, branch,
-      role, designation, joinDate, basicSalary, allowances, deductions, status,
+      role, designation, joinDate, bankAccount, bankName,
+      basicSalary, allowances, deductions, status,
     } = req.body;
 
     // Validation
@@ -145,6 +146,8 @@ router.post('/', (req: Request, res: Response): void => {
       role: role || '',
       designation: designation || '',
       joinDate: joinDate || now.split('T')[0],
+      bankAccount: bankAccount || '',
+      bankName: bankName || '',
       basicSalary: Number(basicSalary) || 0,
       allowances: Number(allowances) || 0,
       deductions: Number(deductions) || 0,

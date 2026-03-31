@@ -32,12 +32,14 @@ function buildPaysheetInput(
     allowance?: number;
     otherOfficers?: number;
     nopay: number;
-    late: number;
+    lateHours: number;
+    lateMinutes: number;
     welfare?: number;
     epfAvailability: boolean;
+    customEarningAmount?: number;
+    customDeductionAmount?: number;
   }
 ): PaysheetInput {
-  const { lateHours, lateMinutes } = parseLate(fields.late);
   const epf = fields.epfAvailability === true;
 
   if (isSalesRole(roleCode)) {
@@ -47,10 +49,12 @@ function buildPaysheetInput(
       achievementAmount: fields.achieve || 0,
       generalAllowance: fields.allowance || 0,
       nopayDays: fields.nopay,
-      lateHours,
-      lateMinutes,
+      lateHours: fields.lateHours,
+      lateMinutes: fields.lateMinutes,
       others: fields.welfare || 0,
       epfAvailability: epf,
+      customEarningAmount: fields.customEarningAmount || 0,
+      customDeductionAmount: fields.customDeductionAmount || 0,
     };
   }
 
@@ -59,10 +63,12 @@ function buildPaysheetInput(
     monthsOfService: fields.monthsOfService,
     otherOffer: fields.otherOfficers || 0,
     nopayDays: fields.nopay,
-    lateHours,
-    lateMinutes,
+    lateHours: fields.lateHours,
+    lateMinutes: fields.lateMinutes,
     others: fields.welfare || 0,
     epfAvailability: epf,
+    customEarningAmount: fields.customEarningAmount || 0,
+    customDeductionAmount: fields.customDeductionAmount || 0,
   };
 }
 
@@ -75,14 +81,18 @@ function coerceBool(val: unknown): boolean {
 // POST /api/paysheets/calculate — Preview calculation without saving
 router.post('/calculate', (req: Request, res: Response): void => {
   try {
-    const { role, achieve, allowance, nopay, late, epfAvailability, monthsOfService, welfare, otherOfficers } = req.body;
+    const {
+      role, achieve, allowance, nopay, lateHours, lateMinutes,
+      epfAvailability, monthsOfService, welfare, otherOfficers,
+      customEarningAmount, customDeductionAmount,
+    } = req.body;
 
     if (!role || typeof monthsOfService !== 'number') {
       res.status(400).json({ error: 'Missing required fields: role, monthsOfService' });
       return;
     }
-    if (typeof nopay !== 'number' || typeof late !== 'number') {
-      res.status(400).json({ error: 'Invalid numeric values for nopay, late' });
+    if (typeof nopay !== 'number') {
+      res.status(400).json({ error: 'Invalid numeric value for nopay' });
       return;
     }
 
@@ -102,10 +112,13 @@ router.post('/calculate', (req: Request, res: Response): void => {
       achieve,
       allowance,
       nopay,
-      late,
+      lateHours: Number(lateHours) || 0,
+      lateMinutes: Number(lateMinutes) || 0,
       welfare,
       otherOfficers,
       epfAvailability: coerceBool(epfAvailability),
+      customEarningAmount: Number(customEarningAmount) || 0,
+      customDeductionAmount: Number(customDeductionAmount) || 0,
     });
 
     const result: PaysheetResult = calculatePaysheet(input);
@@ -137,17 +150,19 @@ router.post('/', (req: Request, res: Response): void => {
   try {
     const {
       employeeId, codeNo, payMonth, role,
-      achieve, allowance, nopay, late,
+      achieve, allowance, nopay, lateHours, lateMinutes,
       epfAvailability, etfAvailability,
       monthsOfService, welfare, otherOfficers,
+      customEarningName, customEarningAmount,
+      customDeductionName, customDeductionAmount,
     } = req.body;
 
     if (!employeeId || !codeNo || !payMonth || !role || typeof monthsOfService !== 'number') {
       res.status(400).json({ error: 'Missing required fields: employeeId, codeNo, payMonth, role, monthsOfService' });
       return;
     }
-    if (typeof nopay !== 'number' || typeof late !== 'number') {
-      res.status(400).json({ error: 'Invalid numeric values for nopay, late' });
+    if (typeof nopay !== 'number') {
+      res.status(400).json({ error: 'Invalid numeric value for nopay' });
       return;
     }
 
@@ -176,7 +191,12 @@ router.post('/', (req: Request, res: Response): void => {
 
     const epf = coerceBool(epfAvailability);
     const input = buildPaysheetInput(role, roleConfig, {
-      monthsOfService, achieve, allowance, nopay, late, welfare, otherOfficers, epfAvailability: epf,
+      monthsOfService, achieve, allowance, nopay,
+      lateHours: Number(lateHours) || 0,
+      lateMinutes: Number(lateMinutes) || 0,
+      welfare, otherOfficers, epfAvailability: epf,
+      customEarningAmount: Number(customEarningAmount) || 0,
+      customDeductionAmount: Number(customDeductionAmount) || 0,
     });
     const calculated: PaysheetResult = calculatePaysheet(input);
     const now = new Date().toISOString();
@@ -191,10 +211,16 @@ router.post('/', (req: Request, res: Response): void => {
       achieve: achieve || 0,
       allowance: allowance || 0,
       nopay,
-      late,
+      late: 0,
+      lateHours: Number(lateHours) || 0,
+      lateMinutes: Number(lateMinutes) || 0,
       epfAvailability: epf,
       etfAvailability: coerceBool(etfAvailability),
       otherOfficers: otherOfficers || 0,
+      customEarningName: customEarningName || '',
+      customEarningAmount: Number(customEarningAmount) || 0,
+      customDeductionName: customDeductionName || '',
+      customDeductionAmount: Number(customDeductionAmount) || 0,
       ...calculated,
       welfare: welfare || 0,
       createdAt: now,
@@ -288,7 +314,8 @@ router.put('/:id', (req: Request, res: Response): void => {
     const achieve = req.body.achieve ?? existing.achieve;
     const allowance = req.body.allowance ?? existing.allowance;
     const nopay = req.body.nopay ?? existing.nopay;
-    const late = req.body.late ?? existing.late;
+    const lateHours = Number(req.body.lateHours ?? existing.lateHours) || 0;
+    const lateMinutes = Number(req.body.lateMinutes ?? existing.lateMinutes) || 0;
     const monthsOfService = req.body.monthsOfService ?? existing.monthsOfService;
     const welfare = req.body.welfare ?? existing.welfare;
     const otherOfficers = req.body.otherOfficers ?? existing.otherOfficers;
@@ -298,9 +325,16 @@ router.put('/:id', (req: Request, res: Response): void => {
     const etfAvailability = req.body.etfAvailability !== undefined
       ? coerceBool(req.body.etfAvailability)
       : existing.etfAvailability;
+    const customEarningName = req.body.customEarningName ?? existing.customEarningName ?? '';
+    const customEarningAmount = Number(req.body.customEarningAmount ?? existing.customEarningAmount) || 0;
+    const customDeductionName = req.body.customDeductionName ?? existing.customDeductionName ?? '';
+    const customDeductionAmount = Number(req.body.customDeductionAmount ?? existing.customDeductionAmount) || 0;
 
     const input = buildPaysheetInput(existing.role, roleConfig, {
-      monthsOfService, achieve, allowance, nopay, late, welfare, otherOfficers, epfAvailability,
+      monthsOfService, achieve, allowance, nopay,
+      lateHours, lateMinutes,
+      welfare, otherOfficers, epfAvailability,
+      customEarningAmount, customDeductionAmount,
     });
     const calculated: PaysheetResult = calculatePaysheet(input);
 
@@ -309,11 +343,17 @@ router.put('/:id', (req: Request, res: Response): void => {
       achieve,
       allowance,
       nopay,
-      late,
+      late: 0,
+      lateHours,
+      lateMinutes,
       epfAvailability,
       etfAvailability,
       monthsOfService,
       otherOfficers,
+      customEarningName,
+      customEarningAmount,
+      customDeductionName,
+      customDeductionAmount,
       ...calculated,
       welfare,
       updatedAt: new Date().toISOString(),

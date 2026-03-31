@@ -17,4 +17,19 @@ export const generatePayslipsSchema = z.object({
     .describe('Number of parallel worker threads'),
 });
 
+export const printPayslipsSchema = z.object({
+  jobId: z.string().min(1, 'jobId is required'),
+  printerName: z
+    .string()
+    .optional()
+    .describe('Printer name. If omitted, uses system default'),
+  copies: z
+    .number()
+    .int()
+    .min(1)
+    .max(50)
+    .default(1),
+});
+
 export type GeneratePayslipsInput = z.infer<typeof generatePayslipsSchema>;
+export type PrintPayslipsInput = z.infer<typeof printPayslipsSchema>;

@@ -86,7 +86,7 @@ export function startDotMatrixGeneration(
 
 // ── Public: Print file ──────────────────────────────────────
 
-export function printDotMatrixFile(
+export async function printDotMatrixFile(
   jobId: string,
   printerName?: string,
   copies: number = 1
@@ -101,54 +101,23 @@ export function printDotMatrixFile(
   }
 
   job.status = 'printing';
+  const filePath = job.filePath as string;
 
-  return new Promise((resolve, reject) => {
-    const filePath = job.filePath as string;
-
+  try {
     if (process.platform === 'win32') {
-      // Windows raw print via PowerShell
-      // Uses Out-Printer for direct printer output
-      const printer = printerName || '';
-      const psCommand = printer
-        ? `Get-Content -Path '${filePath}' -Raw | Out-Printer -Name '${printer}'`
-        : `Get-Content -Path '${filePath}' -Raw | Out-Printer`;
-
-      // Execute for each copy
-      let completed = 0;
-      for (let i = 0; i < copies; i++) {
-        execFile('powershell.exe', ['-NoProfile', '-Command', psCommand], (err) => {
-          if (err) {
-            job.status = 'completed'; // revert status
-            logger.error('Print failed', { error: err.message, printer });
-            reject(new Error(`Print failed: ${err.message}`));
-            return;
-          }
-          completed++;
-          if (completed === copies) {
-            job.status = 'completed';
-            logger.info(`Printed ${copies} copies to ${printer || 'default printer'}`, { jobId });
-            resolve(`Sent ${copies} copy/copies to ${printer || 'default printer'}`);
-          }
-        });
-      }
+      await printFileWindows(filePath, printerName, copies);
     } else {
-      // Linux/macOS: use lp command
-      const args = [filePath];
-      if (printerName) args.push('-d', printerName);
-      if (copies > 1) args.push('-n', String(copies));
-
-      execFile('lp', args, (err) => {
-        job.status = 'completed';
-        if (err) {
-          logger.error('Print failed', { error: err.message });
-          reject(new Error(`Print failed: ${err.message}`));
-          return;
-        }
-        logger.info(`Printed to ${printerName || 'default printer'}`, { jobId });
-        resolve(`Sent to ${printerName || 'default printer'}`);
-      });
+      await printFileUnix(filePath, printerName, copies);
     }
-  });
+
+    job.status = 'completed';
+    const msg = `Sent ${copies} copy/copies to ${printerName || 'default printer'}`;
+    logger.info(msg, { jobId });
+    return msg;
+  } catch (err) {
+    job.status = 'completed'; // revert
+    throw err;
+  }
 }
 
 // ── Data assembly (reuses same logic as PDF service) ────────
@@ -176,6 +145,8 @@ function buildPayslipData(
       lastName: user?.lastName || '',
       designation: user?.designation || p.role,
       branch: user?.branch || '',
+      bankName: user?.bankName || '',
+      bankAccount: user?.bankAccount || '',
       payMonth: p.payMonth,
       basicSalary: p.basicSalary || 0,
       vehicleAllowance: p.vehicleAllowance || 0,
@@ -183,6 +154,8 @@ function buildPayslipData(
       generalAllowance: p.generalAllowance || 0,
       orc: p.orc || 0,
       otherOffer: p.otherOffer || 0,
+      customEarningName: p.customEarningName || '',
+      customEarningAmount: p.customEarningAmount || 0,
       grossSalary: p.grossSalary || 0,
       epfEmployee: p.epfEmployee || 0,
       epfEmployer: p.epfEmployer || 0,
@@ -190,6 +163,8 @@ function buildPayslipData(
       nopayDeduction: p.nopayDeduction || 0,
       lateDeduction: p.lateDeduction || 0,
       welfare: p.welfare || 0,
+      customDeductionName: p.customDeductionName || '',
+      customDeductionAmount: p.customDeductionAmount || 0,
       netSalary: p.netSalary || 0,
       achievementPct: p.achievementPct || 0,
       assignedTarget: p.assignedTarget || 0,
@@ -359,6 +334,59 @@ function mergeFiles(inputFiles: string[], outputFile: string): Promise<void> {
 }
 
 // ── Helpers ─────────────────────────────────────────────────
+
+// ── Print helpers (platform-specific) ───────────────────────
+
+function sanitizePrinterName(name: string): string {
+  // Strip characters that could break PowerShell/shell commands
+  return name.replace(/['"`;$|&<>(){}[\]\\]/g, '');
+}
+
+function printFileWindows(filePath: string, printerName?: string, copies: number = 1): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const safePrinter = printerName ? sanitizePrinterName(printerName) : '';
+    const safePath = filePath.replace(/'/g, "''"); // PowerShell escape
+
+    const commands: string[] = [];
+    for (let i = 0; i < copies; i++) {
+      if (safePrinter) {
+        commands.push(`Get-Content -Path '${safePath}' -Raw | Out-Printer -Name '${safePrinter}'`);
+      } else {
+        commands.push(`Get-Content -Path '${safePath}' -Raw | Out-Printer`);
+      }
+    }
+
+    execFile(
+      'powershell.exe',
+      ['-NoProfile', '-Command', commands.join('; ')],
+      { timeout: 120000 },
+      (err) => {
+        if (err) {
+          logger.error('Print failed', { error: err.message, printer: safePrinter });
+          reject(new Error(`Print failed: ${err.message}`));
+          return;
+        }
+        resolve();
+      }
+    );
+  });
+}
+
+function printFileUnix(filePath: string, printerName?: string, copies: number = 1): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const args = [filePath];
+    if (printerName) args.push('-d', sanitizePrinterName(printerName));
+    if (copies > 1) args.push('-n', String(copies));
+
+    execFile('lp', args, (err) => {
+      if (err) {
+        reject(new Error(`Print failed: ${err.message}`));
+        return;
+      }
+      resolve();
+    });
+  });
+}
 
 function terminateAll(workers: Worker[]): void {
   for (const w of workers) {

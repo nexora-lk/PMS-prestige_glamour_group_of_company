@@ -20,7 +20,7 @@ function formatMonth(payMonth: string): string {
 
 export function renderPayslipHTML(emp: PayslipEmployee): string {
   const totalDeductions =
-    emp.epfEmployee + emp.nopayDeduction + emp.lateDeduction + emp.welfare;
+    emp.epfEmployee + emp.nopayDeduction + emp.lateDeduction + emp.welfare + emp.customDeductionAmount;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -189,6 +189,16 @@ export function renderPayslipHTML(emp: PayslipEmployee): string {
           <span class="info-colon">:</span>
           <span class="info-value">${formatMonth(emp.payMonth)}</span>
         </div>
+        ${emp.bankName ? `<div class="info-row">
+          <span class="info-label">Bank Name</span>
+          <span class="info-colon">:</span>
+          <span class="info-value">${emp.bankName}</span>
+        </div>` : ''}
+        ${emp.bankAccount ? `<div class="info-row">
+          <span class="info-label">Bank Account</span>
+          <span class="info-colon">:</span>
+          <span class="info-value">${emp.bankAccount}</span>
+        </div>` : ''}
         <div class="info-row">
           <span class="info-label">Generated On</span>
           <span class="info-colon">:</span>
@@ -227,6 +237,10 @@ export function renderPayslipHTML(emp: PayslipEmployee): string {
     <span class="row-label">Other Offers</span>
     <span class="row-amount">${formatCurrency(emp.otherOffer)}</span>
   </div>` : ''}
+  ${emp.customEarningAmount > 0 ? `<div class="row">
+    <span class="row-label">${emp.customEarningName || 'Custom Earning'}</span>
+    <span class="row-amount">${formatCurrency(emp.customEarningAmount)}</span>
+  </div>` : ''}
 
   <!-- GROSS SALARY -->
   <div class="total-row">
@@ -255,6 +269,10 @@ export function renderPayslipHTML(emp: PayslipEmployee): string {
     <span class="row-label">Welfare</span>
     <span class="row-amount">${formatCurrency(emp.welfare)}</span>
   </div>
+  ${emp.customDeductionAmount > 0 ? `<div class="row">
+    <span class="row-label">${emp.customDeductionName || 'Custom Deduction'}</span>
+    <span class="row-amount">${formatCurrency(emp.customDeductionAmount)}</span>
+  </div>` : ''}
 
   <!-- TOTAL DEDUCTIONS -->
   <div class="total-row">

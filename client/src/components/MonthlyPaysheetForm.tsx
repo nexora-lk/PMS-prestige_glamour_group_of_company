@@ -28,11 +28,16 @@ export function MonthlyPaysheetForm({
     achieve: initialData?.achieve || 0,
     allowance: initialData?.allowance || 0,
     nopay: initialData?.nopay || 0,
-    late: initialData?.late || 0,
+    lateHours: initialData?.lateHours || 0,
+    lateMinutes: initialData?.lateMinutes || 0,
     epfAvailability: initialData?.epfAvailability || false,
     etfAvailability: initialData?.etfAvailability || false,
     welfare: initialData?.welfare || 0,
     otherOfficers: initialData?.otherOfficers || 0,
+    customEarningName: initialData?.customEarningName || '',
+    customEarningAmount: initialData?.customEarningAmount || 0,
+    customDeductionName: initialData?.customDeductionName || '',
+    customDeductionAmount: initialData?.customDeductionAmount || 0,
   });
 
   useEffect(() => {
@@ -292,15 +297,88 @@ export function MonthlyPaysheetForm({
           </div>
 
           <div className="form-group">
-            <label>Late (Hours)</label>
+            <label>Late Hours</label>
             <input
               type="number"
               className="form-input"
-              name="late"
-              value={formData.late || 0}
+              name="lateHours"
+              value={formData.lateHours || 0}
               onChange={handleInputChange}
               placeholder="0"
-              step="0.5"
+              min="0"
+              step="1"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Late Minutes</label>
+            <input
+              type="number"
+              className="form-input"
+              name="lateMinutes"
+              value={formData.lateMinutes || 0}
+              onChange={handleInputChange}
+              placeholder="0"
+              min="0"
+              max="59"
+              step="1"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ borderTop: '1px solid var(--neutral-700)', paddingTop: 16, marginTop: 8 }}>
+        <h3 style={{ marginBottom: 16, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+          Custom Earnings & Deductions
+        </h3>
+        <div className="form-row">
+          <div className="form-group">
+            <label>Custom Earning Name</label>
+            <input
+              type="text"
+              className="form-input"
+              name="customEarningName"
+              value={formData.customEarningName || ''}
+              onChange={handleInputChange}
+              placeholder="e.g., Bonus"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Custom Earning Amount</label>
+            <input
+              type="number"
+              className="form-input"
+              name="customEarningAmount"
+              value={formData.customEarningAmount || 0}
+              onChange={handleInputChange}
+              placeholder="0.00"
+              step="0.01"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Custom Deduction Name</label>
+            <input
+              type="text"
+              className="form-input"
+              name="customDeductionName"
+              value={formData.customDeductionName || ''}
+              onChange={handleInputChange}
+              placeholder="e.g., Loan"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Custom Deduction Amount</label>
+            <input
+              type="number"
+              className="form-input"
+              name="customDeductionAmount"
+              value={formData.customDeductionAmount || 0}
+              onChange={handleInputChange}
+              placeholder="0.00"
+              step="0.01"
             />
           </div>
         </div>

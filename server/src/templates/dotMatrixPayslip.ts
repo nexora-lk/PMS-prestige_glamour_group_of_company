@@ -87,13 +87,15 @@ export function renderDotMatrixPayslip(emp: PayslipEmployee, useEscP: boolean): 
     emp.fuelAllowance +
     emp.generalAllowance +
     emp.orc +
-    emp.otherOffer;
+    emp.otherOffer +
+    emp.customEarningAmount;
 
   const totalDeductions =
     emp.epfEmployee +
     emp.nopayDeduction +
     emp.lateDeduction +
-    emp.welfare;
+    emp.welfare +
+    emp.customDeductionAmount;
 
   // ── Header (lines 1-8) ────────────────────────────────────
   lines.push(doubleLine());
@@ -108,7 +110,11 @@ export function renderDotMatrixPayslip(emp: PayslipEmployee, useEscP: boolean): 
   lines.push(twoColumn('Employee ID : ', emp.codeNo, 'Branch    : ', emp.branch));
   lines.push(twoColumn('Name        : ', `${emp.firstName} ${emp.lastName}`, 'Month     : ', formatMonth(emp.payMonth)));
   lines.push(twoColumn('Designation : ', emp.designation, 'Date      : ', new Date(emp.createdAt).toLocaleDateString('en-GB')));
-  lines.push('');
+  if (emp.bankName || emp.bankAccount) {
+    lines.push(twoColumn('Bank        : ', emp.bankName || '-', 'Account   : ', emp.bankAccount || '-'));
+  } else {
+    lines.push('');
+  }
 
   // Achievement info (if target-based)
   if (emp.assignedTarget > 0) {
@@ -134,6 +140,9 @@ export function renderDotMatrixPayslip(emp: PayslipEmployee, useEscP: boolean): 
     ['ORC', emp.orc],
     ['Other Allowance', emp.otherOffer],
   ];
+  if (emp.customEarningAmount > 0) {
+    earningsRows.push([emp.customEarningName || 'Custom Earning', emp.customEarningAmount]);
+  }
 
   const deductionRows: [string, number][] = [
     ['EPF (Employee 8%)', emp.epfEmployee],
@@ -141,6 +150,9 @@ export function renderDotMatrixPayslip(emp: PayslipEmployee, useEscP: boolean): 
     ['Late Deduction', emp.lateDeduction],
     ['Welfare', emp.welfare],
   ];
+  if (emp.customDeductionAmount > 0) {
+    deductionRows.push([emp.customDeductionName || 'Custom Deduction', emp.customDeductionAmount]);
+  }
 
   const maxRows = Math.max(earningsRows.length, deductionRows.length);
   const half = 40;

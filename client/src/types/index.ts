@@ -8,6 +8,8 @@ export interface User {
   role: string;
   designation: string;
   joinDate: string;
+  bankAccount: string;
+  bankName: string;
   basicSalary: number;
   allowances: number;
   deductions: number;
@@ -82,10 +84,16 @@ export interface MonthlyPaysheet {
   allowance: number;
   nopay: number;
   late: number;
+  lateHours: number;
+  lateMinutes: number;
   epfAvailability: boolean;
   etfAvailability: boolean;
   welfare: number;
   otherOfficers: number;
+  customEarningName: string;
+  customEarningAmount: number;
+  customDeductionName: string;
+  customDeductionAmount: number;
 
   // Calculated Results
   basicSalary?: number;

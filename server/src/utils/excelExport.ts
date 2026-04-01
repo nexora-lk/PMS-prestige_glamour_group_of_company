@@ -75,86 +75,199 @@ export async function exportUsersToExcel(users: User[]): Promise<string> {
   return filePath;
 }
 
-export async function exportMonthlyPaysheetsToExcel(records: MonthlyPaysheetDTO[]): Promise<string> {
+export async function exportMonthlyPaysheetsToExcel(
+  records: MonthlyPaysheetDTO[],
+  users?: User[]
+): Promise<string> {
   ensureExportsDir();
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Payroll System';
   workbook.created = new Date();
 
-  // Group records by role + payMonth
-  const grouped = new Map<string, MonthlyPaysheetDTO[]>();
-  for (const rec of records) {
-    const key = `${rec.role} - ${rec.payMonth}`;
-    if (!grouped.has(key)) grouped.set(key, []);
-    grouped.get(key)!.push(rec);
+  // Build user lookup for employee names
+  const userMap = new Map<string, User>();
+  if (users) {
+    users.forEach((u) => userMap.set(u.codeNo, u));
   }
 
-  const paysheetColumns = [
+  // Group records by payMonth → each month is one sheet
+  const byMonth = new Map<string, MonthlyPaysheetDTO[]>();
+  for (const rec of records) {
+    if (!byMonth.has(rec.payMonth)) byMonth.set(rec.payMonth, []);
+    byMonth.get(rec.payMonth)!.push(rec);
+  }
+
+  // Sort months chronologically
+  const sortedMonths = [...byMonth.keys()].sort();
+
+  const HEADER_COLOR = 'FF1b1464';        // Navy
+  const ROLE_SECTION_COLOR = 'FF059669';   // Green
+  const GOLD_COLOR = 'FFc8a415';           // Gold
+
+  const dataColumns = [
     { header: 'Code No', key: 'codeNo', width: 14 },
-    { header: 'Pay Month', key: 'payMonth', width: 12 },
-    { header: 'Role', key: 'role', width: 16 },
-    { header: 'Months of Service', key: 'monthsOfService', width: 10 },
+    { header: 'Employee Name', key: 'employeeName', width: 24 },
+    { header: 'Role', key: 'role', width: 18 },
+    { header: 'Basic Salary', key: 'basicSalary', width: 14 },
     { header: 'Achieve', key: 'achieve', width: 14 },
     { header: 'Allowance', key: 'allowance', width: 14 },
-    { header: 'No Pay', key: 'nopay', width: 8 },
-    { header: 'Late', key: 'late', width: 8 },
-    { header: 'Late Hours', key: 'lateHours', width: 10 },
-    { header: 'Late Minutes', key: 'lateMinutes', width: 10 },
-    { header: 'EPF Available', key: 'epfAvailability', width: 12 },
-    { header: 'ETF Available', key: 'etfAvailability', width: 12 },
-    { header: 'Custom Earning Name', key: 'customEarningName', width: 20 },
-    { header: 'Custom Earning Amount', key: 'customEarningAmount', width: 16 },
-    { header: 'Custom Deduction Name', key: 'customDeductionName', width: 20 },
-    { header: 'Custom Deduction Amount', key: 'customDeductionAmount', width: 16 },
-    { header: 'Basic Salary', key: 'basicSalary', width: 14 },
-    { header: 'Achieved Salary', key: 'achievedSalary', width: 14 },
-    { header: 'Vehicle Allowance', key: 'vehicleAllowance', width: 14 },
-    { header: 'Fuel Allowance', key: 'fuelAllowance', width: 14 },
-    { header: 'General Allowance', key: 'generalAllowance', width: 14 },
-    { header: 'Other Offer', key: 'otherOffer', width: 14 },
-    { header: 'Assigned Target', key: 'assignedTarget', width: 14 },
-    { header: 'Achievement %', key: 'achievementPct', width: 12 },
+    { header: 'Vehicle Allow.', key: 'vehicleAllowance', width: 14 },
+    { header: 'Fuel Allow.', key: 'fuelAllowance', width: 14 },
+    { header: 'General Allow.', key: 'generalAllowance', width: 14 },
     { header: 'ORC', key: 'orc', width: 12 },
+    { header: 'Other Offer', key: 'otherOffer', width: 14 },
+    { header: 'Custom Earning', key: 'customEarningAmount', width: 14 },
     { header: 'Gross Salary', key: 'grossSalary', width: 14 },
-    { header: 'No Pay Deduction', key: 'nopayDeduction', width: 14 },
-    { header: 'Late Deduction', key: 'lateDeduction', width: 14 },
-    { header: 'EPF Employee (8%)', key: 'epfEmployee', width: 14 },
-    { header: 'EPF Employer (12%)', key: 'epfEmployer', width: 14 },
-    { header: 'ETF (3%)', key: 'etf', width: 12 },
+    { header: 'No Pay Days', key: 'nopay', width: 10 },
+    { header: 'No Pay Ded.', key: 'nopayDeduction', width: 14 },
+    { header: 'Late Ded.', key: 'lateDeduction', width: 14 },
+    { header: 'EPF 8%', key: 'epfEmployee', width: 14 },
     { header: 'Welfare', key: 'welfare', width: 12 },
+    { header: 'Custom Ded.', key: 'customDeductionAmount', width: 14 },
     { header: 'Net Salary', key: 'netSalary', width: 14 },
+    { header: 'EPF 12%', key: 'epfEmployer', width: 14 },
+    { header: 'ETF 3%', key: 'etf', width: 12 },
   ];
 
-  for (const [sheetName, sheetRecords] of grouped) {
-    // Excel sheet names max 31 chars, no invalid characters
-    const safeName = sheetName.replace(/[\\/*?[\]:]/g, '').slice(0, 31);
+  for (const month of sortedMonths) {
+    const monthRecords = byMonth.get(month)!;
+
+    // Format sheet name: "2026-03" → "Mar 2026"
+    const [yr, mo] = month.split('-');
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const sheetLabel = `${monthNames[parseInt(mo, 10) - 1] || mo} ${yr}`;
+    const safeName = sheetLabel.replace(/[\\/*?[\]:]/g, '').slice(0, 31);
     const sheet = workbook.addWorksheet(safeName);
-    sheet.columns = paysheetColumns;
 
-    // Style header row
-    const headerRow = sheet.getRow(1);
-    headerRow.eachCell((cell) => {
-      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF059669' },
-      };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
-    });
+    // Group within this month by role, sort roles alphabetically
+    const byRole = new Map<string, MonthlyPaysheetDTO[]>();
+    for (const rec of monthRecords) {
+      const role = rec.role || 'Unknown';
+      if (!byRole.has(role)) byRole.set(role, []);
+      byRole.get(role)!.push(rec);
+    }
+    const sortedRoles = [...byRole.keys()].sort();
 
-    sheetRecords.forEach((rec) => {
-      sheet.addRow(rec);
-    });
+    // Set column widths
+    sheet.columns = dataColumns.map((c) => ({ key: c.key, width: c.width }));
 
-    // Style data rows
-    sheet.eachRow((row, rowNumber) => {
-      if (rowNumber > 1) {
-        row.eachCell((cell) => {
-          cell.alignment = { vertical: 'middle' };
-        });
+    let currentRow = 1;
+
+    // Sheet title row
+    const titleRow = sheet.getRow(currentRow);
+    titleRow.getCell(1).value = `Monthly Paysheets — ${sheetLabel}`;
+    titleRow.getCell(1).font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+    titleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_COLOR } };
+    titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.mergeCells(currentRow, 1, currentRow, dataColumns.length);
+    titleRow.height = 28;
+    currentRow += 1;
+
+    let monthGross = 0;
+    let monthNet = 0;
+    let monthEpfEr = 0;
+    let monthEtf = 0;
+
+    for (const role of sortedRoles) {
+      const roleRecords = byRole.get(role)!;
+
+      // Role section header
+      const roleRow = sheet.getRow(currentRow);
+      roleRow.getCell(1).value = role;
+      roleRow.getCell(1).font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
+      roleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ROLE_SECTION_COLOR } };
+      roleRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
+      // Fill entire role header row with green
+      for (let i = 2; i <= dataColumns.length; i++) {
+        roleRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ROLE_SECTION_COLOR } };
       }
-    });
+      sheet.mergeCells(currentRow, 1, currentRow, dataColumns.length);
+      roleRow.height = 22;
+      currentRow += 1;
+
+      // Column headers under each role section
+      const hdrRow = sheet.getRow(currentRow);
+      dataColumns.forEach((col, idx) => {
+        const cell = hdrRow.getCell(idx + 1);
+        cell.value = col.header;
+        cell.font = { bold: true, size: 10, color: { argb: 'FF222222' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = { bottom: { style: 'thin', color: { argb: 'FFAAAAAA' } } };
+      });
+      currentRow += 1;
+
+      // Data rows
+      let roleGross = 0;
+      let roleNet = 0;
+
+      for (const rec of roleRecords) {
+        const user = userMap.get(rec.codeNo);
+        const empName = user ? `${user.firstName} ${user.lastName}` : rec.codeNo;
+        const row = sheet.getRow(currentRow);
+
+        const values: Record<string, unknown> = { ...rec, employeeName: empName };
+        dataColumns.forEach((col, idx) => {
+          row.getCell(idx + 1).value = values[col.key] as string | number;
+          row.getCell(idx + 1).alignment = { vertical: 'middle' };
+        });
+
+        roleGross += rec.grossSalary || 0;
+        roleNet += rec.netSalary || 0;
+        currentRow += 1;
+      }
+
+      // Role subtotal row
+      const subtotalRow = sheet.getRow(currentRow);
+      subtotalRow.getCell(1).value = `${role} Subtotal (${roleRecords.length})`;
+      subtotalRow.getCell(1).font = { bold: true, size: 10 };
+      // Gross column
+      const grossIdx = dataColumns.findIndex((c) => c.key === 'grossSalary') + 1;
+      const netIdx = dataColumns.findIndex((c) => c.key === 'netSalary') + 1;
+      subtotalRow.getCell(grossIdx).value = roleGross;
+      subtotalRow.getCell(grossIdx).font = { bold: true };
+      subtotalRow.getCell(grossIdx).numFmt = '#,##0.00';
+      subtotalRow.getCell(netIdx).value = roleNet;
+      subtotalRow.getCell(netIdx).font = { bold: true };
+      subtotalRow.getCell(netIdx).numFmt = '#,##0.00';
+      // Light border on subtotal
+      for (let i = 1; i <= dataColumns.length; i++) {
+        subtotalRow.getCell(i).border = { top: { style: 'thin', color: { argb: 'FFAAAAAA' } } };
+        subtotalRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FAFB' } };
+      }
+      currentRow += 2; // blank row after each role
+
+      monthGross += roleGross;
+      monthNet += roleNet;
+      monthEpfEr += roleRecords.reduce((s, r) => s + (r.epfEmployer || 0), 0);
+      monthEtf += roleRecords.reduce((s, r) => s + (r.etf || 0), 0);
+    }
+
+    // Month grand total row
+    currentRow += 1;
+    const totalRow = sheet.getRow(currentRow);
+    totalRow.getCell(1).value = `GRAND TOTAL — ${sheetLabel} (${monthRecords.length} employees)`;
+    totalRow.getCell(1).font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
+    const grossIdx = dataColumns.findIndex((c) => c.key === 'grossSalary') + 1;
+    const netIdx = dataColumns.findIndex((c) => c.key === 'netSalary') + 1;
+    const epfErIdx = dataColumns.findIndex((c) => c.key === 'epfEmployer') + 1;
+    const etfIdx = dataColumns.findIndex((c) => c.key === 'etf') + 1;
+    totalRow.getCell(grossIdx).value = monthGross;
+    totalRow.getCell(grossIdx).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    totalRow.getCell(grossIdx).numFmt = '#,##0.00';
+    totalRow.getCell(netIdx).value = monthNet;
+    totalRow.getCell(netIdx).font = { bold: true, color: { argb: GOLD_COLOR } };
+    totalRow.getCell(netIdx).numFmt = '#,##0.00';
+    totalRow.getCell(epfErIdx).value = monthEpfEr;
+    totalRow.getCell(epfErIdx).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    totalRow.getCell(epfErIdx).numFmt = '#,##0.00';
+    totalRow.getCell(etfIdx).value = monthEtf;
+    totalRow.getCell(etfIdx).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    totalRow.getCell(etfIdx).numFmt = '#,##0.00';
+    for (let i = 1; i <= dataColumns.length; i++) {
+      totalRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_COLOR } };
+    }
+    totalRow.height = 24;
   }
 
   const filename = `monthly_paysheets_export_${Date.now()}.xlsx`;

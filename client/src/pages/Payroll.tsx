@@ -39,6 +39,7 @@ export default function Payroll() {
   const [previewPaysheets, setPreviewPaysheets] = useState<MonthlyPaysheet[]>([]);
   const [fetching, setFetching] = useState(false);
   const [printMode, setPrintMode] = useState<'a4' | '2up'>('a4');
+  const [missingEmployees, setMissingEmployees] = useState<string[]>([]);
 
   // ── History state ─────────────────────────────────────────
   const [historyPaysheets, setHistoryPaysheets] = useState<MonthlyPaysheet[]>([]);
@@ -124,14 +125,16 @@ export default function Payroll() {
   };
 
   const toggleAllUsers = () => {
-    if (selectedCodeNos.size === filteredUsers.length && filteredUsers.length > 0) {
+    const allCodes = filteredUsers.map((u) => u.codeNo);
+    const allSelected = allCodes.length > 0 && allCodes.every((c) => selectedCodeNos.has(c));
+    if (allSelected) {
       setSelectedCodeNos(new Set());
     } else {
-      setSelectedCodeNos(new Set(filteredUsers.map((u) => u.codeNo)));
+      setSelectedCodeNos(new Set(allCodes));
     }
   };
 
-  const isAllSelected = filteredUsers.length > 0 && selectedCodeNos.size === filteredUsers.length;
+  const isAllSelected = filteredUsers.length > 0 && filteredUsers.every((u) => selectedCodeNos.has(u.codeNo));
 
   // ── Fetch paysheets for preview ───────────────────────────
 
@@ -140,13 +143,48 @@ export default function Payroll() {
     if (!period) return showToast('Please select a period', 'error');
 
     setFetching(true);
+    setMissingEmployees([]);
     try {
-      const res = await paysheetService.getMonthPaysheets(period, { limit: 10000 });
+      let res = await paysheetService.getMonthPaysheets(period, { limit: 10000 });
       let paysheets = res.paysheets;
 
       // Filter by selected employees if any
       if (selectedCodeNos.size > 0) {
         paysheets = paysheets.filter((p) => selectedCodeNos.has(p.codeNo));
+
+        // Find which selected employees have no paysheet
+        const foundCodes = new Set(paysheets.map((p) => p.codeNo));
+        const missingCodes = [...selectedCodeNos].filter((c) => !foundCodes.has(c));
+
+        // Auto-create basic paysheets for missing employees
+        if (missingCodes.length > 0) {
+          try {
+            const bulkRes = await api.post<{ created: number; errors: string[] }>('/paysheets/bulk-create', {
+              codeNos: missingCodes,
+              payMonth: period,
+            });
+            if (bulkRes.data.created > 0) {
+              showToast(`Auto-created ${bulkRes.data.created} basic paysheet(s) for missing employees`, 'info');
+              // Re-fetch to include newly created
+              res = await paysheetService.getMonthPaysheets(period, { limit: 10000 });
+              paysheets = res.paysheets.filter((p) => selectedCodeNos.has(p.codeNo));
+            }
+            if (bulkRes.data.errors.length > 0) {
+              const failedNames = bulkRes.data.errors.map((err) => {
+                const match = err.match(/:\s*(.+)/);
+                return match ? match[1] : err;
+              });
+              setMissingEmployees(failedNames);
+            }
+          } catch {
+            // If bulk-create fails, just show what we have
+            const missingNames = missingCodes.map((c) => {
+              const u = userMap.get(c);
+              return u ? `${u.firstName} ${u.lastName} (${c})` : c;
+            });
+            setMissingEmployees(missingNames);
+          }
+        }
       }
 
       if (paysheets.length === 0) {
@@ -430,13 +468,14 @@ export default function Payroll() {
                       </td>
                     </tr>
                   ) : (
-                    filteredUsers.map((u) => (
+                    filteredUsers.map((u) => {
+                      const isSelected = selectedCodeNos.has(u.codeNo);
+                      return (
                       <tr
                         key={u.codeNo}
-                        onClick={() => toggleUser(u.codeNo)}
                         style={{
                           cursor: 'pointer',
-                          background: selectedCodeNos.has(u.codeNo)
+                          background: isSelected
                             ? 'rgba(200, 164, 21, 0.08)'
                             : undefined,
                         }}
@@ -444,9 +483,8 @@ export default function Payroll() {
                         <td>
                           <input
                             type="checkbox"
-                            checked={selectedCodeNos.has(u.codeNo)}
+                            checked={isSelected}
                             onChange={() => toggleUser(u.codeNo)}
-                            onClick={(e) => e.stopPropagation()}
                           />
                         </td>
                         <td>
@@ -462,7 +500,8 @@ export default function Payroll() {
                         <td>{u.role || u.designation}</td>
                         <td>{u.branch}</td>
                       </tr>
-                    ))
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -488,7 +527,14 @@ export default function Payroll() {
           {/* Preview & Print */}
           <div className="card" style={{ minHeight: 400 }}>
             <div className="card-header" style={{ flexWrap: 'wrap', gap: 12 }}>
-              <h2>Preview ({previewPaysheets.length})</h2>
+              <h2>
+                Preview ({previewPaysheets.length})
+                {selectedCodeNos.size > 0 && previewPaysheets.length > 0 && previewPaysheets.length < selectedCodeNos.size && (
+                  <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
+                    of {selectedCodeNos.size} selected
+                  </span>
+                )}
+              </h2>
               {previewPaysheets.length > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
                   {/* Print mode toggle */}
@@ -515,6 +561,22 @@ export default function Payroll() {
                 </div>
               )}
             </div>
+            {/* Warning banner for missing paysheets */}
+            {missingEmployees.length > 0 && (
+              <div className="no-print" style={{
+                padding: '12px 16px',
+                background: 'rgba(212, 160, 23, 0.12)',
+                borderBottom: '1px solid rgba(212, 160, 23, 0.3)',
+                color: 'var(--gold-400, #d4a017)',
+                fontSize: 13,
+              }}>
+                <strong>Missing paysheets ({missingEmployees.length}):</strong>{' '}
+                {missingEmployees.join(', ')}.
+                <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>
+                  Create paysheets for these employees in Monthly Paysheets first.
+                </span>
+              </div>
+            )}
             <div className="card-body">
               {previewPaysheets.length === 0 ? (
                 <div className="empty-state">

@@ -196,6 +196,104 @@ router.post('/calculate', (req: Request, res: Response): void => {
   }
 });
 
+// POST /api/paysheets/bulk-create — Auto-create basic paysheets for employees missing them
+router.post('/bulk-create', (req: Request, res: Response): void => {
+  try {
+    const { codeNos, payMonth } = req.body;
+    if (!Array.isArray(codeNos) || !payMonth) {
+      res.status(400).json({ error: 'codeNos (array) and payMonth are required.' });
+      return;
+    }
+
+    const users = readJSON<User>('users.json');
+    const paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
+    const existingKeys = new Set(paysheets.filter(p => p.payMonth === payMonth).map(p => p.codeNo));
+
+    // Role name → code mapping (reverse of SALES_BASED_ROLES + NON_TARGET_ROLES)
+    const { SALES_BASED_ROLES, NON_TARGET_ROLES } = require('../engine/salary-calculator');
+    const nameToCode: Record<string, string> = {};
+    for (const [code, name] of Object.entries(SALES_BASED_ROLES)) {
+      nameToCode[name as string] = code;
+    }
+    for (const [code, name] of Object.entries(NON_TARGET_ROLES)) {
+      nameToCode[name as string] = code;
+    }
+
+    const created: MonthlyPaysheetDTO[] = [];
+    const errors: string[] = [];
+
+    for (const codeNo of codeNos) {
+      if (existingKeys.has(codeNo)) continue; // already has paysheet
+
+      const user = users.find(u => u.codeNo === codeNo);
+      if (!user) { errors.push(`User not found: ${codeNo}`); continue; }
+
+      // Resolve role code from user's role name or designation
+      const roleName = user.role || user.designation || '';
+      const roleCode = nameToCode[roleName] || roleName;
+      const roleConfig = getRoleConfig(roleCode);
+      if (!roleConfig) { errors.push(`Unknown role for ${codeNo}: ${roleName}`); continue; }
+
+      const input = buildPaysheetInput(roleCode, roleConfig, {
+        monthsOfService: 1,
+        achieve: 0,
+        allowance: 0,
+        nopay: 0,
+        lateHours: 0,
+        lateMinutes: 0,
+        welfare: 0,
+        otherOffer: 0,
+        epfAvailability: true,
+        customEarningAmount: 0,
+        customDeductionAmount: 0,
+      });
+
+      const calculated: PaysheetResult = calculatePaysheet(input);
+      const now = new Date().toISOString();
+      const newPaysheet: MonthlyPaysheetDTO = {
+        id: uuidv4(),
+        codeNo,
+        payMonth,
+        role: roleCode,
+        monthsOfService: 1,
+        achieve: 0,
+        allowance: 0,
+        nopay: 0,
+        late: 0,
+        lateHours: 0,
+        lateMinutes: 0,
+        epfAvailability: true,
+        etfAvailability: true,
+        customEarningName: '',
+        customEarningAmount: 0,
+        customDeductionName: '',
+        customDeductionAmount: 0,
+        ...calculated,
+        welfare: 0,
+        otherOffer: 0,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      paysheets.push(newPaysheet);
+      created.push(newPaysheet);
+    }
+
+    if (created.length > 0) {
+      writeJSON(PAYSHEETS_FILE, paysheets);
+    }
+
+    res.json({
+      message: `Created ${created.length} paysheet(s)`,
+      created: created.length,
+      errors,
+    });
+  } catch (error) {
+    console.error('Error in bulk-create:', error);
+    res.status(500).json({ error: 'Failed to bulk-create paysheets' });
+  }
+});
+
 // GET /api/paysheets/month/:payMonth — Paysheets for a specific month (paginated)
 router.get('/month/:payMonth', (req: Request, res: Response): void => {
   try {

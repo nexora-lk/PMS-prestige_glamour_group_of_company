@@ -27,7 +27,7 @@ router.get('/users-excel', async (_req: Request, res: Response): Promise<void> =
   }
 });
 
-// GET /api/export/paysheets-excel — Export monthly paysheets to Excel (sheets per role + month)
+// GET /api/export/paysheets-excel — Export monthly paysheets to Excel (one sheet per month, role-wise sections)
 router.get('/paysheets-excel', async (_req: Request, res: Response): Promise<void> => {
   try {
     const records = readJSON<MonthlyPaysheetDTO>('monthly-paysheets.json');
@@ -36,7 +36,8 @@ router.get('/paysheets-excel', async (_req: Request, res: Response): Promise<voi
       return;
     }
 
-    const filePath = await exportMonthlyPaysheetsToExcel(records);
+    const users = readJSON<User>('users.json');
+    const filePath = await exportMonthlyPaysheetsToExcel(records, users);
     res.download(filePath, path.basename(filePath), (err) => {
       if (err) {
         console.error('Download error:', err);

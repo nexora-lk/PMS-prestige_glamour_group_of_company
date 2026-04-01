@@ -131,7 +131,8 @@
     "welfare": 500,
     "netSalary": 45700,
     "createdAt": "2026-04-01T02:43:25.974Z",
-    "updatedAt": "2026-04-01T02:43:25.974Z"
+    "updatedAt": "2026-04-01T19:43:13.493Z",
+    "status": "active"
   },
   {
     "id": "310b3a9f-f3bf-464f-aa6b-d039387ee21c",
@@ -201,6 +202,7 @@
     "welfare": 500,
     "netSalary": 88500,
     "createdAt": "2026-04-01T02:44:50.995Z",
-    "updatedAt": "2026-04-01T02:44:50.995Z"
+    "updatedAt": "2026-04-01T19:43:16.596Z",
+    "status": "active"
   }
 ]

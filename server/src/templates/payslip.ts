@@ -1,8 +1,23 @@
+import fs from 'fs';
+import path from 'path';
 import type { PayslipEmployee } from '../types/worker';
 
 const NAVY = '#1b1464';
 const NAVY_DARK = '#111052';
 const GOLD = '#c8a415';
+
+// Load company logo as base64 for embedding in PDF
+let logoBase64 = '';
+try {
+  const logoPath = process.env.CLIENT_PATH
+    ? path.join(process.env.CLIENT_PATH, 'icon.png')
+    : path.join(__dirname, '..', '..', '..', 'client', 'public', 'icon.png');
+  if (fs.existsSync(logoPath)) {
+    logoBase64 = `data:image/png;base64,${fs.readFileSync(logoPath).toString('base64')}`;
+  }
+} catch {
+  // Logo not available — will fall back to text
+}
 
 function fmt(amount: number): string {
   if (amount === 0) return 'Rs. 0.00';
@@ -42,6 +57,10 @@ export function renderPayslipHTML(emp: PayslipEmployee): string {
   .header {
     background: ${NAVY}; display: flex; align-items: center;
     padding: 6px 10px; gap: 8px;
+  }
+  .logo-img {
+    width: 36px; height: 36px; border-radius: 50%;
+    object-fit: cover; flex-shrink: 0;
   }
   .logo-circle {
     width: 36px; height: 36px; border-radius: 50%;
@@ -110,7 +129,9 @@ export function renderPayslipHTML(emp: PayslipEmployee): string {
 </head>
 <body>
   <div class="header">
-    <div class="logo-circle"><div class="logo-inner"><span class="logo-text">PGWCS</span></div></div>
+    ${logoBase64
+      ? `<img class="logo-img" src="${logoBase64}" alt="Logo"/>`
+      : '<div class="logo-circle"><div class="logo-inner"><span class="logo-text">PGWCS</span></div></div>'}
     <div class="hdr-right">
       <div class="co-name">PRESTIGE GLAMOUR WORKING CAPITAL SOLUTIONS</div>
       <div class="co-sub">GROUP OF COMPANY (PRIVATE) LIMITED</div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { FiSearch, FiPrinter, FiDownload, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import { FiSearch, FiPrinter, FiDownload, FiCheckCircle, FiAlertCircle, FiFileText } from 'react-icons/fi';
 import { useReactToPrint } from 'react-to-print';
 import { paysheetService } from '../services/paysheetService';
 import { userService } from '../services/userService';
@@ -55,6 +55,7 @@ export default function Payroll() {
   const [job, setJob] = useState<JobProgress | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [pdfPrinting, setPdfPrinting] = useState(false);
+  const [jsonExporting, setJsonExporting] = useState(false);
   const [pdfPrinterName, setPdfPrinterName] = useState('');
   const [pdfCopies, setPdfCopies] = useState(1);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -125,16 +126,14 @@ export default function Payroll() {
   };
 
   const toggleAllUsers = () => {
-    const allCodes = filteredUsers.map((u) => u.codeNo);
-    const allSelected = allCodes.length > 0 && allCodes.every((c) => selectedCodeNos.has(c));
-    if (allSelected) {
+    if (selectedCodeNos.size === filteredUsers.length && filteredUsers.length > 0) {
       setSelectedCodeNos(new Set());
     } else {
-      setSelectedCodeNos(new Set(allCodes));
+      setSelectedCodeNos(new Set(filteredUsers.map((u) => u.codeNo)));
     }
   };
 
-  const isAllSelected = filteredUsers.length > 0 && filteredUsers.every((u) => selectedCodeNos.has(u.codeNo));
+  const isAllSelected = filteredUsers.length > 0 && selectedCodeNos.size === filteredUsers.length;
 
   // ── Fetch paysheets for preview ───────────────────────────
 
@@ -284,16 +283,34 @@ export default function Payroll() {
 
     setDownloading(true);
     try {
-      const res = await api.get(`/payslips/download/${job.id}`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `payslips_${pdfMonth}.zip`);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode?.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      showToast('Download started', 'success');
+      const res = await api.get(`/payslips/download/${job.id}`, { responseType: 'arraybuffer' });
+      const electronAPI = (window as Record<string, unknown>).electronAPI as
+        | { saveFile: (opts: { data: number[]; defaultName: string }) => Promise<{ success: boolean; filePath?: string; error?: string }> }
+        | undefined;
+
+      if (electronAPI?.saveFile) {
+        // Electron: use native save dialog
+        const result = await electronAPI.saveFile({
+          data: Array.from(new Uint8Array(res.data as ArrayBuffer)),
+          defaultName: `payslips_${pdfMonth}.zip`,
+        });
+        if (result.success) {
+          showToast(`Saved to ${result.filePath}`, 'success');
+        } else if (result.error !== 'Cancelled') {
+          showToast(result.error || 'Save failed', 'error');
+        }
+      } else {
+        // Web browser: blob download
+        const url = window.URL.createObjectURL(new Blob([res.data as ArrayBuffer]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `payslips_${pdfMonth}.zip`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        showToast('Download started', 'success');
+      }
     } catch {
       showToast('Download failed', 'error');
     } finally {
@@ -316,6 +333,53 @@ export default function Payroll() {
       showToast(err instanceof Error ? err.message : 'Print failed', 'error');
     } finally {
       setPdfPrinting(false);
+    }
+  };
+
+  // ── JSON Export (ZIP of individual JSON files) ────────────
+
+  const handleJsonExport = async () => {
+    if (!pdfMonth) {
+      showToast('Please select a pay month', 'error');
+      return;
+    }
+
+    setJsonExporting(true);
+    try {
+      const res = await api.get(`/export/paysheets-json`, {
+        params: { payMonth: pdfMonth },
+        responseType: 'arraybuffer',
+      });
+
+      const electronAPI = (window as Record<string, unknown>).electronAPI as
+        | { saveFile: (opts: { data: number[]; defaultName: string }) => Promise<{ success: boolean; filePath?: string; error?: string }> }
+        | undefined;
+
+      if (electronAPI?.saveFile) {
+        const result = await electronAPI.saveFile({
+          data: Array.from(new Uint8Array(res.data as ArrayBuffer)),
+          defaultName: `paysheets_json_${pdfMonth}.zip`,
+        });
+        if (result.success) {
+          showToast(`Saved to ${result.filePath}`, 'success');
+        } else if (result.error !== 'Cancelled') {
+          showToast(result.error || 'Save failed', 'error');
+        }
+      } else {
+        const url = window.URL.createObjectURL(new Blob([res.data as ArrayBuffer]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `paysheets_json_${pdfMonth}.zip`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        showToast('JSON export download started', 'success');
+      }
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'JSON export failed', 'error');
+    } finally {
+      setJsonExporting(false);
     }
   };
 
@@ -468,14 +532,13 @@ export default function Payroll() {
                       </td>
                     </tr>
                   ) : (
-                    filteredUsers.map((u) => {
-                      const isSelected = selectedCodeNos.has(u.codeNo);
-                      return (
+                    filteredUsers.map((u) => (
                       <tr
                         key={u.codeNo}
+                        onClick={() => toggleUser(u.codeNo)}
                         style={{
                           cursor: 'pointer',
-                          background: isSelected
+                          background: selectedCodeNos.has(u.codeNo)
                             ? 'rgba(200, 164, 21, 0.08)'
                             : undefined,
                         }}
@@ -483,8 +546,9 @@ export default function Payroll() {
                         <td>
                           <input
                             type="checkbox"
-                            checked={isSelected}
+                            checked={selectedCodeNos.has(u.codeNo)}
                             onChange={() => toggleUser(u.codeNo)}
+                            onClick={(e) => e.stopPropagation()}
                           />
                         </td>
                         <td>
@@ -500,8 +564,7 @@ export default function Payroll() {
                         <td>{u.role || u.designation}</td>
                         <td>{u.branch}</td>
                       </tr>
-                      );
-                    })
+                    ))
                   )}
                 </tbody>
               </table>
@@ -706,7 +769,7 @@ export default function Payroll() {
                     disabled={pdfGenerating}
                   />
                 </div>
-                <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
+                <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
                   <button
                     className="btn btn-primary"
                     onClick={handleBulkPdfGenerate}
@@ -715,6 +778,15 @@ export default function Payroll() {
                   >
                     <FiPrinter size={18} />
                     {pdfGenerating ? 'Processing...' : 'Generate PDF Payslips'}
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={handleJsonExport}
+                    disabled={jsonExporting}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                  >
+                    <FiFileText size={18} />
+                    {jsonExporting ? 'Exporting...' : 'Export JSON ZIP'}
                   </button>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, session } from 'electron';
 import { fork, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -124,6 +124,27 @@ function waitForServer(onReady: () => void): void {
 
 // IPC handlers
 ipcMain.handle('get-app-version', () => app.getVersion());
+
+// Save file via native dialog (used for ZIP downloads in Electron)
+ipcMain.handle('save-file', async (_event, options: { data: number[]; defaultName: string }) => {
+  if (!mainWindow) return { success: false, error: 'No window' };
+
+  const result = await dialog.showSaveDialog(mainWindow, {
+    defaultPath: options.defaultName,
+    filters: [{ name: 'ZIP Archive', extensions: ['zip'] }],
+  });
+
+  if (result.canceled || !result.filePath) {
+    return { success: false, error: 'Cancelled' };
+  }
+
+  try {
+    fs.writeFileSync(result.filePath, Buffer.from(options.data));
+    return { success: true, filePath: result.filePath };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+});
 
 app.whenReady().then(() => {
   // Set macOS Dock icon

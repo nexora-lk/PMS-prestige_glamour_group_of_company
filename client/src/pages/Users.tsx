@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { FiSearch, FiEdit2, FiTrash2, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import { useUsers } from '../hooks/useUsers';
 import { userService } from '../services/userService';
 import { BRANCHES } from '../constants/branches';
@@ -26,15 +26,48 @@ export default function Users() {
     limit: 15,
   });
 
-  const handleDelete = useCallback(
-    async (id: string, name: string) => {
-      if (!window.confirm(`Are you sure you want to delete ${name}?`)) return;
+  const handleSoftDelete = useCallback(
+    async (codeNo: string, name: string) => {
+      if (!window.confirm(`Are you sure you want to deactivate ${name}?`)) return;
       try {
-        await userService.updateUser(id, { status: 'delete' });
-        showToast('User status changed to Delete', 'success');
+        await userService.updateUser(codeNo, { status: 'delete' });
+        showToast(`${name} has been deactivated`, 'success');
         refreshUsers();
       } catch (err: unknown) {
-        showToast(err instanceof Error ? err.message : 'Failed to delete user', 'error');
+        showToast(err instanceof Error ? err.message : 'Failed to deactivate user', 'error');
+      }
+    },
+    [refreshUsers]
+  );
+
+  const handleActivate = useCallback(
+    async (codeNo: string, name: string) => {
+      if (!window.confirm(`Are you sure you want to activate ${name}?`)) return;
+      try {
+        await userService.updateUser(codeNo, { status: 'active' });
+        showToast(`${name} has been activated`, 'success');
+        refreshUsers();
+      } catch (err: unknown) {
+        showToast(err instanceof Error ? err.message : 'Failed to activate user', 'error');
+      }
+    },
+    [refreshUsers]
+  );
+
+  const handlePermanentDelete = useCallback(
+    async (codeNo: string, name: string) => {
+      if (
+        !window.confirm(
+          `⚠️ PERMANENT DELETE\n\nAre you sure you want to permanently delete ${name}?\n\nThis action cannot be undone. All data for this employee will be removed.`
+        )
+      )
+        return;
+      try {
+        await userService.deleteUser(codeNo);
+        showToast(`${name} has been permanently deleted`, 'success');
+        refreshUsers();
+      } catch (err: unknown) {
+        showToast(err instanceof Error ? err.message : 'Failed to permanently delete user', 'error');
       }
     },
     [refreshUsers]
@@ -111,7 +144,7 @@ export default function Users() {
           >
             <option value="all">All Statuses</option>
             <option value="active">Active</option>
-            <option value="delete">Delete</option>
+            <option value="delete">Deactivated</option>
           </select>
 
           <button
@@ -194,13 +227,33 @@ export default function Users() {
                         >
                           <FiEdit2 size={16} />
                         </button>
-                        <button
-                          className="btn btn-ghost btn-danger btn-sm"
-                          onClick={() => handleDelete(user.codeNo, user.firstName)}
-                          title="Delete"
-                        >
-                          <FiTrash2 size={16} />
-                        </button>
+                        {user.status === 'active' ? (
+                          <button
+                            className="btn btn-ghost btn-danger btn-sm"
+                            onClick={() => handleSoftDelete(user.codeNo, `${user.firstName} ${user.lastName}`)}
+                            title="Deactivate"
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              onClick={() => handleActivate(user.codeNo, `${user.firstName} ${user.lastName}`)}
+                              title="Activate"
+                              style={{ color: 'var(--success)' }}
+                            >
+                              <FiCheckCircle size={16} />
+                            </button>
+                            <button
+                              className="btn btn-ghost btn-danger btn-sm"
+                              onClick={() => handlePermanentDelete(user.codeNo, `${user.firstName} ${user.lastName}`)}
+                              title="Permanent Delete"
+                            >
+                              <FiXCircle size={16} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -58,6 +58,18 @@ export const paysheetService = {
     }
   },
 
+  async updatePaysheetStatus(
+    id: string,
+    status: 'active' | 'delete'
+  ): Promise<{ message: string; paysheet: MonthlyPaysheet }> {
+    try {
+      const response = await api.patch(`/paysheets/${id}/status`, { status });
+      return response.data;
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to update paysheet status'));
+    }
+  },
+
   async deletePaysheet(id: string): Promise<{ message: string; paysheet: MonthlyPaysheet }> {
     try {
       const response = await api.delete(`/paysheets/${id}`);
@@ -69,7 +81,7 @@ export const paysheetService = {
 
   async getMonthPaysheets(
     payMonth: string,
-    params: { search?: string; page?: number; limit?: number } = {}
+    params: { search?: string; status?: string; page?: number; limit?: number } = {}
   ): Promise<PaysheetResponse & { month: string }> {
     try {
       const response = await api.get(`/paysheets/month/${payMonth}`, { params });

@@ -434,7 +434,7 @@ export function MonthlyPaysheetForm({
               value={formData.nopay ?? ''}
               onChange={handleInputChange}
               placeholder="0"
-              step="0.01"
+              step="1"
               min="0"
               max="31"
             />
@@ -468,7 +468,6 @@ export function MonthlyPaysheetForm({
               onChange={handleInputChange}
               placeholder="0"
               min="0"
-              max="59"
               step="1"
             />
             {errors.lateMinutes && <div style={errorStyle}>{errors.lateMinutes}</div>}

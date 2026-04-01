@@ -273,6 +273,7 @@ router.post('/bulk-create', (req: Request, res: Response): void => {
         ...calculated,
         welfare: 0,
         otherOffer: 0,
+        status: 'active',
         createdAt: now,
         updatedAt: now,
       };
@@ -302,7 +303,15 @@ router.get('/month/:payMonth', (req: Request, res: Response): void => {
     let paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE)
       .filter((p) => p.payMonth === req.params.payMonth);
 
-    const { search } = req.query;
+    const { search, status } = req.query;
+
+    // Filter by status (default: show only active)
+    if (status && typeof status === 'string' && status !== 'all') {
+      paysheets = paysheets.filter((p) => (p.status || 'active') === status);
+    } else if (!status) {
+      paysheets = paysheets.filter((p) => (p.status || 'active') === 'active');
+    }
+
     if (search && typeof search === 'string') {
       const q = search.toLowerCase();
       paysheets = paysheets.filter(
@@ -414,6 +423,7 @@ router.post('/', (req: Request, res: Response): void => {
       ...calculated,
       welfare: welfare || 0,
       otherOffer: Number(otherOffer) || 0,
+      status: 'active',
       createdAt: now,
       updatedAt: now,
     };
@@ -431,7 +441,14 @@ router.post('/', (req: Request, res: Response): void => {
 router.get('/', (req: Request, res: Response): void => {
   try {
     let paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
-    const { codeNo, payMonth, role, search, page, limit } = req.query;
+    const { codeNo, payMonth, role, search, status, page, limit } = req.query;
+
+    // Filter by status (default: show only active)
+    if (status && typeof status === 'string' && status !== 'all') {
+      paysheets = paysheets.filter((p) => (p.status || 'active') === status);
+    } else if (!status) {
+      paysheets = paysheets.filter((p) => (p.status || 'active') === 'active');
+    }
 
     if (codeNo && typeof codeNo === 'string') {
       paysheets = paysheets.filter((p) => p.codeNo === codeNo);
@@ -577,7 +594,35 @@ router.put('/:id', (req: Request, res: Response): void => {
   }
 });
 
-// DELETE /api/paysheets/:id
+// PATCH /api/paysheets/:id/status — Soft delete or activate a paysheet
+router.patch('/:id/status', (req: Request, res: Response): void => {
+  try {
+    const { status } = req.body;
+    if (!status || !['active', 'delete'].includes(status)) {
+      res.status(400).json({ error: 'status must be "active" or "delete"' });
+      return;
+    }
+
+    const paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
+    const index = paysheets.findIndex((p) => p.id === req.params.id);
+    if (index === -1) {
+      res.status(404).json({ error: 'Paysheet not found' });
+      return;
+    }
+
+    paysheets[index].status = status;
+    paysheets[index].updatedAt = new Date().toISOString();
+    writeJSON(PAYSHEETS_FILE, paysheets);
+
+    const action = status === 'delete' ? 'deactivated' : 'activated';
+    res.json({ message: `Paysheet ${action} successfully`, paysheet: paysheets[index] });
+  } catch (error) {
+    console.error('Error updating paysheet status:', error);
+    res.status(500).json({ error: 'Failed to update paysheet status' });
+  }
+});
+
+// DELETE /api/paysheets/:id — Permanently delete a paysheet
 router.delete('/:id', (req: Request, res: Response): void => {
   try {
     const paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);

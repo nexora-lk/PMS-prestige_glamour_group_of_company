@@ -14,7 +14,7 @@ export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetPr
   // a5 = 420×595px, a4 = 595×842px, 2up = 561×794px (fills 148.5×210mm print slot)
   const scale = size === 'a4' ? 1.42 : size === '2up' ? 1.335 : 1;
   const earnings = {
-    basicSalary: paysheet.basicSalary || 0,
+    basicSalary: paysheet.grossSalary || 0,
     vehicleAllowance: paysheet.vehicleAllowance || 0,
     fuelAllowance: paysheet.fuelAllowance || 0,
     orc: paysheet.orc || 0,
@@ -102,11 +102,11 @@ export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetPr
       {/* ── HEADER ── */}
       <div style={ds.header}>
         <div style={s.logoWrap}>
-          <div style={ds.logoCircle}>
-            <div style={ds.logoInner}>
-              <span style={ds.logoText}>PGWCS</span>
-            </div>
-          </div>
+          <img
+            src="/icon.png"
+            alt="Logo"
+            style={{ width: px(40), height: px(40), borderRadius: '50%', objectFit: 'cover' }}
+          />
         </div>
         <div style={s.headerRight}>
           <div style={ds.companyName}>PRESTIGE GLAMOUR WORKING CAPITAL SOLUTIONS</div>

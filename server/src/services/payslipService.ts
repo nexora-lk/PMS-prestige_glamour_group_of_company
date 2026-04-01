@@ -293,10 +293,16 @@ function createZip(sourceDir: string, jobId: string): Promise<string> {
 
     archive.pipe(output);
 
-    // Stream all PDFs from the temp directory into the ZIP
-    const files = fs.readdirSync(sourceDir).filter((f) => f.endsWith('.pdf'));
-    for (const file of files) {
-      archive.file(path.join(sourceDir, file), { name: file });
+    // Recursively add branch/month subdirectories with PDFs into the ZIP
+    const branches = fs.readdirSync(sourceDir, { withFileTypes: true });
+    for (const branch of branches) {
+      if (branch.isDirectory()) {
+        const branchPath = path.join(sourceDir, branch.name);
+        archive.directory(branchPath, branch.name);
+      } else if (branch.name.endsWith('.pdf')) {
+        // Fallback: add any loose PDFs at root level
+        archive.file(path.join(sourceDir, branch.name), { name: branch.name });
+      }
     }
 
     archive.finalize();
@@ -328,7 +334,19 @@ export async function printPayslips(
   const zip = new AdmZip.default(job.zipPath);
   zip.extractAllTo(printDir, true);
 
-  const pdfFiles = fs.readdirSync(printDir).filter((f) => f.endsWith('.pdf')).sort();
+  // Collect PDFs recursively from branch/month subdirectories
+  const pdfFiles: string[] = [];
+  function collectPdfs(dir: string, prefix: string): void {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        collectPdfs(path.join(dir, entry.name), prefix ? `${prefix}/${entry.name}` : entry.name);
+      } else if (entry.name.endsWith('.pdf')) {
+        pdfFiles.push(prefix ? `${prefix}/${entry.name}` : entry.name);
+      }
+    }
+  }
+  collectPdfs(printDir, '');
 
   if (pdfFiles.length === 0) {
     cleanup(printDir);

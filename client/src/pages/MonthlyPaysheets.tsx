@@ -5,6 +5,7 @@ import { showToast } from '../components/Toast';
 import { MonthlyPaysheetForm } from '../components/MonthlyPaysheetForm';
 import { PaysheetList } from '../components/PaysheetList';
 import PaySheet from '../components/PaySheet';
+import { userService } from '../services/userService';
 
 export default function MonthlyPaysheets() {
   const [showForm, setShowForm] = useState(false);
@@ -46,6 +47,23 @@ export default function MonthlyPaysheets() {
     setShowForm(false);
     setEditingId(null);
     setEditingData(null);
+  };
+
+  const handleView = async (paysheet: MonthlyPaysheet) => {
+    setShowForm(false);
+    setPreviewPaysheet(paysheet);
+    setPreviewEmployee(null);
+    try {
+      const res = await userService.listUsers({ search: paysheet.codeNo, limit: 1 });
+      if (res.users.length > 0) {
+        setPreviewEmployee(res.users[0]);
+      }
+    } catch {
+      // Employee lookup failed — preview still works without employee details
+    }
+    setTimeout(() => {
+      document.getElementById('paysheet-preview')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
   const handleClosePreview = () => {
@@ -154,6 +172,7 @@ export default function MonthlyPaysheets() {
         <div className="card-body">
           <PaysheetList
             onEdit={handleEdit}
+            onView={handleView}
             refreshTrigger={refreshTrigger}
           />
         </div>

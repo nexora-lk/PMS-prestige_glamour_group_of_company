@@ -16,8 +16,14 @@ async function renderPDF(
   const html = renderPayslipHTML(employee);
   await page.setContent(html, { waitUntil: 'domcontentloaded' });
 
-  const safeName = `${employee.codeNo}_${employee.payMonth}`.replace(/[^a-zA-Z0-9_-]/g, '_');
-  const filePath = path.join(outputDir, `${safeName}.pdf`);
+  // Organize into branch/month subdirectories
+  const branchFolder = (employee.branch || 'Unknown Branch').replace(/[^a-zA-Z0-9_ -]/g, '_');
+  const monthFolder = employee.payMonth.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const subDir = path.join(outputDir, branchFolder, monthFolder);
+  fs.mkdirSync(subDir, { recursive: true });
+
+  const safeName = `${employee.codeNo}_${employee.firstName}_${employee.lastName}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filePath = path.join(subDir, `${safeName}.pdf`);
 
   await page.pdf({
     path: filePath,

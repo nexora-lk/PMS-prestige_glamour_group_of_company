@@ -111,6 +111,9 @@ export interface MonthlyPaysheet {
   etf?: number;
   netSalary?: number;
 
+  // Status
+  status?: 'active' | 'delete';
+
   // Metadata
   createdAt?: string;
   updatedAt?: string;

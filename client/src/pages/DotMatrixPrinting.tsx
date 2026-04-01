@@ -487,7 +487,7 @@ Designation : ${pad(ps.role || employee?.designation || '', 30)} Date      :    
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               {previewPaysheets.map((ps, idx) => {
                 const employee = userMap.get(ps.codeNo);
-                const payslipText = formatDotMatrixPayslip(ps, employee);
+                const payslipText = formatDotMatrixPayslip(ps, employee ?? null);
                 return (
                   <div
                     key={ps.id || ps.codeNo}

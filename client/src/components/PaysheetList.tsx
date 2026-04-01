@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { FiSearch, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { paysheetService } from '../services/paysheetService';
 import { formatCurrency } from '../utils/format';
-import type { MonthlyPaysheet, PaysheetResponse } from '../types';
+import type { MonthlyPaysheet } from '../types';
 import { showToast } from './Toast';
 
 interface PaysheetListProps {

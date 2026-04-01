@@ -4,6 +4,7 @@ import { useReactToPrint } from 'react-to-print';
 import { paysheetService } from '../services/paysheetService';
 import { userService } from '../services/userService';
 import { BRANCHES } from '../constants/branches';
+import { ROLES } from '../constants/roleSalaries';
 import { formatCurrency } from '../utils/format';
 import type { User, MonthlyPaysheet } from '../types';
 import { showToast } from '../components/Toast';
@@ -30,10 +31,14 @@ export default function Payroll() {
   // ── Generate & Preview state ──────────────────────────────
   const [users, setUsers] = useState<User[]>([]);
   const [userMap, setUserMap] = useState<Map<string, User>>(new Map());
-  const [selectedCodeNos, setSelectedCodeNos] = useState<string[]>([]);
+  const [selectedCodeNos, setSelectedCodeNos] = useState<Set<string>>(new Set());
+  const [employeeSearch, setEmployeeSearch] = useState('');
+  const [empFilterBranch, setEmpFilterBranch] = useState('');
+  const [empFilterRole, setEmpFilterRole] = useState('');
   const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7));
   const [previewPaysheets, setPreviewPaysheets] = useState<MonthlyPaysheet[]>([]);
   const [fetching, setFetching] = useState(false);
+  const [printMode, setPrintMode] = useState<'a4' | '2up'>('a4');
 
   // ── History state ─────────────────────────────────────────
   const [historyPaysheets, setHistoryPaysheets] = useState<MonthlyPaysheet[]>([]);
@@ -58,6 +63,7 @@ export default function Payroll() {
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: `Payroll_${period}`,
+    pageStyle: '@page { size: A4 portrait; margin: 0; }',
   });
 
   // ── Data fetching ─────────────────────────────────────────
@@ -81,7 +87,7 @@ export default function Payroll() {
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      const res = await paysheetService.listPaysheets();
+      const res = await paysheetService.listPaysheets({ limit: 10000 });
       setHistoryPaysheets(res.paysheets);
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : 'Failed to load paysheet history', 'error');
@@ -90,21 +96,57 @@ export default function Payroll() {
     }
   };
 
+  // ── Employee selection helpers ─────────────────────────────
+
+  const filteredUsers = users.filter((u) => {
+    if (empFilterBranch && u.branch !== empFilterBranch) return false;
+    if (empFilterRole && (u.role || u.designation) !== empFilterRole) return false;
+    if (employeeSearch) {
+      const q = employeeSearch.toLowerCase();
+      return (
+        u.codeNo.toLowerCase().includes(q) ||
+        u.firstName.toLowerCase().includes(q) ||
+        u.lastName.toLowerCase().includes(q) ||
+        (u.role || '').toLowerCase().includes(q) ||
+        u.branch.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
+  const toggleUser = (codeNo: string) => {
+    setSelectedCodeNos((prev) => {
+      const next = new Set(prev);
+      if (next.has(codeNo)) next.delete(codeNo);
+      else next.add(codeNo);
+      return next;
+    });
+  };
+
+  const toggleAllUsers = () => {
+    if (selectedCodeNos.size === filteredUsers.length && filteredUsers.length > 0) {
+      setSelectedCodeNos(new Set());
+    } else {
+      setSelectedCodeNos(new Set(filteredUsers.map((u) => u.codeNo)));
+    }
+  };
+
+  const isAllSelected = filteredUsers.length > 0 && selectedCodeNos.size === filteredUsers.length;
+
   // ── Fetch paysheets for preview ───────────────────────────
 
-  const handleFetchPreview = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFetchPreview = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!period) return showToast('Please select a period', 'error');
 
     setFetching(true);
     try {
-      const res = await paysheetService.getMonthPaysheets(period);
+      const res = await paysheetService.getMonthPaysheets(period, { limit: 10000 });
       let paysheets = res.paysheets;
 
       // Filter by selected employees if any
-      if (selectedCodeNos.length > 0) {
-        const codeSet = new Set(selectedCodeNos);
-        paysheets = paysheets.filter((p) => codeSet.has(p.codeNo));
+      if (selectedCodeNos.size > 0) {
+        paysheets = paysheets.filter((p) => selectedCodeNos.has(p.codeNo));
       }
 
       if (paysheets.length === 0) {
@@ -294,74 +336,190 @@ export default function Payroll() {
 
       {/* ═══════════════ TAB 1: Preview & Print ═══════════════ */}
       {activeTab === 'generate' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 24 }}>
-          {/* Controls */}
-          <div className="card h-fit">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Employee Selection Card */}
+          <div className="card">
             <div className="card-header">
-              <h2>View Pay Sheets</h2>
+              <h2>Select Employees</h2>
+              {selectedCodeNos.size > 0 && (
+                <span style={{ fontSize: 13, color: 'var(--gold-400)' }}>
+                  {selectedCodeNos.size} selected
+                </span>
+              )}
             </div>
-            <div className="card-body">
-              <form onSubmit={handleFetchPreview}>
-                <div className="form-group">
-                  <label>Pay Month</label>
-                  <input
-                    type="month"
-                    className="form-input"
-                    value={period}
-                    onChange={(e) => setPeriod(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Filter by Employee(s)</label>
-                  <select
-                    className="form-select"
-                    multiple
-                    value={selectedCodeNos}
-                    onChange={(e) =>
-                      setSelectedCodeNos(
-                        Array.from(e.target.selectedOptions, (option) => option.value)
-                      )
-                    }
-                  >
-                    {users.map((u) => (
-                      <option key={u.codeNo} value={u.codeNo}>
-                        {u.firstName} {u.lastName} ({u.branch})
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-muted" style={{ fontSize: 11, marginTop: 6 }}>
-                    Leave empty to view all paysheets for the month. Hold Ctrl/Cmd to select
-                    multiple.
-                  </p>
-                </div>
+
+            {/* Filter Bar — same layout as Users Management */}
+            <div className="filter-bar">
+              <div className="search-input">
+                <FiSearch className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search by code no, name, role..."
+                  value={employeeSearch}
+                  onChange={(e) => setEmployeeSearch(e.target.value)}
+                />
+              </div>
+
+              <select
+                className="filter-select"
+                value={empFilterBranch}
+                onChange={(e) => setEmpFilterBranch(e.target.value)}
+              >
+                <option value="">All Branches</option>
+                {BRANCHES.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+
+              <select
+                className="filter-select"
+                value={empFilterRole}
+                onChange={(e) => setEmpFilterRole(e.target.value)}
+              >
+                <option value="">All Roles</option>
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+
+              <input
+                type="month"
+                className="form-input"
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                required
+                style={{ width: 'auto' }}
+              />
+
+              {selectedCodeNos.size > 0 && (
                 <button
-                  type="submit"
-                  className="btn btn-primary btn-full"
-                  disabled={fetching}
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setSelectedCodeNos(new Set())}
+                  style={{ color: 'var(--ruby-500)', fontSize: 13 }}
                 >
-                  {fetching ? 'Loading...' : 'Load Pay Sheets'}
+                  Clear All
                 </button>
-              </form>
+              )}
+            </div>
+
+            {/* Employee Table */}
+            <div className="table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 40 }}>
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        onChange={toggleAllUsers}
+                        title="Select All"
+                      />
+                    </th>
+                    <th>Employee</th>
+                    <th>Code No</th>
+                    <th>Role</th>
+                    <th>Branch</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>
+                        No employees found
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredUsers.map((u) => (
+                      <tr
+                        key={u.codeNo}
+                        onClick={() => toggleUser(u.codeNo)}
+                        style={{
+                          cursor: 'pointer',
+                          background: selectedCodeNos.has(u.codeNo)
+                            ? 'rgba(200, 164, 21, 0.08)'
+                            : undefined,
+                        }}
+                      >
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={selectedCodeNos.has(u.codeNo)}
+                            onChange={() => toggleUser(u.codeNo)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </td>
+                        <td>
+                          <div className="user-cell">
+                            <div className="user-avatar">{u.firstName.charAt(0)}</div>
+                            <div>
+                              <div className="user-name">{u.firstName} {u.lastName}</div>
+                              <div className="user-email" style={{ fontSize: 11 }}>{u.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ fontSize: 13 }}>{u.codeNo}</td>
+                        <td>{u.role || u.designation}</td>
+                        <td>{u.branch}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Footer with Load button */}
+            <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--neutral-700)' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                {filteredUsers.length} employee(s) shown
+                {selectedCodeNos.size === 0 && ' — leave none selected to load all paysheets'}
+              </span>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleFetchPreview}
+                disabled={fetching}
+              >
+                {fetching ? 'Loading...' : `Load Pay Sheets${selectedCodeNos.size > 0 ? ` (${selectedCodeNos.size})` : ''}`}
+              </button>
             </div>
           </div>
 
           {/* Preview & Print */}
-          <div className="card" style={{ minHeight: 500 }}>
-            <div className="card-header">
-              <h2>Preview</h2>
+          <div className="card" style={{ minHeight: 400 }}>
+            <div className="card-header" style={{ flexWrap: 'wrap', gap: 12 }}>
+              <h2>Preview ({previewPaysheets.length})</h2>
               {previewPaysheets.length > 0 && (
-                <button className="btn btn-secondary btn-sm" onClick={() => handlePrint()}>
-                  <FiPrinter size={14} style={{ marginRight: 6 }} />
-                  Print
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+                  {/* Print mode toggle */}
+                  <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                    <button
+                      className={`btn btn-sm ${printMode === 'a4' ? 'btn-primary' : 'btn-ghost'}`}
+                      onClick={() => setPrintMode('a4')}
+                      style={{ borderRadius: 0, fontSize: 12, padding: '6px 12px' }}
+                    >
+                      A4 (1/page)
+                    </button>
+                    <button
+                      className={`btn btn-sm ${printMode === '2up' ? 'btn-primary' : 'btn-ghost'}`}
+                      onClick={() => setPrintMode('2up')}
+                      style={{ borderRadius: 0, fontSize: 12, padding: '6px 12px' }}
+                    >
+                      A4 (2/page)
+                    </button>
+                  </div>
+                  <button className="btn btn-secondary btn-sm" onClick={() => handlePrint()}>
+                    <FiPrinter size={14} style={{ marginRight: 6 }} />
+                    Print
+                  </button>
+                </div>
               )}
             </div>
             <div className="card-body">
               {previewPaysheets.length === 0 ? (
                 <div className="empty-state">
                   <div className="empty-state-icon">📄</div>
-                  <p>Select a month and click "Load Pay Sheets" to preview.</p>
+                  <p>Select employees and click "Load Pay Sheets" to preview.</p>
                   <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8 }}>
                     Paysheets must be created first in the Monthly Paysheets section.
                   </p>
@@ -369,7 +527,7 @@ export default function Payroll() {
               ) : (
                 <div
                   ref={printRef}
-                  className="print-area"
+                  className={`print-area ${printMode === '2up' ? 'print-mode-2up' : 'print-mode-a4'}`}
                   style={{
                     background: '#eaeaea',
                     padding: 20,
@@ -379,13 +537,70 @@ export default function Payroll() {
                     gap: 30,
                   }}
                 >
-                  {previewPaysheets.map((ps) => (
-                    <PaySheet
-                      key={ps.id || ps.codeNo}
-                      paysheet={ps}
-                      employee={userMap.get(ps.codeNo) || null}
-                    />
-                  ))}
+                  {printMode === '2up' ? (
+                    // 2-per-page: group paysheets into pairs, stacked top/bottom
+                    // Each paysheet is A5 portrait (148×210mm) rotated 90° to fill
+                    // a 210×148.5mm landscape slot. Two slots per A4 portrait page.
+                    (() => {
+                      const pairs: MonthlyPaysheet[][] = [];
+                      for (let i = 0; i < previewPaysheets.length; i += 2) {
+                        pairs.push(previewPaysheets.slice(i, i + 2));
+                      }
+                      return pairs.map((pair, idx) => (
+                        <div
+                          key={idx}
+                          className="print-page-pair"
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            width: 794,  /* 210mm at 96dpi */
+                            background: '#fff',
+                            borderRadius: 4,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {pair.map((ps) => (
+                            <div
+                              key={ps.id || ps.codeNo}
+                              className="paysheet-slot"
+                              style={{
+                                width: 794,      /* 210mm */
+                                height: 561,     /* 148.5mm */
+                                position: 'relative',
+                                overflow: 'hidden',
+                                borderBottom: '1px dashed #ccc',
+                              }}
+                            >
+                              <div style={{
+                                transformOrigin: 'top left',
+                                transform: 'rotate(90deg) translateY(-100%)',
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                              }}>
+                                <PaySheet
+                                  paysheet={ps}
+                                  employee={userMap.get(ps.codeNo) || null}
+                                  size="2up"
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ));
+                    })()
+                  ) : (
+                    // A4 single per page
+                    previewPaysheets.map((ps) => (
+                      <PaySheet
+                        key={ps.id || ps.codeNo}
+                        paysheet={ps}
+                        employee={userMap.get(ps.codeNo) || null}
+                        size="a4"
+                      />
+                    ))
+                  )}
                 </div>
               )}
             </div>

@@ -6,6 +6,8 @@ interface PaysheetListParams {
   payMonth?: string;
   role?: string;
   search?: string;
+  page?: number;
+  limit?: number;
 }
 
 function extractErrorMessage(error: unknown, fallback: string): string {
@@ -65,9 +67,12 @@ export const paysheetService = {
     }
   },
 
-  async getMonthPaysheets(payMonth: string): Promise<PaysheetResponse & { month: string }> {
+  async getMonthPaysheets(
+    payMonth: string,
+    params: { search?: string; page?: number; limit?: number } = {}
+  ): Promise<PaysheetResponse & { month: string }> {
     try {
-      const response = await api.get(`/paysheets/month/${payMonth}`);
+      const response = await api.get(`/paysheets/month/${payMonth}`, { params });
       return response.data;
     } catch (error: unknown) {
       throw new Error(extractErrorMessage(error, 'Failed to fetch month paysheets'));

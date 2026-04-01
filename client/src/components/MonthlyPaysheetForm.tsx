@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { paysheetService } from '../services/paysheetService';
 import { userService } from '../services/userService';
+import { ROLE_NAME_TO_CODE, ROLE_CODE_TO_NAME } from '../constants/roleSalaries';
 import type { User, MonthlyPaysheet } from '../types';
 import { showToast } from './Toast';
 
@@ -11,6 +12,27 @@ interface MonthlyPaysheetFormProps {
   isEditMode?: boolean;
 }
 
+const formatNumberWithCommas = (value: number | string): string => {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(num) || num === 0) return '';
+  const parts = num.toString().split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return parts.join('.');
+};
+
+const parseFormattedNumber = (value: string): number => {
+  const cleaned = value.replace(/,/g, '');
+  return parseFloat(cleaned) || 0;
+};
+
+const AMOUNT_FIELDS = ['achieve', 'allowance', 'welfare', 'otherOffer', 'customEarningAmount', 'customDeductionAmount'];
+
+// Role codes grouped for the dropdown
+const SALES_ROLE_CODES = ['GM', 'AGM', 'PH', 'DPH', 'SRM', 'RM', 'BM', 'BDE'];
+const NON_TARGET_ROLE_CODES = ['CCI', 'HR_FIN_HEAD', 'MANAGER_ADMIN', 'SR_EXEC_HR', 'SR_EXEC_FINANCE', 'ASST_HR_EXEC', 'ASST_FIN_EXEC', 'MICRO_FIN_MANAGER', 'MICRO_FIN_EXEC'];
+
+const errorStyle: React.CSSProperties = { color: 'var(--ruby-500)', fontSize: 12, marginTop: 4 };
+
 export function MonthlyPaysheetForm({
   onSuccess,
   onCancel,
@@ -19,6 +41,8 @@ export function MonthlyPaysheetForm({
 }: MonthlyPaysheetFormProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState<Partial<MonthlyPaysheet>>({
     codeNo: initialData?.codeNo || '',
     payMonth: initialData?.payMonth || new Date().toISOString().slice(0, 7),
@@ -52,16 +76,20 @@ export function MonthlyPaysheetForm({
     }
   };
 
-  const handleUserChange = (codeNo: string) => {
-    const selected = users.find((u) => u.codeNo === codeNo);
+  const handleCodeNoChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, codeNo: value }));
+    const selected = users.find((u) => u.codeNo === value);
     if (selected) {
-      setFormData({
-        ...formData,
-        codeNo: selected.codeNo,
-        role: selected.role || selected.designation,
-      });
+      const roleName = selected.role || selected.designation;
+      const roleCode = ROLE_NAME_TO_CODE[roleName] || roleName;
+      setFormData((prev) => ({ ...prev, codeNo: value, role: roleCode }));
+      setErrors((prev) => ({ ...prev, codeNo: '', role: '' }));
+    } else {
+      setFormData((prev) => ({ ...prev, codeNo: value, role: '' }));
     }
   };
+
+  const matchedUser = users.find((u) => u.codeNo === formData.codeNo);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -78,28 +106,133 @@ export function MonthlyPaysheetForm({
     }));
   };
 
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const raw = value.replace(/,/g, '');
+    if (raw === '' || /^\d*\.?\d*$/.test(raw)) {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: raw === '' ? 0 : raw.endsWith('.') ? raw : parseFormattedNumber(raw),
+      }));
+    }
+  };
+
+  const handleAmountFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    setFocusedField(e.target.name);
+  };
+
+  const handleAmountBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name } = e.target;
+    setFocusedField(null);
+    const val = formData[name as keyof typeof formData];
+    if (typeof val === 'string' && val.endsWith('.')) {
+      setFormData((prev) => ({ ...prev, [name]: parseFloat(val) || 0 }));
+    }
+  };
+
+  const getAmountDisplayValue = (fieldName: string): string => {
+    const val = formData[fieldName as keyof typeof formData];
+    if (focusedField === fieldName) {
+      if (typeof val === 'string') return val;
+      if (val === 0 || val === undefined) return '';
+      return String(val);
+    }
+    const num = typeof val === 'string' ? parseFloat(val) : (val as number);
+    return formatNumberWithCommas(num);
+  };
+
+  const validateForm = (): Record<string, string> => {
+    const errs: Record<string, string> = {};
+
+    // Required fields
+    if (!formData.codeNo?.trim()) {
+      errs.codeNo = 'Code No is required';
+    } else if (!users.find((u) => u.codeNo === formData.codeNo)) {
+      errs.codeNo = 'Invalid code — no employee found';
+    }
+    if (!formData.payMonth?.trim()) errs.payMonth = 'Pay month is required';
+    if (!formData.role?.trim()) errs.role = 'Role is required';
+
+    // payMonth format
+    if (formData.payMonth && !/^\d{4}-(0[1-9]|1[0-2])$/.test(formData.payMonth)) {
+      errs.payMonth = 'Invalid month format (YYYY-MM)';
+    }
+
+    // Role must be a valid code
+    const allCodes = [...SALES_ROLE_CODES, ...NON_TARGET_ROLE_CODES];
+    if (formData.role && !allCodes.includes(formData.role)) {
+      errs.role = 'Invalid role selected';
+    }
+
+    // monthsOfService
+    const mos = Number(formData.monthsOfService);
+    if (isNaN(mos) || mos < 0) errs.monthsOfService = 'Must be 0 or greater';
+    if (mos % 1 !== 0) errs.monthsOfService = 'Must be a whole number';
+
+    // Amount fields: must be >= 0
+    for (const field of AMOUNT_FIELDS) {
+      const val = formData[field as keyof typeof formData];
+      const num = typeof val === 'string' ? parseFloat(val) : (val as number);
+      if (num !== undefined && num !== 0 && (isNaN(num) || num < 0)) {
+        errs[field] = 'Must be 0 or a positive number';
+      }
+    }
+
+    // nopay
+    const nopay = Number(formData.nopay);
+    if (!isNaN(nopay) && nopay < 0) errs.nopay = 'Cannot be negative';
+    if (!isNaN(nopay) && nopay > 31) errs.nopay = 'Cannot exceed 31 days';
+
+    // lateHours
+    const lh = Number(formData.lateHours);
+    if (!isNaN(lh) && lh < 0) errs.lateHours = 'Cannot be negative';
+    if (!isNaN(lh) && lh % 1 !== 0) errs.lateHours = 'Must be a whole number';
+
+    // lateMinutes
+    const lm = Number(formData.lateMinutes);
+    if (!isNaN(lm) && (lm < 0 || lm > 59)) errs.lateMinutes = 'Must be 0–59';
+    if (!isNaN(lm) && lm % 1 !== 0) errs.lateMinutes = 'Must be a whole number';
+
+    // Custom earning: if amount > 0, name is required
+    const ceAmt = Number(formData.customEarningAmount) || 0;
+    if (ceAmt > 0 && !formData.customEarningName?.trim()) {
+      errs.customEarningName = 'Name required when amount is set';
+    }
+
+    // Custom deduction: if amount > 0, name is required
+    const cdAmt = Number(formData.customDeductionAmount) || 0;
+    if (cdAmt > 0 && !formData.customDeductionName?.trim()) {
+      errs.customDeductionName = 'Name required when amount is set';
+    }
+
+    return errs;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (
-      !formData.codeNo ||
-      !formData.payMonth ||
-      !formData.role
-    ) {
-      showToast('Please fill all required fields', 'error');
+    const validationErrors = validateForm();
+    setErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) {
+      showToast('Please fix the errors before submitting', 'error');
       return;
     }
 
-    console.log('[Form Submit] formData.otherOffer:', formData.otherOffer);
-    console.log('[Form Submit] Complete formData:', formData);
+    const submitData = { ...formData };
+    AMOUNT_FIELDS.forEach((field) => {
+      const val = submitData[field as keyof typeof submitData];
+      if (typeof val === 'string') {
+        (submitData as Record<string, unknown>)[field] = parseFloat(val) || 0;
+      }
+    });
 
     setLoading(true);
     try {
       if (isEditMode && initialData?.id) {
-        await paysheetService.updatePaysheet(initialData.id, formData as Partial<MonthlyPaysheet>);
+        await paysheetService.updatePaysheet(initialData.id, submitData as Partial<MonthlyPaysheet>);
         showToast('Paysheet updated successfully', 'success');
       } else {
-        await paysheetService.createPaysheet(formData as Omit<MonthlyPaysheet, 'id' | 'createdAt' | 'updatedAt'>);
+        await paysheetService.createPaysheet(submitData as Omit<MonthlyPaysheet, 'id' | 'createdAt' | 'updatedAt'>);
         showToast('Paysheet created successfully', 'success');
       }
       onSuccess?.();
@@ -115,26 +248,6 @@ export function MonthlyPaysheetForm({
       <div className="form-row">
         <div className="form-group">
           <label>
-            Select Employee <span style={{ color: 'var(--ruby-500)' }}>*</span>
-          </label>
-          <select
-            className="form-select"
-            value={formData.codeNo || ''}
-            onChange={(e) => handleUserChange(e.target.value)}
-            required
-            disabled={isEditMode}
-          >
-            <option value="">Select Employee</option>
-            {users.map((u) => (
-              <option key={u.codeNo} value={u.codeNo}>
-                {u.firstName} {u.lastName} ({u.role})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label>
             Code No. <span style={{ color: 'var(--ruby-500)' }}>*</span>
           </label>
           <input
@@ -142,11 +255,30 @@ export function MonthlyPaysheetForm({
             className="form-input"
             name="codeNo"
             value={formData.codeNo || ''}
-            onChange={handleInputChange}
-            placeholder="e.g., EMP-0001"
+            onChange={(e) => handleCodeNoChange(e.target.value)}
+            placeholder="Enter employee code"
             required
             disabled={isEditMode}
+            list="codeNo-list"
           />
+          <datalist id="codeNo-list">
+            {users.map((u) => (
+              <option key={u.codeNo} value={u.codeNo}>
+                {u.firstName} {u.lastName} — {u.role || u.designation}
+              </option>
+            ))}
+          </datalist>
+          {matchedUser && (
+            <div style={{ fontSize: 12, color: 'var(--gold-400)', marginTop: 4 }}>
+              {matchedUser.firstName} {matchedUser.lastName} — {matchedUser.branch}
+            </div>
+          )}
+          {!matchedUser && formData.codeNo && formData.codeNo.length > 0 && (
+            <div style={{ fontSize: 12, color: 'var(--ruby-500)', marginTop: 4 }}>
+              No employee found
+            </div>
+          )}
+          {errors.codeNo && <div style={errorStyle}>{errors.codeNo}</div>}
         </div>
 
         <div className="form-group">
@@ -162,6 +294,7 @@ export function MonthlyPaysheetForm({
             required
             disabled={isEditMode}
           />
+          {errors.payMonth && <div style={errorStyle}>{errors.payMonth}</div>}
         </div>
 
         <div className="form-group">
@@ -178,27 +311,21 @@ export function MonthlyPaysheetForm({
           >
             <option value="">Select Role</option>
             <optgroup label="Sales/Target-Based Roles">
-              <option value="GM">GM - General Manager</option>
-              <option value="AGM">AGM - Assistant General Manager</option>
-              <option value="PH">PH - Provincial Head</option>
-              <option value="DPH">DPH - Deputy Provincial Head</option>
-              <option value="SRM">SRM - Senior Regional Manager</option>
-              <option value="RM">RM - Regional Manager</option>
-              <option value="BM">BM - Branch Manager</option>
-              <option value="BDE">BDE - Business Development Executive</option>
+              {SALES_ROLE_CODES.map((code) => (
+                <option key={code} value={code}>
+                  {ROLE_CODE_TO_NAME[code] || code}
+                </option>
+              ))}
             </optgroup>
             <optgroup label="Non-Target Roles">
-              <option value="CCI">CCI - Collections/Call Center</option>
-              <option value="HR_FIN_HEAD">HR_FIN_HEAD - HR & Finance Head</option>
-              <option value="MANAGER_ADMIN">MANAGER_ADMIN - Manager Admin</option>
-              <option value="SR_EXEC_HR">SR_EXEC_HR - Senior Executive HR</option>
-              <option value="SR_EXEC_FINANCE">SR_EXEC_FINANCE - Senior Executive Finance</option>
-              <option value="ASST_HR_EXEC">ASST_HR_EXEC - Assistant HR Executive</option>
-              <option value="ASST_FIN_EXEC">ASST_FIN_EXEC - Assistant Finance Executive</option>
-              <option value="MICRO_FIN_MANAGER">MICRO_FIN_MANAGER - Micro Finance Manager</option>
-              <option value="MICRO_FIN_EXEC">MICRO_FIN_EXEC - Micro Finance Executive</option>
+              {NON_TARGET_ROLE_CODES.map((code) => (
+                <option key={code} value={code}>
+                  {ROLE_CODE_TO_NAME[code] || code}
+                </option>
+              ))}
             </optgroup>
           </select>
+          {errors.role && <div style={errorStyle}>{errors.role}</div>}
         </div>
 
         <div className="form-group">
@@ -209,13 +336,14 @@ export function MonthlyPaysheetForm({
             type="number"
             className="form-input"
             name="monthsOfService"
-            value={formData.monthsOfService || 0}
+            value={formData.monthsOfService ?? ''}
             onChange={handleInputChange}
             placeholder="e.g., 6"
             min="0"
             step="1"
             required
           />
+          {errors.monthsOfService && <div style={errorStyle}>{errors.monthsOfService}</div>}
         </div>
       </div>
 
@@ -227,53 +355,65 @@ export function MonthlyPaysheetForm({
           <div className="form-group">
             <label>Achievement Amount</label>
             <input
-              type="number"
+              type="text"
+              inputMode='numeric'
               className="form-input"
               name="achieve"
-              value={formData.achieve || 0}
-              onChange={handleInputChange}
+              value={getAmountDisplayValue('achieve')}
+              onChange={handleAmountChange}
+              onFocus={handleAmountFocus}
+              onBlur={handleAmountBlur}
               placeholder="0.00"
-              step="0.01"
             />
+            {errors.achieve && <div style={errorStyle}>{errors.achieve}</div>}
           </div>
 
           <div className="form-group">
             <label>Allowance</label>
             <input
-              type="number"
+              type="text"
+              inputMode='numeric'
               className="form-input"
               name="allowance"
-              value={formData.allowance || 0}
-              onChange={handleInputChange}
+              value={getAmountDisplayValue('allowance')}
+              onChange={handleAmountChange}
+              onFocus={handleAmountFocus}
+              onBlur={handleAmountBlur}
               placeholder="0.00"
-              step="0.01"
             />
+            {errors.allowance && <div style={errorStyle}>{errors.allowance}</div>}
           </div>
 
           <div className="form-group">
             <label>Welfare</label>
             <input
-              type="number"
+              type="text"
+              inputMode='numeric'
               className="form-input"
               name="welfare"
-              value={formData.welfare || 0}
-              onChange={handleInputChange}
+              value={getAmountDisplayValue('welfare')}
+              onChange={handleAmountChange}
+              onFocus={handleAmountFocus}
+              onBlur={handleAmountBlur}
               placeholder="0.00"
-              step="0.01"
             />
+            {errors.welfare && <div style={errorStyle}>{errors.welfare}</div>}
           </div>
 
           <div className="form-group">
             <label>Other Offers</label>
             <input
-              type="number"
+              type="text"
+              inputMode='numeric'
               className="form-input"
               name="otherOffer"
-              value={formData.otherOffer || 0}
-              onChange={handleInputChange}
+              value={getAmountDisplayValue('otherOffer')}
+              onChange={handleAmountChange}
+              onFocus={handleAmountFocus}
+              onBlur={handleAmountBlur}
               placeholder="0.00"
-              step="0.01"
             />
+            {errors.otherOffer && <div style={errorStyle}>{errors.otherOffer}</div>}
           </div>
         </div>
       </div>
@@ -289,11 +429,14 @@ export function MonthlyPaysheetForm({
               type="number"
               className="form-input"
               name="nopay"
-              value={formData.nopay || 0}
+              value={formData.nopay ?? ''}
               onChange={handleInputChange}
               placeholder="0"
               step="0.01"
+              min="0"
+              max="31"
             />
+            {errors.nopay && <div style={errorStyle}>{errors.nopay}</div>}
           </div>
 
           <div className="form-group">
@@ -302,12 +445,13 @@ export function MonthlyPaysheetForm({
               type="number"
               className="form-input"
               name="lateHours"
-              value={formData.lateHours || 0}
+              value={formData.lateHours ?? ''}
               onChange={handleInputChange}
               placeholder="0"
               min="0"
               step="1"
             />
+            {errors.lateHours && <div style={errorStyle}>{errors.lateHours}</div>}
           </div>
 
           <div className="form-group">
@@ -316,13 +460,14 @@ export function MonthlyPaysheetForm({
               type="number"
               className="form-input"
               name="lateMinutes"
-              value={formData.lateMinutes || 0}
+              value={formData.lateMinutes ?? ''}
               onChange={handleInputChange}
               placeholder="0"
               min="0"
               max="59"
               step="1"
             />
+            {errors.lateMinutes && <div style={errorStyle}>{errors.lateMinutes}</div>}
           </div>
         </div>
       </div>
@@ -342,19 +487,23 @@ export function MonthlyPaysheetForm({
               onChange={handleInputChange}
               placeholder="e.g., Bonus"
             />
+            {errors.customEarningName && <div style={errorStyle}>{errors.customEarningName}</div>}
           </div>
 
           <div className="form-group">
             <label>Custom Earning Amount</label>
             <input
-              type="number"
+              type="text"
+              inputMode='numeric'
               className="form-input"
               name="customEarningAmount"
-              value={formData.customEarningAmount || 0}
-              onChange={handleInputChange}
+              value={getAmountDisplayValue('customEarningAmount')}
+              onChange={handleAmountChange}
+              onFocus={handleAmountFocus}
+              onBlur={handleAmountBlur}
               placeholder="0.00"
-              step="0.01"
             />
+            {errors.customEarningAmount && <div style={errorStyle}>{errors.customEarningAmount}</div>}
           </div>
 
           <div className="form-group">
@@ -367,19 +516,23 @@ export function MonthlyPaysheetForm({
               onChange={handleInputChange}
               placeholder="e.g., Loan"
             />
+            {errors.customDeductionName && <div style={errorStyle}>{errors.customDeductionName}</div>}
           </div>
 
           <div className="form-group">
             <label>Custom Deduction Amount</label>
             <input
-              type="number"
+              type="text"
+              inputMode='numeric'
               className="form-input"
               name="customDeductionAmount"
-              value={formData.customDeductionAmount || 0}
-              onChange={handleInputChange}
+              value={getAmountDisplayValue('customDeductionAmount')}
+              onChange={handleAmountChange}
+              onFocus={handleAmountFocus}
+              onBlur={handleAmountBlur}
               placeholder="0.00"
-              step="0.01"
             />
+            {errors.customDeductionAmount && <div style={errorStyle}>{errors.customDeductionAmount}</div>}
           </div>
         </div>
       </div>
@@ -395,21 +548,16 @@ export function MonthlyPaysheetForm({
                 type="checkbox"
                 name="epfAvailability"
                 checked={formData.epfAvailability === true}
-                onChange={handleInputChange}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setFormData((prev) => ({
+                    ...prev,
+                    epfAvailability: checked,
+                    etfAvailability: checked,
+                  }));
+                }}
               />
-              EPF (Employee Provident Fund)
-            </label>
-          </div>
-
-          <div className="form-group">
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input
-                type="checkbox"
-                name="etfAvailability"
-                checked={formData.etfAvailability === true}
-                onChange={handleInputChange}
-              />
-              ETF (Employee Trust Fund)
+              EPF / ETF
             </label>
           </div>
         </div>

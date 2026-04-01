@@ -23,3 +23,29 @@ export const ROLE_SALARIES: Record<string, number> = {
 };
 
 export const ROLES = Object.keys(ROLE_SALARIES).sort();
+
+// Maps full role names (stored on User records) to backend role codes
+export const ROLE_NAME_TO_CODE: Record<string, string> = {
+  'General Manager': 'GM',
+  'Assistant General Manager': 'AGM',
+  'Provincial Head': 'PH',
+  'Deputy Provincial Head': 'DPH',
+  'Senior Regional Manager': 'SRM',
+  'Regional Manager': 'RM',
+  'Branch Manager': 'BM',
+  'Business Development Executive': 'BDE',
+  'CCI (Collections/Call Center)': 'CCI',
+  'HR & Finance Head': 'HR_FIN_HEAD',
+  'Manager Admin': 'MANAGER_ADMIN',
+  'Senior Executive \u2013 HR': 'SR_EXEC_HR',
+  'Senior Executive \u2013 Finance': 'SR_EXEC_FINANCE',
+  'Assistant HR Executive': 'ASST_HR_EXEC',
+  'Assistant Finance Executive': 'ASST_FIN_EXEC',
+  'Micro Finance Manager': 'MICRO_FIN_MANAGER',
+  'Micro Finance Executive': 'MICRO_FIN_EXEC',
+};
+
+// Reverse mapping: code → full name
+export const ROLE_CODE_TO_NAME: Record<string, string> = Object.fromEntries(
+  Object.entries(ROLE_NAME_TO_CODE).map(([name, code]) => [code, name])
+);

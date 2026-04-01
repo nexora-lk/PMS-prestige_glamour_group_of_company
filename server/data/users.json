@@ -14,7 +14,7 @@
     "basicSalary": 50000,
     "allowances": 0,
     "deductions": 0,
-    "status": "delete",
+    "status": "active",
     "createdAt": "2026-03-31T10:04:20.197Z",
     "updatedAt": "2026-03-31T12:53:10.936Z"
   },

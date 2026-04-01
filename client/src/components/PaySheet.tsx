@@ -2,12 +2,17 @@ import type { CSSProperties } from 'react';
 import type { MonthlyPaysheet, User } from '../types';
 import { formatCurrency, formatMonth } from '../utils/format';
 
+export type PaySheetSize = 'a5' | 'a4' | '2up';
+
 interface PaySheetProps {
   paysheet: MonthlyPaysheet;
   employee?: User | null;
+  size?: PaySheetSize;
 }
 
-export default function PaySheet({ paysheet, employee }: PaySheetProps) {
+export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetProps) {
+  // a5 = 420×595px, a4 = 595×842px, 2up = 561×794px (fills 148.5×210mm print slot)
+  const scale = size === 'a4' ? 1.42 : size === '2up' ? 1.335 : 1;
   const earnings = {
     basicSalary: paysheet.basicSalary || 0,
     vehicleAllowance: paysheet.vehicleAllowance || 0,
@@ -55,109 +60,147 @@ export default function PaySheet({ paysheet, employee }: PaySheetProps) {
   const designation = employee?.designation || paysheet.role;
   const branch = employee?.branch || '';
 
+  const px = (base: number) => base * scale;
+  const fs = (base: number) => base * scale;
+
+  // Dynamic styles based on size
+  const ds: Record<string, CSSProperties> = {
+    page: {
+      ...s.page,
+      width: size === 'a4' ? 595 : size === '2up' ? 561 : 420,
+      minHeight: size === 'a4' ? 842 : size === '2up' ? 794 : 595,
+      fontSize: fs(9),
+    },
+    header: { ...s.header, padding: `${px(8)}px ${px(12)}px`, gap: px(10) },
+    logoCircle: { ...s.logoCircle, width: px(40), height: px(40) },
+    logoInner: { ...s.logoInner, width: px(30), height: px(30) },
+    logoText: { ...s.logoText, fontSize: fs(7) },
+    companyName: { ...s.companyName, fontSize: fs(9.5) },
+    companySub: { ...s.companySub, fontSize: fs(8) },
+    contactText: { ...s.contactText, fontSize: fs(7) },
+    infoSection: { ...s.infoSection, padding: `${px(6)}px ${px(12)}px` },
+    infoLabel: { ...s.infoLabel, fontSize: fs(8), minWidth: px(62) },
+    infoColon: { ...s.infoColon, fontSize: fs(8) },
+    infoValue: { ...s.infoValue, fontSize: fs(8) },
+    infoRow: { ...s.infoRow, padding: `${px(2)}px 0`, gap: px(4) },
+    sectionHeader: { ...s.sectionHeader, padding: `${px(4)}px ${px(12)}px` },
+    sectionHeaderText: { ...s.sectionHeaderText, fontSize: fs(8) },
+    dataRow: { ...s.dataRow, padding: `${px(3)}px ${px(12)}px` },
+    rowLabel: { ...s.rowLabel, fontSize: fs(8.5) },
+    rowAmt: { ...s.rowAmt, fontSize: fs(8.5), minWidth: px(80) },
+    totalRow: { ...s.totalRow, padding: `${px(4)}px ${px(12)}px` },
+    totalLabel: { ...s.totalLabel, fontSize: fs(9) },
+    totalAmt: { ...s.totalAmt, fontSize: fs(9), minWidth: px(80) },
+    netRow: { ...s.netRow, padding: `${px(6)}px ${px(12)}px` },
+    netLabel: { ...s.netLabel, fontSize: fs(10) },
+    netAmount: { ...s.netAmount, fontSize: fs(10), minWidth: px(80) },
+    footer: { ...s.footer, fontSize: fs(6.5), padding: `${px(5)}px ${px(12)}px` },
+  };
+
   return (
-    <div style={s.page}>
+    <div style={ds.page}>
       {/* ── HEADER ── */}
-      <div style={s.header}>
+      <div style={ds.header}>
         <div style={s.logoWrap}>
-          <div style={s.logoCircle}>
-            <div style={s.logoInner}>
-              <span style={s.logoText}>PGWCS</span>
+          <div style={ds.logoCircle}>
+            <div style={ds.logoInner}>
+              <span style={ds.logoText}>PGWCS</span>
             </div>
           </div>
         </div>
         <div style={s.headerRight}>
-          <div style={s.companyName}>PRESTIGE GLAMOUR WORKING CAPITAL SOLUTIONS</div>
-          <div style={s.companySub}>GROUP OF COMPANY (PRIVATE) LIMITED</div>
+          <div style={ds.companyName}>PRESTIGE GLAMOUR WORKING CAPITAL SOLUTIONS</div>
+          <div style={ds.companySub}>GROUP OF COMPANY (PRIVATE) LIMITED</div>
           <div style={s.contactRow}>
-            <span style={s.contactText}>404/A, Galle Road, Maggona</span>
-            <span style={s.contactText}>info@pgwcs.com</span>
-            <span style={s.contactText}>+94 75 169 3138</span>
+            <span style={ds.contactText}>404/A, Galle Road, Maggona</span>
+            <span style={ds.contactText}>info@pgwcs.com</span>
+            <span style={ds.contactText}>+94 75 169 3138</span>
           </div>
         </div>
       </div>
 
       {/* ── EMPLOYEE INFO ── */}
-      <div style={s.infoSection}>
+      <div style={ds.infoSection}>
         <div style={s.infoGrid}>
           <div style={s.infoCol}>
-            <Row label="Employee ID" value={paysheet.codeNo} />
-            <Row label="Name" value={employeeName} />
-            <Row label="Designation" value={designation} />
-            <Row label="Branch" value={branch} />
+            <InfoRow label="Employee ID" value={paysheet.codeNo} ds={ds} />
+            <InfoRow label="Name" value={employeeName} ds={ds} />
+            <InfoRow label="Designation" value={designation} ds={ds} />
+            <InfoRow label="Branch" value={branch} ds={ds} />
           </div>
           <div style={s.infoCol}>
-            <Row label="Pay Month" value={formatMonth(paysheet.payMonth)} />
-            {employee?.bankName && <Row label="Bank" value={employee.bankName} />}
-            {employee?.bankAccount && <Row label="Account" value={employee.bankAccount} />}
-            <Row
+            <InfoRow label="Pay Month" value={formatMonth(paysheet.payMonth)} ds={ds} />
+            {employee?.bankName && <InfoRow label="Bank" value={employee.bankName} ds={ds} />}
+            {employee?.bankAccount && <InfoRow label="Account" value={employee.bankAccount} ds={ds} />}
+            <InfoRow
               label="Date"
               value={
                 paysheet.createdAt
                   ? new Date(paysheet.createdAt).toLocaleDateString('en-LK')
                   : new Date().toLocaleDateString('en-LK')
               }
+              ds={ds}
             />
           </div>
         </div>
       </div>
 
       {/* ── EARNINGS ── */}
-      <SectionHeader left="EARNINGS" right="AMOUNT (Rs.)" />
-      <DataRow label="Basic Salary" amount={earnings.basicSalary} />
+      <SectionHdr left="EARNINGS" right="AMOUNT (Rs.)" ds={ds} />
+      <DataItem label="Basic Salary" amount={earnings.basicSalary} ds={ds} />
       {earnings.vehicleAllowance > 0 && (
-        <DataRow label="Vehicle Allowance" amount={earnings.vehicleAllowance} alt />
+        <DataItem label="Vehicle Allowance" amount={earnings.vehicleAllowance} ds={ds} alt />
       )}
       {earnings.fuelAllowance > 0 && (
-        <DataRow label="Fuel Allowance" amount={earnings.fuelAllowance} />
+        <DataItem label="Fuel Allowance" amount={earnings.fuelAllowance} ds={ds} />
       )}
       {earnings.generalAllowance > 0 && (
-        <DataRow label="General Allowance" amount={earnings.generalAllowance} alt />
+        <DataItem label="General Allowance" amount={earnings.generalAllowance} ds={ds} alt />
       )}
-      {earnings.orc > 0 && <DataRow label="ORC" amount={earnings.orc} />}
+      {earnings.orc > 0 && <DataItem label="ORC" amount={earnings.orc} ds={ds} />}
       {earnings.otherOffers > 0 && (
-        <DataRow label="Other Offers" amount={earnings.otherOffers} alt />
+        <DataItem label="Other Offers" amount={earnings.otherOffers} ds={ds} alt />
       )}
       {earnings.customEarning > 0 && (
-        <DataRow label={customEarningLabel} amount={earnings.customEarning} />
+        <DataItem label={customEarningLabel} amount={earnings.customEarning} ds={ds} />
       )}
 
       {/* ── GROSS SALARY ── */}
-      <TotalRow label="GROSS SALARY" amount={grossSalary} />
+      <TotalItem label="GROSS SALARY" amount={grossSalary} ds={ds} />
 
       {/* ── DEDUCTIONS ── */}
-      <SectionHeader left="DEDUCTIONS" right="AMOUNT (Rs.)" />
-      {deductions.epf8 > 0 && <DataRow label="EPF (8%)" amount={deductions.epf8} />}
-      <DataRow label="No Pay" amount={deductions.noPay} alt />
-      <DataRow label="Late Comes" amount={deductions.lateComes} />
-      <DataRow label="Welfare" amount={deductions.welfare} alt />
+      <SectionHdr left="DEDUCTIONS" right="AMOUNT (Rs.)" ds={ds} />
+      {deductions.epf8 > 0 && <DataItem label="EPF (8%)" amount={deductions.epf8} ds={ds} />}
+      <DataItem label="No Pay" amount={deductions.noPay} ds={ds} alt />
+      <DataItem label="Late Comes" amount={deductions.lateComes} ds={ds} />
+      <DataItem label="Welfare" amount={deductions.welfare} ds={ds} alt />
       {deductions.customDeduction > 0 && (
-        <DataRow label={customDeductionLabel} amount={deductions.customDeduction} />
+        <DataItem label={customDeductionLabel} amount={deductions.customDeduction} ds={ds} />
       )}
 
       {/* ── TOTAL DEDUCTIONS ── */}
-      <TotalRow label="TOTAL DEDUCTIONS" amount={totalDeductions} />
+      <TotalItem label="TOTAL DEDUCTIONS" amount={totalDeductions} ds={ds} />
 
       {/* ── EPF / ETF (employer) ── */}
       <div style={{ display: 'flex', borderBottom: `1px solid ${BORDER}` }}>
-        <div style={{ flex: 1, ...s.dataRow, paddingLeft: 14 }}>
-          <span style={s.rowLabel}>EPF 12% (Employer)</span>
-          <span style={s.rowAmt}>{formatCurrency(paysheet.epfEmployer || 0)}</span>
+        <div style={{ flex: 1, ...ds.dataRow, paddingLeft: px(14) }}>
+          <span style={ds.rowLabel}>EPF 12% (Employer)</span>
+          <span style={ds.rowAmt}>{formatCurrency(paysheet.epfEmployer || 0)}</span>
         </div>
-        <div style={{ flex: 1, ...s.dataRow, ...s.altBg, paddingLeft: 14 }}>
-          <span style={s.rowLabel}>ETF 3% (Employer)</span>
-          <span style={s.rowAmt}>{formatCurrency(paysheet.etf || 0)}</span>
+        <div style={{ flex: 1, ...ds.dataRow, ...s.altBg, paddingLeft: px(14) }}>
+          <span style={ds.rowLabel}>ETF 3% (Employer)</span>
+          <span style={ds.rowAmt}>{formatCurrency(paysheet.etf || 0)}</span>
         </div>
       </div>
 
       {/* ── NET SALARY ── */}
-      <div style={s.netRow}>
-        <span style={s.netLabel}>NET SALARY</span>
-        <span style={s.netAmount}>{formatCurrency(netSalary)}</span>
+      <div style={ds.netRow}>
+        <span style={ds.netLabel}>NET SALARY</span>
+        <span style={ds.netAmount}>{formatCurrency(netSalary)}</span>
       </div>
 
       {/* ── FOOTER ── */}
-      <div style={s.footer}>
+      <div style={ds.footer}>
         This is a computer-generated document. No signature is required.
       </div>
     </div>
@@ -166,39 +209,39 @@ export default function PaySheet({ paysheet, employee }: PaySheetProps) {
 
 /* ── Small sub-components ── */
 
-function Row({ label, value }: { label: string; value: string }) {
+function InfoRow({ label, value, ds }: { label: string; value: string; ds: Record<string, CSSProperties> }) {
   return (
-    <div style={s.infoRow}>
-      <span style={s.infoLabel}>{label}</span>
-      <span style={s.infoColon}>:</span>
-      <span style={s.infoValue}>{value}</span>
+    <div style={ds.infoRow}>
+      <span style={ds.infoLabel}>{label}</span>
+      <span style={ds.infoColon}>:</span>
+      <span style={ds.infoValue}>{value}</span>
     </div>
   );
 }
 
-function SectionHeader({ left, right }: { left: string; right: string }) {
+function SectionHdr({ left, right, ds }: { left: string; right: string; ds: Record<string, CSSProperties> }) {
   return (
-    <div style={s.sectionHeader}>
-      <span style={s.sectionHeaderText}>{left}</span>
-      <span style={s.sectionHeaderText}>{right}</span>
+    <div style={ds.sectionHeader}>
+      <span style={ds.sectionHeaderText}>{left}</span>
+      <span style={ds.sectionHeaderText}>{right}</span>
     </div>
   );
 }
 
-function DataRow({ label, amount, alt }: { label: string; amount: number; alt?: boolean }) {
+function DataItem({ label, amount, alt, ds }: { label: string; amount: number; alt?: boolean; ds: Record<string, CSSProperties> }) {
   return (
-    <div style={{ ...s.dataRow, ...(alt ? s.altBg : {}) }}>
-      <span style={s.rowLabel}>{label}</span>
-      <span style={s.rowAmt}>{formatCurrency(amount)}</span>
+    <div style={{ ...ds.dataRow, ...(alt ? s.altBg : {}) }}>
+      <span style={ds.rowLabel}>{label}</span>
+      <span style={ds.rowAmt}>{formatCurrency(amount)}</span>
     </div>
   );
 }
 
-function TotalRow({ label, amount }: { label: string; amount: number }) {
+function TotalItem({ label, amount, ds }: { label: string; amount: number; ds: Record<string, CSSProperties> }) {
   return (
-    <div style={s.totalRow}>
-      <span style={s.totalLabel}>{label}</span>
-      <span style={s.totalAmt}>{formatCurrency(amount)}</span>
+    <div style={ds.totalRow}>
+      <span style={ds.totalLabel}>{label}</span>
+      <span style={ds.totalAmt}>{formatCurrency(amount)}</span>
     </div>
   );
 }

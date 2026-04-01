@@ -72,7 +72,7 @@ export default function Users() {
             <FiSearch className="search-icon" />
             <input
               type="text"
-              placeholder="Search by name, email, role..."
+              placeholder="Search by code no, name, email, role..."
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
             />

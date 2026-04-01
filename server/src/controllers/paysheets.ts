@@ -77,6 +77,74 @@ function coerceBool(val: unknown): boolean {
   return val === true || val === 1;
 }
 
+function validatePaysheetFields(body: Record<string, unknown>, isCreate: boolean): string | null {
+  const { codeNo, payMonth, role, monthsOfService, achieve, allowance, nopay,
+    lateHours, lateMinutes, welfare, otherOffer,
+    customEarningName, customEarningAmount, customDeductionName, customDeductionAmount } = body;
+
+  // Required fields (create only)
+  if (isCreate) {
+    if (!codeNo || typeof codeNo !== 'string' || !codeNo.trim()) return 'codeNo is required';
+    if (!payMonth || typeof payMonth !== 'string' || !payMonth.trim()) return 'payMonth is required';
+    if (!role || typeof role !== 'string' || !role.trim()) return 'role is required';
+    if (typeof monthsOfService !== 'number') return 'monthsOfService must be a number';
+  }
+
+  // payMonth format
+  if (payMonth !== undefined && (typeof payMonth !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(payMonth))) {
+    return 'payMonth must be in YYYY-MM format';
+  }
+
+  // monthsOfService: integer >= 0
+  if (monthsOfService !== undefined) {
+    const mos = Number(monthsOfService);
+    if (isNaN(mos) || mos < 0) return 'monthsOfService must be 0 or greater';
+    if (mos % 1 !== 0) return 'monthsOfService must be a whole number';
+  }
+
+  // nopay: >= 0, <= 31
+  if (nopay !== undefined) {
+    const n = Number(nopay);
+    if (isNaN(n) || n < 0) return 'nopay must be 0 or greater';
+    if (n > 31) return 'nopay cannot exceed 31 days';
+  }
+
+  // lateHours: integer >= 0
+  if (lateHours !== undefined) {
+    const lh = Number(lateHours);
+    if (isNaN(lh) || lh < 0) return 'lateHours must be 0 or greater';
+    if (lh % 1 !== 0) return 'lateHours must be a whole number';
+  }
+
+  // lateMinutes: integer 0-59
+  if (lateMinutes !== undefined) {
+    const lm = Number(lateMinutes);
+    if (isNaN(lm) || lm < 0 || lm > 59) return 'lateMinutes must be between 0 and 59';
+    if (lm % 1 !== 0) return 'lateMinutes must be a whole number';
+  }
+
+  // Amount fields: must be >= 0 if provided
+  const amountFields = { achieve, allowance, welfare, otherOffer, customEarningAmount, customDeductionAmount };
+  for (const [key, val] of Object.entries(amountFields)) {
+    if (val !== undefined && val !== null) {
+      const num = Number(val);
+      if (isNaN(num) || num < 0) return `${key} must be 0 or a positive number`;
+    }
+  }
+
+  // Custom earning: name required if amount > 0
+  if (Number(customEarningAmount) > 0 && (!customEarningName || typeof customEarningName !== 'string' || !customEarningName.trim())) {
+    return 'customEarningName is required when customEarningAmount is set';
+  }
+
+  // Custom deduction: name required if amount > 0
+  if (Number(customDeductionAmount) > 0 && (!customDeductionName || typeof customDeductionName !== 'string' || !customDeductionName.trim())) {
+    return 'customDeductionName is required when customDeductionAmount is set';
+  }
+
+  return null;
+}
+
 // ── Static routes FIRST (before parameterised /:id) ─────────
 
 // POST /api/paysheets/calculate — Preview calculation without saving
@@ -88,12 +156,10 @@ router.post('/calculate', (req: Request, res: Response): void => {
       customEarningAmount, customDeductionAmount,
     } = req.body;
 
-    if (!role || typeof monthsOfService !== 'number') {
-      res.status(400).json({ error: 'Missing required fields: role, monthsOfService' });
-      return;
-    }
-    if (typeof nopay !== 'number') {
-      res.status(400).json({ error: 'Invalid numeric value for nopay' });
+    // Validate fields
+    const calcValidation = validatePaysheetFields({ ...req.body, codeNo: '_calc', payMonth: '2000-01' }, true);
+    if (calcValidation) {
+      res.status(400).json({ error: calcValidation });
       return;
     }
 
@@ -130,14 +196,36 @@ router.post('/calculate', (req: Request, res: Response): void => {
   }
 });
 
-// GET /api/paysheets/month/:payMonth — All paysheets for a specific month
+// GET /api/paysheets/month/:payMonth — Paysheets for a specific month (paginated)
 router.get('/month/:payMonth', (req: Request, res: Response): void => {
   try {
-    const paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE)
-      .filter((p) => p.payMonth === req.params.payMonth)
-      .sort((a, b) => a.codeNo.localeCompare(b.codeNo));
+    let paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE)
+      .filter((p) => p.payMonth === req.params.payMonth);
 
-    res.json({ paysheets, total: paysheets.length, month: req.params.payMonth });
+    const { search } = req.query;
+    if (search && typeof search === 'string') {
+      const q = search.toLowerCase();
+      paysheets = paysheets.filter(
+        (p) => p.codeNo.toLowerCase().includes(q) || p.role.toLowerCase().includes(q)
+      );
+    }
+
+    paysheets.sort((a, b) => a.codeNo.localeCompare(b.codeNo));
+    const total = paysheets.length;
+
+    const { page, limit } = req.query;
+    const pageNum = parseInt(page as string) || 1;
+    const limitNum = parseInt(limit as string) || 15;
+    const startIndex = (pageNum - 1) * limitNum;
+    const paginatedPaysheets = paysheets.slice(startIndex, startIndex + limitNum);
+
+    res.json({
+      paysheets: paginatedPaysheets,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum),
+      month: req.params.payMonth,
+    });
   } catch (error) {
     console.error('Error fetching paysheets for month:', error);
     res.status(500).json({ error: 'Failed to fetch paysheets for month' });
@@ -158,14 +246,10 @@ router.post('/', (req: Request, res: Response): void => {
       customDeductionName, customDeductionAmount,
     } = req.body;
 
-    console.log('[Paysheet POST] otherOffer received from client:', otherOffer, 'type:', typeof otherOffer);
-
-    if (!codeNo || !payMonth || !role || typeof monthsOfService !== 'number') {
-      res.status(400).json({ error: 'Missing required fields: codeNo, payMonth, role, monthsOfService' });
-      return;
-    }
-    if (typeof nopay !== 'number') {
-      res.status(400).json({ error: 'Invalid numeric value for nopay' });
+    // Validate all fields
+    const validationError = validatePaysheetFields(req.body, true);
+    if (validationError) {
+      res.status(400).json({ error: validationError });
       return;
     }
 
@@ -238,11 +322,11 @@ router.post('/', (req: Request, res: Response): void => {
   }
 });
 
-// GET /api/paysheets — List all paysheets
+// GET /api/paysheets — List all paysheets (paginated)
 router.get('/', (req: Request, res: Response): void => {
   try {
     let paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
-    const { codeNo, payMonth, role, search } = req.query;
+    const { codeNo, payMonth, role, search, page, limit } = req.query;
 
     if (codeNo && typeof codeNo === 'string') {
       paysheets = paysheets.filter((p) => p.codeNo === codeNo);
@@ -265,7 +349,18 @@ router.get('/', (req: Request, res: Response): void => {
       return monthDiff !== 0 ? monthDiff : a.codeNo.localeCompare(b.codeNo);
     });
 
-    res.json({ paysheets, total: paysheets.length });
+    const total = paysheets.length;
+    const pageNum = parseInt(page as string) || 1;
+    const limitNum = parseInt(limit as string) || 15;
+    const startIndex = (pageNum - 1) * limitNum;
+    const paginatedPaysheets = paysheets.slice(startIndex, startIndex + limitNum);
+
+    res.json({
+      paysheets: paginatedPaysheets,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum),
+    });
   } catch (error) {
     console.error('Error fetching paysheets:', error);
     res.status(500).json({ error: 'Failed to fetch monthly paysheets' });
@@ -299,6 +394,13 @@ router.put('/:id', (req: Request, res: Response): void => {
     }
 
     const existing = paysheets[index];
+
+    // Validate updated fields
+    const validationError = validatePaysheetFields(req.body, false);
+    if (validationError) {
+      res.status(400).json({ error: validationError });
+      return;
+    }
 
     const roleConfig = getRoleConfig(existing.role);
     if (!roleConfig) {

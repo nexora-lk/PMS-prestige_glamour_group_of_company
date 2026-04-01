@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FiSearch, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { paysheetService } from '../services/paysheetService';
 import { formatCurrency } from '../utils/format';
-import type { MonthlyPaysheet } from '../types';
+import type { MonthlyPaysheet, PaysheetResponse } from '../types';
 import { showToast } from './Toast';
 
 interface PaysheetListProps {
@@ -16,21 +16,41 @@ export function PaysheetList({ onEdit, onDelete, refreshTrigger }: PaysheetListP
   const [loading, setLoading] = useState(false);
   const [filterMonth, setFilterMonth] = useState<string>(new Date().toISOString().slice(0, 7));
   const [searchText, setSearchText] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 15;
 
-  useEffect(() => {
-    fetchPaysheets();
-  }, [refreshTrigger, filterMonth]);
-
-  const fetchPaysheets = async () => {
+  const fetchPaysheets = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await paysheetService.getMonthPaysheets(filterMonth);
+      const res = await paysheetService.getMonthPaysheets(filterMonth, {
+        search: searchText || undefined,
+        page,
+        limit,
+      });
       setPaysheets(res.paysheets);
+      setTotalPages(res.totalPages);
+      setTotal(res.total);
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : 'Failed to load paysheets', 'error');
     } finally {
       setLoading(false);
     }
+  }, [filterMonth, searchText, page]);
+
+  useEffect(() => {
+    fetchPaysheets();
+  }, [fetchPaysheets, refreshTrigger]);
+
+  const handleSearchChange = (value: string) => {
+    setSearchText(value);
+    setPage(1);
+  };
+
+  const handleMonthChange = (value: string) => {
+    setFilterMonth(value);
+    setPage(1);
   };
 
   const handleDelete = async (id: string) => {
@@ -47,11 +67,6 @@ export function PaysheetList({ onEdit, onDelete, refreshTrigger }: PaysheetListP
     }
   };
 
-  const filteredPaysheets = paysheets.filter(p =>
-    p.codeNo.toLowerCase().includes(searchText.toLowerCase()) ||
-    p.role.toLowerCase().includes(searchText.toLowerCase())
-  );
-
   return (
     <div style={{ width: '100%' }}>
       {/* Filter Controls */}
@@ -62,14 +77,14 @@ export function PaysheetList({ onEdit, onDelete, refreshTrigger }: PaysheetListP
             type="text"
             placeholder="Search by code or role..."
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>
         <input
           type="month"
           className="form-input"
           value={filterMonth}
-          onChange={(e) => setFilterMonth(e.target.value)}
+          onChange={(e) => handleMonthChange(e.target.value)}
           style={{ width: 'auto' }}
         />
         <button
@@ -87,7 +102,7 @@ export function PaysheetList({ onEdit, onDelete, refreshTrigger }: PaysheetListP
           <div className="loading-spinner">
             <div className="spinner"></div>
           </div>
-        ) : filteredPaysheets.length === 0 ? (
+        ) : paysheets.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon">📋</div>
             <p>No paysheets found for {filterMonth}</p>
@@ -106,7 +121,7 @@ export function PaysheetList({ onEdit, onDelete, refreshTrigger }: PaysheetListP
               </tr>
             </thead>
             <tbody>
-              {filteredPaysheets.map((paysheet) => (
+              {paysheets.map((paysheet) => (
                 <tr key={paysheet.id}>
                   <td style={{ fontWeight: 500 }}>{paysheet.codeNo}</td>
                   <td>{paysheet.role}</td>
@@ -147,33 +162,56 @@ export function PaysheetList({ onEdit, onDelete, refreshTrigger }: PaysheetListP
         )}
       </div>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button
+            className="btn btn-ghost"
+            onClick={() => setPage(Math.max(1, page - 1))}
+            disabled={page === 1}
+          >
+            ← Previous
+          </button>
+          <span>
+            Page {page} of {totalPages} ({total} total)
+          </span>
+          <button
+            className="btn btn-ghost"
+            onClick={() => setPage(Math.min(totalPages, page + 1))}
+            disabled={page === totalPages}
+          >
+            Next →
+          </button>
+        </div>
+      )}
+
       {/* Stats */}
-      {filteredPaysheets.length > 0 && (
+      {paysheets.length > 0 && (
         <div className="stats-grid" style={{ marginTop: 20 }}>
           <div className="stat-card">
             <div className="stat-info">
-              <h3>{filteredPaysheets.length}</h3>
+              <h3>{total}</h3>
               <p>Total Paysheets</p>
             </div>
           </div>
           <div className="stat-card">
             <div className="stat-info">
-              <h3>{formatCurrency(filteredPaysheets.reduce((sum, p) => sum + (p.grossSalary || 0), 0))}</h3>
-              <p>Total Gross</p>
+              <h3>{formatCurrency(paysheets.reduce((sum, p) => sum + (p.grossSalary || 0), 0))}</h3>
+              <p>Page Gross</p>
             </div>
           </div>
           <div className="stat-card">
             <div className="stat-info">
               <h3 style={{ color: 'var(--gold-400)' }}>
-                {formatCurrency(filteredPaysheets.reduce((sum, p) => sum + (p.netSalary || 0), 0))}
+                {formatCurrency(paysheets.reduce((sum, p) => sum + (p.netSalary || 0), 0))}
               </h3>
-              <p>Total Net</p>
+              <p>Page Net</p>
             </div>
           </div>
           <div className="stat-card">
             <div className="stat-info">
               <h3>
-                {formatCurrency(filteredPaysheets.reduce((sum, p) => sum + (p.netSalary || 0), 0) / filteredPaysheets.length)}
+                {formatCurrency(paysheets.reduce((sum, p) => sum + (p.netSalary || 0), 0) / paysheets.length)}
               </h3>
               <p>Avg Net</p>
             </div>

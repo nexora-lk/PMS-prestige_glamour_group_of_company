@@ -184,9 +184,8 @@ export default function UserForm() {
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label>Email Address *</label>
+              <label>Email Address</label>
               <input
-                required
                 type="email"
                 className="form-input"
                 name="email"
@@ -293,9 +292,8 @@ export default function UserForm() {
               <label>Basic Salary (Monthly) *</label>
               <input
                 required
-                type="number"
-                min="0"
-                step="0.01"
+                type="text"
+                inputMode='numeric'
                 className="form-input"
                 name="basicSalary"
                 value={formData.basicSalary}
@@ -305,9 +303,8 @@ export default function UserForm() {
             <div className="form-group">
               <label>Total Allowances (Monthly)</label>
               <input
-                type="number"
-                min="0"
-                step="0.01"
+                type="text"
+                inputMode='numeric'
                 className="form-input"
                 name="allowances"
                 value={formData.allowances}
@@ -319,9 +316,8 @@ export default function UserForm() {
             <div className="form-group">
               <label>Fixed Deductions (Monthly)</label>
               <input
-                type="number"
-                min="0"
-                step="0.01"
+                type="text"
+                inputMode='numeric'
                 className="form-input"
                 name="deductions"
                 value={formData.deductions}

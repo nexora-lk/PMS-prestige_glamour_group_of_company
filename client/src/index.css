@@ -1487,11 +1487,7 @@ body {
   background: rgba(212, 52, 74, 0.08);
 }
 
-/* ═══ Print styles — A5 paysheet ═══ */
-@page {
-  size: A5 portrait;
-  margin: 0;
-}
+/* ═══ Print styles — A4 paysheet (default: 1 per page portrait) ═══ */
 
 @media print {
   /* Hide everything except the print area */
@@ -1499,7 +1495,6 @@ body {
   html {
     margin: 0 !important;
     padding: 0 !important;
-    width: 148mm;
   }
   body * {
     visibility: hidden;
@@ -1512,7 +1507,6 @@ body {
     position: absolute;
     left: 0;
     top: 0;
-    width: 148mm;
     padding: 0 !important;
     margin: 0 !important;
     background: #fff !important;
@@ -1528,21 +1522,82 @@ body {
     color-adjust: exact !important;
   }
 
-  /* Each paysheet on its own A5 page, no break inside */
-  .print-area > div {
+  /* ── Mode: A4 Portrait (1 per page) ── */
+  .print-area.print-mode-a4 {
+    width: 210mm;
+  }
+  .print-area.print-mode-a4 > div {
     page-break-inside: avoid;
     break-inside: avoid;
     page-break-after: always;
     break-after: page;
     box-shadow: none !important;
-    width: 148mm !important;
-    max-width: 148mm !important;
-    margin: 0 !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    margin: 0 auto !important;
+    padding: 10mm !important;
   }
-  .print-area > div:last-child {
+  .print-area.print-mode-a4 > div:last-child {
     page-break-after: auto;
     break-after: auto;
   }
+
+  /* ── Mode: A4 Portrait (2 per page, stacked top/bottom, cut horizontally) ── */
+  /* A4 portrait = 210mm × 297mm.
+     Cut in half horizontally → each paysheet = 210mm wide × 148.5mm tall.
+     The A5 portrait paysheet (148mm × 210mm) is rotated 90° to fill the slot. */
+  .print-area.print-mode-2up {
+    width: 210mm;
+  }
+  .print-area.print-mode-2up .print-page-pair {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 210mm;
+    height: 297mm;
+    overflow: hidden;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    page-break-after: always;
+    break-after: page;
+    gap: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff;
+  }
+  .print-area.print-mode-2up .print-page-pair:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+  /* Each paysheet slot: 210mm wide × 148.5mm tall */
+  .print-area.print-mode-2up .print-page-pair > .paysheet-slot {
+    width: 210mm !important;
+    height: 148.5mm !important;
+    overflow: hidden !important;
+    position: relative !important;
+    box-shadow: none !important;
+    border-bottom: 0.5px dashed #aaa;
+  }
+  .print-area.print-mode-2up .print-page-pair > .paysheet-slot:last-child {
+    border-bottom: none;
+  }
+  /* Rotate the 2up paysheet (148.5mm × 210mm) 90° to fill the landscape slot */
+  .print-area.print-mode-2up .print-page-pair > .paysheet-slot > div {
+    transform-origin: top left !important;
+    transform: rotate(90deg) translateY(-100%) !important;
+    box-shadow: none !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+  }
+  .print-area.print-mode-2up .print-page-pair > .paysheet-slot > div > div {
+    box-shadow: none !important;
+  }
+}
+
+/* Default print page size — overridden by react-to-print pageStyle */
+@page {
+  size: A4 portrait;
+  margin: 0;
 }
 
 /* ═══ Responsive ═══ */

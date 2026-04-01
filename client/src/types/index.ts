@@ -119,6 +119,8 @@ export interface MonthlyPaysheet {
 export interface PaysheetResponse {
   paysheets: MonthlyPaysheet[];
   total: number;
+  page: number;
+  totalPages: number;
 }
 
 export interface PaysheetDetailResponse {

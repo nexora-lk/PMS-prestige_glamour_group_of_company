@@ -22,6 +22,7 @@ router.get('/', (req: Request, res: Response): void => {
       const q = search.toLowerCase();
       users = users.filter(
         (u) =>
+          u.codeNo.toLowerCase().includes(q) ||
           u.firstName.toLowerCase().includes(q) ||
           u.lastName.toLowerCase().includes(q) ||
           u.email.toLowerCase().includes(q) ||
@@ -128,13 +129,13 @@ router.post('/', (req: Request, res: Response): void => {
     } = req.body;
 
     // Validation
-    if (!codeNo || !firstName || !lastName || !email) {
-      res.status(400).json({ error: 'CodeNo, first name, last name, and email are required.' });
+    if (!codeNo || !firstName || !lastName) {
+      res.status(400).json({ error: 'CodeNo, first name, and last name are required.' });
       return;
     }
 
-    // Check duplicate email
-    if (users.find((u) => u.email.toLowerCase() === email.toLowerCase())) {
+    // Check duplicate email (only if email is provided)
+    if (email && users.find((u) => u.email && u.email.toLowerCase() === email.toLowerCase())) {
       res.status(409).json({ error: 'A user with this email already exists.' });
       return;
     }

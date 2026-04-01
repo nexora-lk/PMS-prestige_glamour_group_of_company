@@ -7,6 +7,8 @@ interface UsePaysheetOptions {
   payMonth?: string;
   role?: string;
   search?: string;
+  page?: number;
+  limit?: number;
   skip?: boolean;
 }
 
@@ -34,7 +36,7 @@ export const usePaysheets = (options: UsePaysheetOptions = {}) => {
     };
 
     fetchPaysheets();
-  }, [options.codeNo, options.payMonth, options.role, options.search, options.skip]);
+  }, [options.codeNo, options.payMonth, options.role, options.search, options.page, options.limit, options.skip]);
 
   const createPaysheet = async (data: Omit<MonthlyPaysheet, 'id' | 'createdAt' | 'updatedAt'>) => {
     const result = await paysheetService.createPaysheet(data);

@@ -129,13 +129,13 @@ router.post('/', (req: Request, res: Response): void => {
     } = req.body;
 
     // Validation
-    if (!codeNo || !firstName || !lastName) {
-      res.status(400).json({ error: 'CodeNo, first name, and last name are required.' });
+    if (!codeNo || !firstName || !lastName || !email) {
+      res.status(400).json({ error: 'CodeNo, first name, last name, and email are required.' });
       return;
     }
 
-    // Check duplicate email (only if email is provided)
-    if (email && users.find((u) => u.email && u.email.toLowerCase() === email.toLowerCase())) {
+    // Check duplicate email
+    if (users.find((u) => u.email && u.email.toLowerCase() === email.toLowerCase())) {
       res.status(409).json({ error: 'A user with this email already exists.' });
       return;
     }
@@ -151,7 +151,7 @@ router.post('/', (req: Request, res: Response): void => {
       codeNo: codeNo,
       firstName: firstName || '',
       lastName: lastName || '',
-      email: email || '',
+      email: email,
       phone: phone || '',
       branch: branch || '',
       role: role || '',

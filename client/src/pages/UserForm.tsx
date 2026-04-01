@@ -184,8 +184,9 @@ export default function UserForm() {
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label>Email Address</label>
+              <label>Email Address *</label>
               <input
+                required
                 type="email"
                 className="form-input"
                 name="email"

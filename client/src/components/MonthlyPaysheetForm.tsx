@@ -333,7 +333,8 @@ export function MonthlyPaysheetForm({
             Months of Service <span style={{ color: 'var(--ruby-500)' }}>*</span>
           </label>
           <input
-            type="number"
+            type="text"
+            inputMode='numeric'
             className="form-input"
             name="monthsOfService"
             value={formData.monthsOfService ?? ''}
@@ -426,7 +427,8 @@ export function MonthlyPaysheetForm({
           <div className="form-group">
             <label>No Pay Days</label>
             <input
-              type="number"
+              type="text"
+              inputMode='numeric'
               className="form-input"
               name="nopay"
               value={formData.nopay ?? ''}
@@ -442,7 +444,8 @@ export function MonthlyPaysheetForm({
           <div className="form-group">
             <label>Late Hours</label>
             <input
-              type="number"
+              type="text"
+              inputMode='numeric'
               className="form-input"
               name="lateHours"
               value={formData.lateHours ?? ''}
@@ -457,7 +460,8 @@ export function MonthlyPaysheetForm({
           <div className="form-group">
             <label>Late Minutes</label>
             <input
-              type="number"
+              type="text"
+              inputMode='numeric'
               className="form-input"
               name="lateMinutes"
               value={formData.lateMinutes ?? ''}

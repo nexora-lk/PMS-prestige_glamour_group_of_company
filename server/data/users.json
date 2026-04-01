@@ -74,5 +74,43 @@
     "status": "active",
     "createdAt": "2026-03-31T14:26:44.176Z",
     "updatedAt": "2026-03-31T14:26:44.176Z"
+  },
+  {
+    "codeNo": "dsafadsf",
+    "firstName": "sadf",
+    "lastName": "sdfsad",
+    "email": "sad@gmail.com",
+    "phone": "243",
+    "branch": "Kotahena",
+    "role": "Assistant HR Executive",
+    "designation": "Assistant HR Executive",
+    "joinDate": "2026-03-11",
+    "bankAccount": "8256363",
+    "bankName": "HNB",
+    "basicSalary": 35000,
+    "allowances": 0,
+    "deductions": 0,
+    "status": "active",
+    "createdAt": "2026-04-01T04:20:28.412Z",
+    "updatedAt": "2026-04-01T04:20:28.412Z"
+  },
+  {
+    "codeNo": "uhnji",
+    "firstName": "nin",
+    "lastName": "iunhun",
+    "email": "nextora.phnblatform@gmail.com",
+    "phone": "45678",
+    "branch": "Maggona",
+    "role": "CCI (Collections/Call Center)",
+    "designation": "CCI (Collections/Call Center)",
+    "joinDate": "2026-03-04",
+    "bankAccount": "8256363",
+    "bankName": "HNB",
+    "basicSalary": 35000,
+    "allowances": 0,
+    "deductions": 0,
+    "status": "active",
+    "createdAt": "2026-04-01T07:04:05.828Z",
+    "updatedAt": "2026-04-01T07:04:05.828Z"
   }
 ]

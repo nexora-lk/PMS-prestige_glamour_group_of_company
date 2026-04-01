@@ -285,21 +285,21 @@ export function calculateLateDeduction(
   return totalMinutes * (basicSalary / TOTAL_MINUTES_PER_MONTH);
 }
 
-/** EPF on configured basic salary (A3), NOT gross. Employee contribution deducted; employer is company cost only. */
+/** EPF on achieved salary, NOT gross. Employee contribution deducted; employer is company cost only. */
 export function calculateEPF(
-  basicSalary: number,
+  achievedSalary: number,
   epfAvailability: boolean
 ): { employee: number; employer: number } {
   if (!epfAvailability) return { employee: 0, employer: 0 };
   return {
-    employee: basicSalary * EPF_EMPLOYEE_RATE,
-    employer: basicSalary * EPF_EMPLOYER_RATE,
+    employee: achievedSalary * EPF_EMPLOYEE_RATE,
+    employer: achievedSalary * EPF_EMPLOYER_RATE,
   };
 }
 
 /** ETF — employer cost only, NOT deducted from net */
-export function calculateETF(basicSalary: number, epfAvailability: boolean): number {
-  return epfAvailability ? basicSalary * ETF_RATE : 0;
+export function calculateETF(achievedSalary: number, epfAvailability: boolean): number {
+  return epfAvailability ? achievedSalary * ETF_RATE : 0;
 }
 
 // ============================================================
@@ -331,8 +331,8 @@ export function calculatePaysheet(input: PaysheetInput): PaysheetResult {
     const grossSalary = achievedSalary + vehicleAllowance + fuelAllowance + generalAllowance + orc + customEarningAmount + otherOffer;
     const nopayDeduction = calculateNoPayDeduction(input.nopayDays, basicSalary);
     const lateDeduction = calculateLateDeduction(input.lateHours, input.lateMinutes, basicSalary);
-    const epf = calculateEPF(basicSalary, input.epfAvailability);
-    const etf = calculateETF(basicSalary, input.epfAvailability);
+    const epf = calculateEPF(achievedSalary, input.epfAvailability);
+    const etf = calculateETF(achievedSalary, input.epfAvailability);
     const welfare = input.others || 0;
     const customDeductionAmount = input.customDeductionAmount || 0;
     const netSalary = grossSalary - (nopayDeduction + lateDeduction + epf.employee + welfare + customDeductionAmount);
@@ -365,8 +365,8 @@ export function calculatePaysheet(input: PaysheetInput): PaysheetResult {
     const achievedSalary = calculateAchieveSalaryCatB(basicSalary, otherOffer) + customEarningAmount;
     const nopayDeduction = calculateNoPayDeduction(input.nopayDays, basicSalary);
     const lateDeduction = calculateLateDeduction(input.lateHours, input.lateMinutes, basicSalary);
-    const epf = calculateEPF(basicSalary, input.epfAvailability);
-    const etf = calculateETF(basicSalary, input.epfAvailability);
+    const epf = calculateEPF(achievedSalary, input.epfAvailability);
+    const etf = calculateETF(achievedSalary, input.epfAvailability);
     const welfare = input.others || 0;
     const customDeductionAmount = input.customDeductionAmount || 0;
     const netSalary = achievedSalary - (nopayDeduction + lateDeduction + epf.employee + welfare + customDeductionAmount);

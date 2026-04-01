@@ -87,7 +87,9 @@ function validatePaysheetFields(body: Record<string, unknown>, isCreate: boolean
     if (!codeNo || typeof codeNo !== 'string' || !codeNo.trim()) return 'codeNo is required';
     if (!payMonth || typeof payMonth !== 'string' || !payMonth.trim()) return 'payMonth is required';
     if (!role || typeof role !== 'string' || !role.trim()) return 'role is required';
-    if (typeof monthsOfService !== 'number') return 'monthsOfService must be a number';
+    if (monthsOfService === undefined || monthsOfService === null || monthsOfService === '') return 'monthsOfService is required';
+    const mos = Number(monthsOfService);
+    if (isNaN(mos)) return 'monthsOfService must be a number';
   }
 
   // payMonth format
@@ -175,7 +177,7 @@ router.post('/calculate', (req: Request, res: Response): void => {
     }
 
     const input = buildPaysheetInput(role, roleConfig, {
-      monthsOfService,
+      monthsOfService: Number(monthsOfService),
       achieve,
       allowance,
       nopay,
@@ -376,10 +378,15 @@ router.post('/', (req: Request, res: Response): void => {
 
     const epf = coerceBool(epfAvailability);
     const input = buildPaysheetInput(role, roleConfig, {
-      monthsOfService, achieve, allowance, nopay,
+      monthsOfService: Number(monthsOfService),
+      achieve,
+      allowance,
+      nopay,
       lateHours: Number(lateHours) || 0,
       lateMinutes: Number(lateMinutes) || 0,
-      welfare, otherOffer, epfAvailability: epf,
+      welfare,
+      otherOffer,
+      epfAvailability: epf,
       customEarningAmount: Number(customEarningAmount) || 0,
       customDeductionAmount: Number(customDeductionAmount) || 0,
     });
@@ -518,7 +525,7 @@ router.put('/:id', (req: Request, res: Response): void => {
     const nopay = req.body.nopay ?? existing.nopay;
     const lateHours = Number(req.body.lateHours ?? existing.lateHours) || 0;
     const lateMinutes = Number(req.body.lateMinutes ?? existing.lateMinutes) || 0;
-    const monthsOfService = req.body.monthsOfService ?? existing.monthsOfService;
+    const monthsOfService = Number(req.body.monthsOfService ?? existing.monthsOfService);
     const welfare = req.body.welfare ?? existing.welfare;
     const otherOffer = req.body.otherOffer ?? existing.otherOffer;
     const epfAvailability = req.body.epfAvailability !== undefined

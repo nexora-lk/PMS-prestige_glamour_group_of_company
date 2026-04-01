@@ -147,7 +147,7 @@ export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetPr
 
       {/* ── EARNINGS ── */}
       <SectionHdr left="EARNINGS" right="AMOUNT (Rs.)" ds={ds} />
-      <DataItem label="Basic Salary" amount={earnings.basicSalary} ds={ds} />
+      <DataItem label="Basic Offers" amount={earnings.basicSalary} ds={ds} />
       {earnings.vehicleAllowance > 0 && (
         <DataItem label="Vehicle Allowance" amount={earnings.vehicleAllowance} ds={ds} alt />
       )}
@@ -159,14 +159,14 @@ export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetPr
       )}
       {earnings.orc > 0 && <DataItem label="ORC" amount={earnings.orc} ds={ds} />}
       {earnings.otherOffers > 0 && (
-        <DataItem label="Other Offers" amount={earnings.otherOffers} ds={ds} alt />
+        <DataItem label="Other OFFERS" amount={earnings.otherOffers} ds={ds} alt />
       )}
       {earnings.customEarning > 0 && (
         <DataItem label={customEarningLabel} amount={earnings.customEarning} ds={ds} />
       )}
 
       {/* ── GROSS SALARY ── */}
-      <TotalItem label="GROSS SALARY" amount={grossSalary} ds={ds} />
+      <TotalItem label="GROSS OFFERS" amount={grossSalary} ds={ds} />
 
       {/* ── DEDUCTIONS ── */}
       <SectionHdr left="DEDUCTIONS" right="AMOUNT (Rs.)" ds={ds} />
@@ -195,7 +195,7 @@ export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetPr
 
       {/* ── NET SALARY ── */}
       <div style={ds.netRow}>
-        <span style={ds.netLabel}>NET SALARY</span>
+        <span style={ds.netLabel}>NET OFFERS</span>
         <span style={ds.netAmount}>{formatCurrency(netSalary)}</span>
       </div>
 

@@ -1,14 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { readJSON, writeJSON } from '../services/jsonStore';
-import { dbCreatePayroll, dbGetAllPayroll, dbDeletePayroll } from '../services/dbStore';
-import { isDbEnabled } from '../services/db';
+import { dbGetAllUsers, dbGetUser } from '../services/dbStore';
+import { dbCreatePayroll, dbGetAllPayroll, dbGetPayroll, dbDeletePayroll } from '../services/dbStore';
 import { generatePaySheet } from '../services/payrollCalc';
-import { User, PayrollRecord } from '../models';
+import { PayrollRecord } from '../models';
 
 const router = Router();
-const PAYROLL_FILE = 'payroll.json';
-const USERS_FILE = 'users.json';
 
 // POST /api/payroll/generate — Generate paysheet for user(s)
 router.post('/generate', async (req: Request, res: Response): Promise<void> => {
@@ -20,21 +17,21 @@ router.post('/generate', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const users = readJSON<User>(USERS_FILE);
-    const payrollRecords = readJSON<PayrollRecord>(PAYROLL_FILE);
+    const allUsers = await dbGetAllUsers();
+    const existingRecords = await dbGetAllPayroll();
     const generatedRecords: PayrollRecord[] = [];
 
     // If no codeNos, generate for all active users
     const targetCodeNos: string[] = codeNos && codeNos.length > 0
       ? codeNos
-      : users.filter((u) => u.status === 'active').map((u) => u.codeNo);
+      : allUsers.filter((u) => u.status === 'active').map((u) => u.codeNo);
 
     for (const codeNo of targetCodeNos) {
-      const user = users.find((u) => u.codeNo === codeNo);
+      const user = allUsers.find((u) => u.codeNo === codeNo);
       if (!user) continue;
 
       // Check if payroll already exists for this user/period
-      const existing = payrollRecords.find(
+      const existing = existingRecords.find(
         (r) => r.codeNo === codeNo && r.period === period
       );
       if (existing) {
@@ -49,15 +46,10 @@ router.post('/generate', async (req: Request, res: Response): Promise<void> => {
         generatedAt: new Date().toISOString(),
       };
 
-      payrollRecords.push(record);
+      await dbCreatePayroll(record);
       generatedRecords.push(record);
     }
 
-    writeJSON(PAYROLL_FILE, payrollRecords);
-    // Save to DB
-    for (const record of generatedRecords) {
-      await dbCreatePayroll(record);
-    }
     res.json({
       message: `Generated ${generatedRecords.length} payroll record(s).`,
       records: generatedRecords,
@@ -70,7 +62,7 @@ router.post('/generate', async (req: Request, res: Response): Promise<void> => {
 // GET /api/payroll/history — List payroll records
 router.get('/history', async (req: Request, res: Response): Promise<void> => {
   try {
-    let records = isDbEnabled() ? await dbGetAllPayroll() : readJSON<PayrollRecord>(PAYROLL_FILE);
+    let records = await dbGetAllPayroll();
     const { codeNo, period, search } = req.query;
 
     if (codeNo && typeof codeNo === 'string') {
@@ -103,8 +95,7 @@ router.get('/history', async (req: Request, res: Response): Promise<void> => {
 // GET /api/payroll/:id — Get single payroll record
 router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
-    const records = isDbEnabled() ? await dbGetAllPayroll() : readJSON<PayrollRecord>(PAYROLL_FILE);
-    const record = records.find((r) => r.id === req.params.id);
+    const record = await dbGetPayroll(req.params.id);
     if (!record) {
       res.status(404).json({ error: 'Payroll record not found.' });
       return;
@@ -118,15 +109,11 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
 // DELETE /api/payroll/:id — Delete payroll record
 router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
-    const records = readJSON<PayrollRecord>(PAYROLL_FILE);
-    const index = records.findIndex((r) => r.id === req.params.id);
-    if (index === -1) {
+    const record = await dbGetPayroll(req.params.id);
+    if (!record) {
       res.status(404).json({ error: 'Payroll record not found.' });
       return;
     }
-    records.splice(index, 1);
-    writeJSON(PAYROLL_FILE, records);
-    // Delete from DB
     await dbDeletePayroll(req.params.id);
     res.json({ message: 'Payroll record deleted.' });
   } catch (error) {

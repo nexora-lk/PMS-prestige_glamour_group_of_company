@@ -1,26 +1,13 @@
 import { Router, Request, Response } from 'express';
-import { readJSON, writeJSON } from '../services/jsonStore';
-import { dbCreateUser, dbUpdateUser, dbDeleteUser, dbGetAllUsers } from '../services/dbStore';
-import { isDbEnabled } from '../services/db';
+import { dbGetAllUsers, dbGetUser, dbCreateUser, dbUpdateUser, dbDeleteUser } from '../services/dbStore';
 import { User } from '../models';
 
 const router = Router();
-const USERS_FILE = 'users.json';
-
-// Helper function to validate codeNo uniqueness
-function isCodeNoDuplicate(codeNo: string, existingUsers: User[], excludeCodeNo?: string): boolean {
-  return existingUsers.some(u => u.codeNo === codeNo && u.codeNo !== excludeCodeNo);
-}
 
 // GET /api/users — List all users with search, filter, sort, pagination
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    let allUsers: User[];
-    if (isDbEnabled()) {
-      allUsers = await dbGetAllUsers();
-    } else {
-      allUsers = readJSON<User>(USERS_FILE);
-    }
+    const allUsers = await dbGetAllUsers();
     let users = [...allUsers];
     const { search, branch, role, status, sortBy, sortOrder, page, limit } = req.query;
 
@@ -69,7 +56,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     const startIndex = (pageNum - 1) * limitNum;
     const paginatedUsers = users.slice(startIndex, startIndex + limitNum);
 
-    // Derive filter options from full dataset (single read)
+    // Derive filter options from full dataset
     const branches = [...new Set(allUsers.map((u) => u.branch).filter(Boolean))];
     const roles = [...new Set(allUsers.map((u) => u.role).filter(Boolean))];
 
@@ -89,7 +76,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 // GET /api/users/stats — Dashboard stats
 router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
   try {
-    const users = isDbEnabled() ? await dbGetAllUsers() : readJSON<User>(USERS_FILE);
+    const users = await dbGetAllUsers();
     const active = users.filter((u) => u.status === 'active').length;
     const deleted = users.filter((u) => u.status === 'delete').length;
     const branches = [...new Set(users.map((u) => u.branch).filter(Boolean))];
@@ -113,8 +100,7 @@ router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
 // GET /api/users/:codeNo — Get single user by codeNo
 router.get('/:codeNo', async (req: Request, res: Response): Promise<void> => {
   try {
-    const users = isDbEnabled() ? await dbGetAllUsers() : readJSON<User>(USERS_FILE);
-    const user = users.find((u) => u.codeNo === req.params.codeNo);
+    const user = await dbGetUser(req.params.codeNo);
     if (!user) {
       res.status(404).json({ error: 'User not found.' });
       return;
@@ -128,7 +114,6 @@ router.get('/:codeNo', async (req: Request, res: Response): Promise<void> => {
 // POST /api/users — Create user
 router.post('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    const users = readJSON<User>(USERS_FILE);
     const {
       codeNo, firstName, lastName, email, phone, branch,
       role, designation, joinDate, bankAccount, bankName,
@@ -141,24 +126,26 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Check duplicate email
-    if (users.find((u) => u.email && u.email.toLowerCase() === email.toLowerCase())) {
-      res.status(409).json({ error: 'A user with this email already exists.' });
+    // Check duplicate codeNo
+    const existingByCode = await dbGetUser(codeNo);
+    if (existingByCode) {
+      res.status(409).json({ error: 'A user with this CodeNo already exists.' });
       return;
     }
 
-    // Check duplicate codeNo
-    if (isCodeNoDuplicate(codeNo, users)) {
-      res.status(409).json({ error: 'A user with this CodeNo already exists.' });
+    // Check duplicate email
+    const allUsers = await dbGetAllUsers();
+    if (allUsers.find((u) => u.email && u.email.toLowerCase() === email.toLowerCase())) {
+      res.status(409).json({ error: 'A user with this email already exists.' });
       return;
     }
 
     const now = new Date().toISOString();
     const newUser: User = {
-      codeNo: codeNo,
+      codeNo,
       firstName: firstName || '',
       lastName: lastName || '',
-      email: email,
+      email,
       phone: phone || '',
       branch: branch || '',
       role: role || '',
@@ -174,9 +161,6 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       updatedAt: now,
     };
 
-    users.push(newUser);
-    writeJSON(USERS_FILE, users);
-    // Save to DB
     await dbCreateUser(newUser);
     res.status(201).json(newUser);
   } catch (error) {
@@ -187,17 +171,16 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 // PUT /api/users/:codeNo — Update user by codeNo
 router.put('/:codeNo', async (req: Request, res: Response): Promise<void> => {
   try {
-    const users = readJSON<User>(USERS_FILE);
-    const index = users.findIndex((u) => u.codeNo === req.params.codeNo);
-
-    if (index === -1) {
+    const existing = await dbGetUser(req.params.codeNo);
+    if (!existing) {
       res.status(404).json({ error: 'User not found.' });
       return;
     }
 
     // Check duplicate email (exclude self)
     if (req.body.email) {
-      const duplicate = users.find(
+      const allUsers = await dbGetAllUsers();
+      const duplicate = allUsers.find(
         (u) => u.email.toLowerCase() === req.body.email.toLowerCase() && u.codeNo !== req.params.codeNo
       );
       if (duplicate) {
@@ -207,19 +190,16 @@ router.put('/:codeNo', async (req: Request, res: Response): Promise<void> => {
     }
 
     const updatedUser: User = {
-      ...users[index],
+      ...existing,
       ...req.body,
-      codeNo: users[index].codeNo, // prevent codeNo change
-      createdAt: users[index].createdAt,
+      codeNo: existing.codeNo, // prevent codeNo change
+      createdAt: existing.createdAt,
       updatedAt: new Date().toISOString(),
-      basicSalary: Number(req.body.basicSalary ?? users[index].basicSalary),
-      allowances: Number(req.body.allowances ?? users[index].allowances),
-      deductions: Number(req.body.deductions ?? users[index].deductions),
+      basicSalary: Number(req.body.basicSalary ?? existing.basicSalary),
+      allowances: Number(req.body.allowances ?? existing.allowances),
+      deductions: Number(req.body.deductions ?? existing.deductions),
     };
 
-    users[index] = updatedUser;
-    writeJSON(USERS_FILE, users);
-    // Update in DB
     await dbUpdateUser(req.params.codeNo, updatedUser);
     res.json(updatedUser);
   } catch (error) {
@@ -230,19 +210,14 @@ router.put('/:codeNo', async (req: Request, res: Response): Promise<void> => {
 // DELETE /api/users/:codeNo — Delete user by codeNo
 router.delete('/:codeNo', async (req: Request, res: Response): Promise<void> => {
   try {
-    const users = readJSON<User>(USERS_FILE);
-    const index = users.findIndex((u) => u.codeNo === req.params.codeNo);
-
-    if (index === -1) {
+    const existing = await dbGetUser(req.params.codeNo);
+    if (!existing) {
       res.status(404).json({ error: 'User not found.' });
       return;
     }
 
-    const deleted = users.splice(index, 1)[0];
-    writeJSON(USERS_FILE, users);
-    // Delete from DB
     await dbDeleteUser(req.params.codeNo);
-    res.json({ message: 'User deleted successfully.', user: deleted });
+    res.json({ message: 'User deleted successfully.', user: existing });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete user.' });
   }

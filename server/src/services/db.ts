@@ -9,23 +9,14 @@ export function getDb(): NeonQueryFunction<false, false> {
   if (!sql) {
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) {
-      throw new Error('DATABASE_URL environment variable is not set');
+      throw new Error('DATABASE_URL environment variable is not set. A database connection is required.');
     }
     sql = neon(dbUrl);
   }
   return sql;
 }
 
-export function isDbEnabled(): boolean {
-  return !!process.env.DATABASE_URL;
-}
-
 export async function initDatabase(): Promise<void> {
-  if (!isDbEnabled()) {
-    logger.info('DATABASE_URL not set — running with JSON storage only');
-    return;
-  }
-
   const db = getDb();
 
   await db`

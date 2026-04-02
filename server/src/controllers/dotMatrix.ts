@@ -11,7 +11,7 @@ import logger from '../utils/logger';
 const router = Router();
 
 // POST /api/dot-matrix/generate — Generate text-based payslips
-router.post('/generate', (req: Request, res: Response): void => {
+router.post('/generate', async (req: Request, res: Response): Promise<void> => {
   try {
     const parsed = generateDotMatrixSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -19,14 +19,15 @@ router.post('/generate', (req: Request, res: Response): void => {
       res.status(400).json({ error: 'Validation failed', details: errors });
       return;
     }
-    
+
     const { payMonth, codeNos, useEscP } = parsed.data;
-    const job = startDotMatrixGeneration(payMonth, codeNos, useEscP);
+    const { job, skipped } = await startDotMatrixGeneration(payMonth, codeNos, useEscP);
 
     res.status(202).json({
       message: 'Dot matrix payslip generation started',
       jobId: job.id,
       total: job.total,
+      skipped,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to start generation';

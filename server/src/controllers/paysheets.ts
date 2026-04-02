@@ -1,12 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { readJSON, writeJSON } from '../services/jsonStore';
 import {
+  dbGetAllUsers, dbGetUser,
   dbCreatePaysheet, dbUpdatePaysheet, dbUpdatePaysheetStatus,
-  dbDeletePaysheet, dbGetAllPaysheets, dbGetPaysheetsByMonth,
+  dbDeletePaysheet, dbGetAllPaysheets, dbGetPaysheetsByMonth, dbGetPaysheet,
 } from '../services/dbStore';
-import { isDbEnabled } from '../services/db';
-import { MonthlyPaysheetDTO, User } from '../models';
+import { MonthlyPaysheetDTO } from '../models';
 import {
   calculatePaysheet,
   getRoleConfig,
@@ -18,15 +17,8 @@ import {
 } from '../engine/salary-calculator';
 
 const router = Router();
-const PAYSHEETS_FILE = 'monthly-paysheets.json';
 
 // ── Shared helpers ──────────────────────────────────────────
-
-function parseLate(late: number): { lateHours: number; lateMinutes: number } {
-  const lateHours = Math.floor(late);
-  const lateMinutes = Math.round((late - lateHours) * 60);
-  return { lateHours, lateMinutes };
-}
 
 function buildPaysheetInput(
   roleCode: string,
@@ -87,7 +79,6 @@ function validatePaysheetFields(body: Record<string, unknown>, isCreate: boolean
     lateHours, lateMinutes, welfare, otherOffer,
     customEarningName, customEarningAmount, customDeductionName, customDeductionAmount } = body;
 
-  // Required fields (create only)
   if (isCreate) {
     if (!codeNo || typeof codeNo !== 'string' || !codeNo.trim()) return 'codeNo is required';
     if (!payMonth || typeof payMonth !== 'string' || !payMonth.trim()) return 'payMonth is required';
@@ -97,40 +88,29 @@ function validatePaysheetFields(body: Record<string, unknown>, isCreate: boolean
     if (isNaN(mos)) return 'monthsOfService must be a number';
   }
 
-  // payMonth format
   if (payMonth !== undefined && (typeof payMonth !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(payMonth))) {
     return 'payMonth must be in YYYY-MM format';
   }
-
-  // monthsOfService: integer >= 0
   if (monthsOfService !== undefined) {
     const mos = Number(monthsOfService);
     if (isNaN(mos) || mos < 0) return 'monthsOfService must be 0 or greater';
     if (mos % 1 !== 0) return 'monthsOfService must be a whole number';
   }
-
-  // nopay: >= 0, <= 31
   if (nopay !== undefined) {
     const n = Number(nopay);
     if (isNaN(n) || n < 0) return 'nopay must be 0 or greater';
     if (n > 31) return 'nopay cannot exceed 31 days';
   }
-
-  // lateHours: integer >= 0
   if (lateHours !== undefined) {
     const lh = Number(lateHours);
     if (isNaN(lh) || lh < 0) return 'lateHours must be 0 or greater';
     if (lh % 1 !== 0) return 'lateHours must be a whole number';
   }
-
-  // lateMinutes: integer 0-59
   if (lateMinutes !== undefined) {
     const lm = Number(lateMinutes);
     if (isNaN(lm) || lm < 0 || lm > 59) return 'lateMinutes must be between 0 and 59';
     if (lm % 1 !== 0) return 'lateMinutes must be a whole number';
   }
-
-  // Amount fields: must be >= 0 if provided
   const amountFields = { achieve, allowance, welfare, otherOffer, customEarningAmount, customDeductionAmount };
   for (const [key, val] of Object.entries(amountFields)) {
     if (val !== undefined && val !== null) {
@@ -138,17 +118,12 @@ function validatePaysheetFields(body: Record<string, unknown>, isCreate: boolean
       if (isNaN(num) || num < 0) return `${key} must be 0 or a positive number`;
     }
   }
-
-  // Custom earning: name required if amount > 0
   if (Number(customEarningAmount) > 0 && (!customEarningName || typeof customEarningName !== 'string' || !customEarningName.trim())) {
     return 'customEarningName is required when customEarningAmount is set';
   }
-
-  // Custom deduction: name required if amount > 0
   if (Number(customDeductionAmount) > 0 && (!customDeductionName || typeof customDeductionName !== 'string' || !customDeductionName.trim())) {
     return 'customDeductionName is required when customDeductionAmount is set';
   }
-
   return null;
 }
 
@@ -163,7 +138,6 @@ router.post('/calculate', (req: Request, res: Response): void => {
       customEarningAmount, customDeductionAmount,
     } = req.body;
 
-    // Validate fields
     const calcValidation = validatePaysheetFields({ ...req.body, codeNo: '_calc', payMonth: '2000-01' }, true);
     if (calcValidation) {
       res.status(400).json({ error: calcValidation });
@@ -183,13 +157,10 @@ router.post('/calculate', (req: Request, res: Response): void => {
 
     const input = buildPaysheetInput(role, roleConfig, {
       monthsOfService: Number(monthsOfService),
-      achieve,
-      allowance,
-      nopay,
+      achieve, allowance, nopay,
       lateHours: Number(lateHours) || 0,
       lateMinutes: Number(lateMinutes) || 0,
-      welfare,
-      otherOffer,
+      welfare, otherOffer,
       epfAvailability: coerceBool(epfAvailability),
       customEarningAmount: Number(customEarningAmount) || 0,
       customDeductionAmount: Number(customDeductionAmount) || 0,
@@ -212,11 +183,11 @@ router.post('/bulk-create', async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const users = readJSON<User>('users.json');
-    const paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
-    const existingKeys = new Set(paysheets.filter(p => p.payMonth === payMonth).map(p => p.codeNo));
+    const allUsers = await dbGetAllUsers();
+    const existingPaysheets = await dbGetPaysheetsByMonth(payMonth);
+    const existingKeys = new Set(existingPaysheets.map(p => p.codeNo));
 
-    // Role name → code mapping (reverse of SALES_BASED_ROLES + NON_TARGET_ROLES)
+    // Role name → code mapping
     const { SALES_BASED_ROLES, NON_TARGET_ROLES } = require('../engine/salary-calculator');
     const nameToCode: Record<string, string> = {};
     for (const [code, name] of Object.entries(SALES_BASED_ROLES)) {
@@ -230,76 +201,39 @@ router.post('/bulk-create', async (req: Request, res: Response): Promise<void> =
     const errors: string[] = [];
 
     for (const codeNo of codeNos) {
-      if (existingKeys.has(codeNo)) continue; // already has paysheet
+      if (existingKeys.has(codeNo)) continue;
 
-      const user = users.find(u => u.codeNo === codeNo);
+      const user = allUsers.find(u => u.codeNo === codeNo);
       if (!user) { errors.push(`User not found: ${codeNo}`); continue; }
 
-      // Resolve role code from user's role name or designation
       const roleName = user.role || user.designation || '';
       const roleCode = nameToCode[roleName] || roleName;
       const roleConfig = getRoleConfig(roleCode);
       if (!roleConfig) { errors.push(`Unknown role for ${codeNo}: ${roleName}`); continue; }
 
       const input = buildPaysheetInput(roleCode, roleConfig, {
-        monthsOfService: 1,
-        achieve: 0,
-        allowance: 0,
-        nopay: 0,
-        lateHours: 0,
-        lateMinutes: 0,
-        welfare: 0,
-        otherOffer: 0,
-        epfAvailability: true,
-        customEarningAmount: 0,
-        customDeductionAmount: 0,
+        monthsOfService: 1, achieve: 0, allowance: 0, nopay: 0,
+        lateHours: 0, lateMinutes: 0, welfare: 0, otherOffer: 0,
+        epfAvailability: true, customEarningAmount: 0, customDeductionAmount: 0,
       });
 
       const calculated: PaysheetResult = calculatePaysheet(input);
       const now = new Date().toISOString();
       const newPaysheet: MonthlyPaysheetDTO = {
-        id: uuidv4(),
-        codeNo,
-        payMonth,
-        role: roleCode,
-        monthsOfService: 1,
-        achieve: 0,
-        allowance: 0,
-        nopay: 0,
-        late: 0,
-        lateHours: 0,
-        lateMinutes: 0,
-        epfAvailability: true,
-        etfAvailability: true,
-        customEarningName: '',
-        customEarningAmount: 0,
-        customDeductionName: '',
-        customDeductionAmount: 0,
-        ...calculated,
-        welfare: 0,
-        otherOffer: 0,
-        status: 'active',
-        createdAt: now,
-        updatedAt: now,
+        id: uuidv4(), codeNo, payMonth, role: roleCode, monthsOfService: 1,
+        achieve: 0, allowance: 0, nopay: 0, late: 0, lateHours: 0, lateMinutes: 0,
+        epfAvailability: true, etfAvailability: true,
+        customEarningName: '', customEarningAmount: 0,
+        customDeductionName: '', customDeductionAmount: 0,
+        ...calculated, welfare: 0, otherOffer: 0,
+        status: 'active', createdAt: now, updatedAt: now,
       };
 
-      paysheets.push(newPaysheet);
+      await dbCreatePaysheet(newPaysheet);
       created.push(newPaysheet);
     }
 
-    if (created.length > 0) {
-      writeJSON(PAYSHEETS_FILE, paysheets);
-      // Save to DB
-      for (const p of created) {
-        await dbCreatePaysheet(p);
-      }
-    }
-
-    res.json({
-      message: `Created ${created.length} paysheet(s)`,
-      created: created.length,
-      errors,
-    });
+    res.json({ message: `Created ${created.length} paysheet(s)`, created: created.length, errors });
   } catch (error) {
     console.error('Error in bulk-create:', error);
     res.status(500).json({ error: 'Failed to bulk-create paysheets' });
@@ -309,17 +243,9 @@ router.post('/bulk-create', async (req: Request, res: Response): Promise<void> =
 // GET /api/paysheets/month/:payMonth — Paysheets for a specific month (paginated)
 router.get('/month/:payMonth', async (req: Request, res: Response): Promise<void> => {
   try {
-    let paysheets: MonthlyPaysheetDTO[];
-    if (isDbEnabled()) {
-      paysheets = await dbGetPaysheetsByMonth(req.params.payMonth);
-    } else {
-      paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE)
-        .filter((p) => p.payMonth === req.params.payMonth);
-    }
-
+    let paysheets = await dbGetPaysheetsByMonth(req.params.payMonth);
     const { search, status } = req.query;
 
-    // Filter by status (default: show only active)
     if (status && typeof status === 'string' && status !== 'all') {
       paysheets = paysheets.filter((p) => (p.status || 'active') === status);
     } else if (!status) {
@@ -343,10 +269,8 @@ router.get('/month/:payMonth', async (req: Request, res: Response): Promise<void
     const paginatedPaysheets = paysheets.slice(startIndex, startIndex + limitNum);
 
     res.json({
-      paysheets: paginatedPaysheets,
-      total,
-      page: pageNum,
-      totalPages: Math.ceil(total / limitNum),
+      paysheets: paginatedPaysheets, total,
+      page: pageNum, totalPages: Math.ceil(total / limitNum),
       month: req.params.payMonth,
     });
   } catch (error) {
@@ -369,7 +293,6 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       customDeductionName, customDeductionAmount,
     } = req.body;
 
-    // Validate all fields
     const validationError = validatePaysheetFields(req.body, true);
     if (validationError) {
       res.status(400).json({ error: validationError });
@@ -387,14 +310,15 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const users = readJSON<User>('users.json');
-    if (!users.find((u) => u.codeNo === codeNo)) {
+    const user = await dbGetUser(codeNo);
+    if (!user) {
       res.status(400).json({ error: `User not found: ${codeNo}` });
       return;
     }
 
-    const paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
-    if (paysheets.find((p) => p.codeNo === codeNo && p.payMonth === payMonth)) {
+    // Check duplicate
+    const existing = await dbGetPaysheetsByMonth(payMonth);
+    if (existing.find((p) => p.codeNo === codeNo)) {
       res.status(400).json({ error: `Paysheet already exists for ${codeNo} in ${payMonth}` });
       return;
     }
@@ -402,14 +326,9 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
     const epf = coerceBool(epfAvailability);
     const input = buildPaysheetInput(role, roleConfig, {
       monthsOfService: Number(monthsOfService),
-      achieve,
-      allowance,
-      nopay,
-      lateHours: Number(lateHours) || 0,
-      lateMinutes: Number(lateMinutes) || 0,
-      welfare,
-      otherOffer,
-      epfAvailability: epf,
+      achieve, allowance, nopay,
+      lateHours: Number(lateHours) || 0, lateMinutes: Number(lateMinutes) || 0,
+      welfare, otherOffer, epfAvailability: epf,
       customEarningAmount: Number(customEarningAmount) || 0,
       customDeductionAmount: Number(customDeductionAmount) || 0,
     });
@@ -417,34 +336,16 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
     const now = new Date().toISOString();
 
     const newPaysheet: MonthlyPaysheetDTO = {
-      id: uuidv4(),
-      codeNo,
-      payMonth,
-      role,
-      monthsOfService,
-      achieve: achieve || 0,
-      allowance: allowance || 0,
-      nopay,
-      late: 0,
-      lateHours: Number(lateHours) || 0,
-      lateMinutes: Number(lateMinutes) || 0,
-      epfAvailability: epf,
-      etfAvailability: coerceBool(etfAvailability),
-      customEarningName: customEarningName || '',
-      customEarningAmount: Number(customEarningAmount) || 0,
-      customDeductionName: customDeductionName || '',
-      customDeductionAmount: Number(customDeductionAmount) || 0,
-      ...calculated,
-      welfare: welfare || 0,
-      otherOffer: Number(otherOffer) || 0,
-      status: 'active',
-      createdAt: now,
-      updatedAt: now,
+      id: uuidv4(), codeNo, payMonth, role, monthsOfService,
+      achieve: achieve || 0, allowance: allowance || 0, nopay,
+      late: 0, lateHours: Number(lateHours) || 0, lateMinutes: Number(lateMinutes) || 0,
+      epfAvailability: epf, etfAvailability: coerceBool(etfAvailability),
+      customEarningName: customEarningName || '', customEarningAmount: Number(customEarningAmount) || 0,
+      customDeductionName: customDeductionName || '', customDeductionAmount: Number(customDeductionAmount) || 0,
+      ...calculated, welfare: welfare || 0, otherOffer: Number(otherOffer) || 0,
+      status: 'active', createdAt: now, updatedAt: now,
     };
 
-    paysheets.push(newPaysheet);
-    writeJSON(PAYSHEETS_FILE, paysheets);
-    // Save to DB
     await dbCreatePaysheet(newPaysheet);
     res.status(201).json({ message: 'Monthly paysheet created successfully', paysheet: newPaysheet });
   } catch (error) {
@@ -456,16 +357,14 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 // GET /api/paysheets — List all paysheets (paginated)
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    let paysheets = isDbEnabled() ? await dbGetAllPaysheets() : readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
+    let paysheets = await dbGetAllPaysheets();
     const { codeNo, payMonth, role, search, status, page, limit } = req.query;
 
-    // Filter by status (default: show only active)
     if (status && typeof status === 'string' && status !== 'all') {
       paysheets = paysheets.filter((p) => (p.status || 'active') === status);
     } else if (!status) {
       paysheets = paysheets.filter((p) => (p.status || 'active') === 'active');
     }
-
     if (codeNo && typeof codeNo === 'string') {
       paysheets = paysheets.filter((p) => p.codeNo === codeNo);
     }
@@ -494,10 +393,8 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     const paginatedPaysheets = paysheets.slice(startIndex, startIndex + limitNum);
 
     res.json({
-      paysheets: paginatedPaysheets,
-      total,
-      page: pageNum,
-      totalPages: Math.ceil(total / limitNum),
+      paysheets: paginatedPaysheets, total,
+      page: pageNum, totalPages: Math.ceil(total / limitNum),
     });
   } catch (error) {
     console.error('Error fetching paysheets:', error);
@@ -508,8 +405,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 // GET /api/paysheets/:id — Single paysheet
 router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
-    const paysheets = isDbEnabled() ? await dbGetAllPaysheets() : readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
-    const paysheet = paysheets.find((p) => p.id === req.params.id);
+    const paysheet = await dbGetPaysheet(req.params.id);
     if (!paysheet) {
       res.status(404).json({ error: 'Paysheet not found' });
       return;
@@ -524,16 +420,12 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
 // PUT /api/paysheets/:id — Update paysheet
 router.put('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
-    const paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
-    const index = paysheets.findIndex((p) => p.id === req.params.id);
-    if (index === -1) {
+    const existing = await dbGetPaysheet(req.params.id);
+    if (!existing) {
       res.status(404).json({ error: 'Paysheet not found' });
       return;
     }
 
-    const existing = paysheets[index];
-
-    // Validate updated fields
     const validationError = validatePaysheetFields(req.body, false);
     if (validationError) {
       res.status(400).json({ error: validationError });
@@ -546,13 +438,12 @@ router.put('/:id', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const users = readJSON<User>('users.json');
-    if (!users.find((u) => u.codeNo === existing.codeNo)) {
+    const user = await dbGetUser(existing.codeNo);
+    if (!user) {
       res.status(400).json({ error: `User not found: ${existing.codeNo}` });
       return;
     }
 
-    // Merge updated fields with existing values
     const achieve = req.body.achieve ?? existing.achieve;
     const allowance = req.body.allowance ?? existing.allowance;
     const nopay = req.body.nopay ?? existing.nopay;
@@ -562,11 +453,9 @@ router.put('/:id', async (req: Request, res: Response): Promise<void> => {
     const welfare = req.body.welfare ?? existing.welfare;
     const otherOffer = req.body.otherOffer ?? existing.otherOffer;
     const epfAvailability = req.body.epfAvailability !== undefined
-      ? coerceBool(req.body.epfAvailability)
-      : existing.epfAvailability;
+      ? coerceBool(req.body.epfAvailability) : existing.epfAvailability;
     const etfAvailability = req.body.etfAvailability !== undefined
-      ? coerceBool(req.body.etfAvailability)
-      : existing.etfAvailability;
+      ? coerceBool(req.body.etfAvailability) : existing.etfAvailability;
     const customEarningName = req.body.customEarningName ?? existing.customEarningName ?? '';
     const customEarningAmount = Number(req.body.customEarningAmount ?? existing.customEarningAmount) || 0;
     const customDeductionName = req.body.customDeductionName ?? existing.customDeductionName ?? '';
@@ -574,36 +463,20 @@ router.put('/:id', async (req: Request, res: Response): Promise<void> => {
 
     const input = buildPaysheetInput(existing.role, roleConfig, {
       monthsOfService, achieve, allowance, nopay,
-      lateHours, lateMinutes,
-      welfare, otherOffer, epfAvailability,
-      customEarningAmount, customDeductionAmount,
+      lateHours, lateMinutes, welfare, otherOffer,
+      epfAvailability, customEarningAmount, customDeductionAmount,
     });
     const calculated: PaysheetResult = calculatePaysheet(input);
 
     const updated: MonthlyPaysheetDTO = {
-      ...existing,
-      achieve,
-      allowance,
-      nopay,
-      late: 0,
-      lateHours,
-      lateMinutes,
-      epfAvailability,
-      etfAvailability,
-      monthsOfService,
-      customEarningName,
-      customEarningAmount,
-      customDeductionName,
-      customDeductionAmount,
-      ...calculated,
-      welfare,
-      otherOffer: Number(otherOffer) || 0,
+      ...existing, achieve, allowance, nopay,
+      late: 0, lateHours, lateMinutes,
+      epfAvailability, etfAvailability, monthsOfService,
+      customEarningName, customEarningAmount, customDeductionName, customDeductionAmount,
+      ...calculated, welfare, otherOffer: Number(otherOffer) || 0,
       updatedAt: new Date().toISOString(),
     };
 
-    paysheets[index] = updated;
-    writeJSON(PAYSHEETS_FILE, paysheets);
-    // Update in DB
     await dbUpdatePaysheet(req.params.id, updated);
     res.json({ message: 'Paysheet updated successfully', paysheet: updated });
   } catch (error) {
@@ -612,7 +485,7 @@ router.put('/:id', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-// PATCH /api/paysheets/:id/status — Soft delete or activate a paysheet
+// PATCH /api/paysheets/:id/status — Soft delete or activate
 router.patch('/:id/status', async (req: Request, res: Response): Promise<void> => {
   try {
     const { status } = req.body;
@@ -621,42 +494,35 @@ router.patch('/:id/status', async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
-    const index = paysheets.findIndex((p) => p.id === req.params.id);
-    if (index === -1) {
+    const paysheet = await dbGetPaysheet(req.params.id);
+    if (!paysheet) {
       res.status(404).json({ error: 'Paysheet not found' });
       return;
     }
 
-    paysheets[index].status = status;
-    paysheets[index].updatedAt = new Date().toISOString();
-    writeJSON(PAYSHEETS_FILE, paysheets);
-    // Update status in DB
     await dbUpdatePaysheetStatus(req.params.id, status);
+    paysheet.status = status;
+    paysheet.updatedAt = new Date().toISOString();
 
     const action = status === 'delete' ? 'deactivated' : 'activated';
-    res.json({ message: `Paysheet ${action} successfully`, paysheet: paysheets[index] });
+    res.json({ message: `Paysheet ${action} successfully`, paysheet });
   } catch (error) {
     console.error('Error updating paysheet status:', error);
     res.status(500).json({ error: 'Failed to update paysheet status' });
   }
 });
 
-// DELETE /api/paysheets/:id — Permanently delete a paysheet
+// DELETE /api/paysheets/:id — Permanently delete
 router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
-    const paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
-    const index = paysheets.findIndex((p) => p.id === req.params.id);
-    if (index === -1) {
+    const paysheet = await dbGetPaysheet(req.params.id);
+    if (!paysheet) {
       res.status(404).json({ error: 'Paysheet not found' });
       return;
     }
 
-    const deleted = paysheets.splice(index, 1)[0];
-    writeJSON(PAYSHEETS_FILE, paysheets);
-    // Delete from DB
     await dbDeletePaysheet(req.params.id);
-    res.json({ message: 'Paysheet deleted successfully', paysheet: deleted });
+    res.json({ message: 'Paysheet deleted successfully', paysheet });
   } catch (error) {
     console.error('Error deleting paysheet:', error);
     res.status(500).json({ error: 'Failed to delete paysheet' });

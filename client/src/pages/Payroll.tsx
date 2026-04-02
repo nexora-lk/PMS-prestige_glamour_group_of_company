@@ -269,11 +269,17 @@ export default function Payroll() {
     setJob(null);
 
     try {
-      const res = await api.post<{ jobId: string; total: number }>('/payslips/generate', {
+      const res = await api.post<{ jobId: string; total: number; skipped: string[] }>('/payslips/generate', {
         payMonth: pdfMonth,
         concurrency,
       });
 
+      if (res.data.skipped.length > 0) {
+        showToast(
+          `Skipped (basic offer is 0): ${res.data.skipped.join(', ')}`,
+          'error'
+        );
+      }
       showToast(`Started PDF generation for ${res.data.total} payslips`, 'info');
       setJob({
         id: res.data.jobId,
@@ -298,13 +304,9 @@ export default function Payroll() {
     setDownloading(true);
     try {
       const res = await api.get(`/payslips/download/${job.id}`, { responseType: 'arraybuffer' });
-      const electronAPI = (window as Record<string, unknown>).electronAPI as
-        | { saveFile: (opts: { data: number[]; defaultName: string }) => Promise<{ success: boolean; filePath?: string; error?: string }> }
-        | undefined;
-
-      if (electronAPI?.saveFile) {
+      if (window.electronAPI?.saveFile) {
         // Electron: use native save dialog
-        const result = await electronAPI.saveFile({
+        const result = await window.electronAPI.saveFile({
           data: Array.from(new Uint8Array(res.data as ArrayBuffer)),
           defaultName: `payslips_${pdfMonth}.zip`,
         });
@@ -365,12 +367,17 @@ export default function Payroll() {
         responseType: 'arraybuffer',
       });
 
-      const electronAPI = (window as Record<string, unknown>).electronAPI as
-        | { saveFile: (opts: { data: number[]; defaultName: string }) => Promise<{ success: boolean; filePath?: string; error?: string }> }
-        | undefined;
+      // Show skipped paysheets notification
+      const skippedNames = res.headers['x-skipped-names'];
+      if (skippedNames) {
+        showToast(
+          `Skipped (basic offer is 0): ${decodeURIComponent(skippedNames)}`,
+          'error'
+        );
+      }
 
-      if (electronAPI?.saveFile) {
-        const result = await electronAPI.saveFile({
+      if (window.electronAPI?.saveFile) {
+        const result = await window.electronAPI.saveFile({
           data: Array.from(new Uint8Array(res.data as ArrayBuffer)),
           defaultName: `paysheets_json_${pdfMonth}.zip`,
         });

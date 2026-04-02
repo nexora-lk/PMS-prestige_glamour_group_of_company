@@ -2,9 +2,7 @@ import ExcelJS from 'exceljs';
 import path from 'path';
 import fs from 'fs';
 import { User, MonthlyPaysheetDTO } from '../models';
-import { getDataDir } from '../services/jsonStore';
-
-const EXPORTS_DIR = path.join(getDataDir(), '..', 'exports');
+const EXPORTS_DIR = process.env.OUTPUT_DIR || path.join(__dirname, '..', '..', 'exports');
 
 function ensureExportsDir(): void {
   if (!fs.existsSync(EXPORTS_DIR)) {

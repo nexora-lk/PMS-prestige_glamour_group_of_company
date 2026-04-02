@@ -8,7 +8,7 @@ import logger from '../utils/logger';
 const router = Router();
 
 // POST /api/payslips/generate — Start bulk payslip PDF generation
-router.post('/generate', (req: Request, res: Response): void => {
+router.post('/generate', async (req: Request, res: Response): Promise<void> => {
   try {
     const parsed = generatePayslipsSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -18,12 +18,13 @@ router.post('/generate', (req: Request, res: Response): void => {
     }
 
     const { payMonth, codeNos, concurrency } = parsed.data;
-    const job = startPayslipGeneration(payMonth, codeNos, concurrency);
+    const { job, skipped } = await startPayslipGeneration(payMonth, codeNos, concurrency);
 
     res.status(202).json({
       message: 'Payslip generation started',
       jobId: job.id,
       total: job.total,
+      skipped,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to start generation';

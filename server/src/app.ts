@@ -56,20 +56,14 @@ initDatabase()
   .then(() => {
     app.listen(PORT, () => {
       logger.info(`PMS Application Server running on http://localhost:${PORT}`);
-      logger.info(`Data stored in: ${process.env.DATA_DIR || path.join(__dirname, '..', 'data')}`);
-      if (process.env.DATABASE_URL) {
-        logger.info('Neon PostgreSQL database connected');
-      }
+      logger.info('Neon PostgreSQL database connected');
       logger.info('Default login: admin / admin123');
     });
   })
   .catch((err) => {
     logger.error('Failed to initialize database:', err);
-    // Still start server with JSON-only mode
-    app.listen(PORT, () => {
-      logger.info(`PMS Application Server running on http://localhost:${PORT} (JSON-only mode)`);
-      logger.info('Default login: admin / admin123');
-    });
+    logger.error('DATABASE_URL is required. The server cannot start without a database connection.');
+    process.exit(1);
   });
 
 export default app;

@@ -6,7 +6,7 @@ import { AuthPayload } from '../models';
 const JWT_SECRET = process.env.JWT_SECRET || 'payroll-system-secret-key-2026';
 const REFRESH_SECRET = process.env.REFRESH_SECRET || 'payroll-refresh-secret-key-2026';
 
-const ACCESS_TOKEN_EXPIRY = '15m';
+const ACCESS_TOKEN_EXPIRY = '1d';
 const REFRESH_TOKEN_EXPIRY = '7d';
 
 // ── Token generation ────────────────────────────────────────

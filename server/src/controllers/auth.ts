@@ -1,7 +1,6 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { readSingleJSON, writeSingleJSON } from '../services/jsonStore';
-import { dbSaveAdmin } from '../services/dbStore';
+import { dbGetAdmin, dbSaveAdmin } from '../services/dbStore';
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -16,8 +15,8 @@ import { AdminCredentials } from '../models';
 const router = Router();
 
 // Initialize default admin if not exists
-function ensureAdmin(): void {
-  const admin = readSingleJSON<AdminCredentials>('admin.json');
+async function ensureAdmin(): Promise<void> {
+  const admin = await dbGetAdmin();
   if (!admin) {
     const hashed = bcrypt.hashSync('admin123', 10);
     const defaultAdmin: AdminCredentials = {
@@ -26,16 +25,15 @@ function ensureAdmin(): void {
       name: 'Super Admin',
       role: 'super_admin',
     };
-    writeSingleJSON<AdminCredentials>('admin.json', defaultAdmin);
-    // Also save to DB
-    dbSaveAdmin(defaultAdmin).catch(() => {});
+    await dbSaveAdmin(defaultAdmin);
   }
 }
 
-ensureAdmin();
+// Run on module load — will execute after DB init in app.ts
+ensureAdmin().catch((err) => console.error('Failed to ensure admin:', err));
 
 // POST /api/auth/login
-router.post('/login', (req: Request, res: Response): void => {
+router.post('/login', async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, password } = req.body;
 
@@ -44,7 +42,7 @@ router.post('/login', (req: Request, res: Response): void => {
       return;
     }
 
-    const admin = readSingleJSON<AdminCredentials>('admin.json');
+    const admin = await dbGetAdmin();
     if (!admin) {
       res.status(500).json({ error: 'Admin configuration not found.' });
       return;
@@ -117,8 +115,8 @@ router.post('/logout', (_req: Request, res: Response): void => {
 });
 
 // GET /api/auth/me — Protected: requires valid JWT
-router.get('/me', authMiddleware, (req: Request, res: Response): void => {
-  const admin = readSingleJSON<AdminCredentials>('admin.json');
+router.get('/me', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  const admin = await dbGetAdmin();
   if (!admin) {
     res.status(404).json({ error: 'Admin not found.' });
     return;

@@ -1,4 +1,4 @@
-import { getDb, isDbEnabled } from './db';
+import { getDb } from './db';
 import { User, PayrollRecord, MonthlyPaysheetDTO, AdminCredentials } from '../models';
 
 // ── Helper: convert snake_case DB row to camelCase model ──────
@@ -89,7 +89,6 @@ function rowToPaysheet(r: Record<string, unknown>): MonthlyPaysheetDTO {
 // ── Admin ─────────────────────────────────────────────────────
 
 export async function dbGetAdmin(): Promise<AdminCredentials | null> {
-  if (!isDbEnabled()) return null;
   const db = getDb();
   const rows = await db`SELECT * FROM admin LIMIT 1`;
   if (rows.length === 0) return null;
@@ -97,7 +96,6 @@ export async function dbGetAdmin(): Promise<AdminCredentials | null> {
 }
 
 export async function dbSaveAdmin(admin: AdminCredentials): Promise<void> {
-  if (!isDbEnabled()) return;
   const db = getDb();
   await db`
     INSERT INTO admin (username, password, name, role)
@@ -109,14 +107,12 @@ export async function dbSaveAdmin(admin: AdminCredentials): Promise<void> {
 // ── Users ─────────────────────────────────────────────────────
 
 export async function dbGetAllUsers(): Promise<User[]> {
-  if (!isDbEnabled()) return [];
   const db = getDb();
   const rows = await db`SELECT * FROM users ORDER BY created_at DESC`;
   return rows.map((r: Record<string, unknown>) => rowToUser(r));
 }
 
 export async function dbGetUser(codeNo: string): Promise<User | null> {
-  if (!isDbEnabled()) return null;
   const db = getDb();
   const rows = await db`SELECT * FROM users WHERE code_no = ${codeNo}`;
   if (rows.length === 0) return null;
@@ -124,7 +120,6 @@ export async function dbGetUser(codeNo: string): Promise<User | null> {
 }
 
 export async function dbCreateUser(user: User): Promise<void> {
-  if (!isDbEnabled()) return;
   const db = getDb();
   await db`
     INSERT INTO users (code_no, first_name, last_name, email, phone, branch, role, designation,
@@ -136,7 +131,6 @@ export async function dbCreateUser(user: User): Promise<void> {
 }
 
 export async function dbUpdateUser(codeNo: string, user: User): Promise<void> {
-  if (!isDbEnabled()) return;
   const db = getDb();
   await db`
     UPDATE users SET first_name=${user.firstName}, last_name=${user.lastName}, email=${user.email},
@@ -149,7 +143,6 @@ export async function dbUpdateUser(codeNo: string, user: User): Promise<void> {
 }
 
 export async function dbDeleteUser(codeNo: string): Promise<void> {
-  if (!isDbEnabled()) return;
   const db = getDb();
   await db`DELETE FROM users WHERE code_no = ${codeNo}`;
 }
@@ -157,14 +150,12 @@ export async function dbDeleteUser(codeNo: string): Promise<void> {
 // ── Payroll Records ───────────────────────────────────────────
 
 export async function dbGetAllPayroll(): Promise<PayrollRecord[]> {
-  if (!isDbEnabled()) return [];
   const db = getDb();
   const rows = await db`SELECT * FROM payroll_records ORDER BY generated_at DESC`;
   return rows.map((r: Record<string, unknown>) => rowToPayroll(r));
 }
 
 export async function dbGetPayroll(id: string): Promise<PayrollRecord | null> {
-  if (!isDbEnabled()) return null;
   const db = getDb();
   const rows = await db`SELECT * FROM payroll_records WHERE id = ${id}`;
   if (rows.length === 0) return null;
@@ -172,7 +163,6 @@ export async function dbGetPayroll(id: string): Promise<PayrollRecord | null> {
 }
 
 export async function dbCreatePayroll(record: PayrollRecord): Promise<void> {
-  if (!isDbEnabled()) return;
   const db = getDb();
   await db`
     INSERT INTO payroll_records (id, code_no, user_name, period, basic_salary, allowances,
@@ -185,7 +175,6 @@ export async function dbCreatePayroll(record: PayrollRecord): Promise<void> {
 }
 
 export async function dbDeletePayroll(id: string): Promise<void> {
-  if (!isDbEnabled()) return;
   const db = getDb();
   await db`DELETE FROM payroll_records WHERE id = ${id}`;
 }
@@ -193,14 +182,12 @@ export async function dbDeletePayroll(id: string): Promise<void> {
 // ── Monthly Paysheets ─────────────────────────────────────────
 
 export async function dbGetAllPaysheets(): Promise<MonthlyPaysheetDTO[]> {
-  if (!isDbEnabled()) return [];
   const db = getDb();
   const rows = await db`SELECT * FROM monthly_paysheets ORDER BY pay_month DESC, code_no ASC`;
   return rows.map((r: Record<string, unknown>) => rowToPaysheet(r));
 }
 
 export async function dbGetPaysheet(id: string): Promise<MonthlyPaysheetDTO | null> {
-  if (!isDbEnabled()) return null;
   const db = getDb();
   const rows = await db`SELECT * FROM monthly_paysheets WHERE id = ${id}`;
   if (rows.length === 0) return null;
@@ -208,14 +195,12 @@ export async function dbGetPaysheet(id: string): Promise<MonthlyPaysheetDTO | nu
 }
 
 export async function dbGetPaysheetsByMonth(payMonth: string): Promise<MonthlyPaysheetDTO[]> {
-  if (!isDbEnabled()) return [];
   const db = getDb();
   const rows = await db`SELECT * FROM monthly_paysheets WHERE pay_month = ${payMonth} ORDER BY code_no ASC`;
   return rows.map((r: Record<string, unknown>) => rowToPaysheet(r));
 }
 
 export async function dbCreatePaysheet(p: MonthlyPaysheetDTO): Promise<void> {
-  if (!isDbEnabled()) return;
   const db = getDb();
   await db`
     INSERT INTO monthly_paysheets (
@@ -243,7 +228,6 @@ export async function dbCreatePaysheet(p: MonthlyPaysheetDTO): Promise<void> {
 }
 
 export async function dbUpdatePaysheet(id: string, p: MonthlyPaysheetDTO): Promise<void> {
-  if (!isDbEnabled()) return;
   const db = getDb();
   await db`
     UPDATE monthly_paysheets SET
@@ -265,14 +249,12 @@ export async function dbUpdatePaysheet(id: string, p: MonthlyPaysheetDTO): Promi
 }
 
 export async function dbUpdatePaysheetStatus(id: string, status: string): Promise<void> {
-  if (!isDbEnabled()) return;
   const db = getDb();
   const now = new Date().toISOString();
   await db`UPDATE monthly_paysheets SET status = ${status}, updated_at = ${now} WHERE id = ${id}`;
 }
 
 export async function dbDeletePaysheet(id: string): Promise<void> {
-  if (!isDbEnabled()) return;
   const db = getDb();
   await db`DELETE FROM monthly_paysheets WHERE id = ${id}`;
 }

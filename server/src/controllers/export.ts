@@ -2,16 +2,15 @@ import { Router, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import archiver from 'archiver';
-import { readJSON } from '../services/jsonStore';
+import { dbGetAllUsers, dbGetAllPaysheets, dbGetPaysheetsByMonth } from '../services/dbStore';
 import { exportUsersToExcel, exportMonthlyPaysheetsToExcel } from '../utils/excelExport';
-import { User, MonthlyPaysheetDTO } from '../models';
 
 const router = Router();
 
 // GET /api/export/users-excel — Export users to Excel
 router.get('/users-excel', async (_req: Request, res: Response): Promise<void> => {
   try {
-    const users = readJSON<User>('users.json');
+    const users = await dbGetAllUsers();
     if (users.length === 0) {
       res.status(400).json({ error: 'No user data to export.' });
       return;
@@ -29,16 +28,16 @@ router.get('/users-excel', async (_req: Request, res: Response): Promise<void> =
   }
 });
 
-// GET /api/export/paysheets-excel — Export monthly paysheets to Excel (one sheet per month, role-wise sections)
+// GET /api/export/paysheets-excel — Export monthly paysheets to Excel
 router.get('/paysheets-excel', async (_req: Request, res: Response): Promise<void> => {
   try {
-    const records = readJSON<MonthlyPaysheetDTO>('monthly-paysheets.json');
+    const records = await dbGetAllPaysheets();
     if (records.length === 0) {
       res.status(400).json({ error: 'No monthly paysheet data to export.' });
       return;
     }
 
-    const users = readJSON<User>('users.json');
+    const users = await dbGetAllUsers();
     const filePath = await exportMonthlyPaysheetsToExcel(records, users);
     res.download(filePath, path.basename(filePath), (err) => {
       if (err) {
@@ -60,18 +59,25 @@ router.get('/paysheets-json', async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const records = readJSON<MonthlyPaysheetDTO>('monthly-paysheets.json');
-    const users = readJSON<User>('users.json');
+    const allForMonth = await dbGetPaysheetsByMonth(payMonth);
+    const users = await dbGetAllUsers();
     const userMap = new Map(users.map((u) => [u.codeNo, u]));
 
-    const filtered = records.filter((r) => r.payMonth === payMonth);
-    if (filtered.length === 0) {
+    if (allForMonth.length === 0) {
       res.status(400).json({ error: `No paysheet data found for ${payMonth}` });
       return;
     }
 
+    // Skip paysheets with achievedSalary = 0
+    const skipped = allForMonth.filter((r) => !r.achievedSalary || r.achievedSalary === 0);
+    const filtered = allForMonth.filter((r) => r.achievedSalary && r.achievedSalary > 0);
+    if (filtered.length === 0) {
+      res.status(400).json({ error: `All paysheets for ${payMonth} have achievedSalary = 0. Cannot export.` });
+      return;
+    }
+
     // Create temp directory for JSON files
-    const tempDir = path.join(__dirname, '..', '..', 'temp', `json_export_${Date.now()}`);
+    const tempDir = path.join(process.env.TEMP_DIR || path.join(__dirname, '..', '..', 'temp'), `json_export_${Date.now()}`);
     fs.mkdirSync(tempDir, { recursive: true });
 
     // Create individual JSON files
@@ -87,57 +93,34 @@ router.get('/paysheets-json', async (req: Request, res: Response): Promise<void>
           company: 'Prestige Glamour Working Capital Solutions (Pvt) Ltd',
         },
         employee: {
-          codeNo: record.codeNo,
-          name: employeeName,
-          firstName: user?.firstName || '',
-          lastName: user?.lastName || '',
-          designation: user?.designation || record.role,
-          branch: user?.branch || '',
-          role: record.role,
-          bankName: user?.bankName || '',
-          bankAccount: user?.bankAccount || '',
-          email: user?.email || '',
-          phone: user?.phone || '',
+          codeNo: record.codeNo, name: employeeName,
+          firstName: user?.firstName || '', lastName: user?.lastName || '',
+          designation: user?.designation || record.role, branch: user?.branch || '',
+          role: record.role, bankName: user?.bankName || '', bankAccount: user?.bankAccount || '',
+          email: user?.email || '', phone: user?.phone || '',
         },
         paysheet: {
-          payMonth: record.payMonth,
-          monthsOfService: record.monthsOfService,
-          basicSalary: record.basicSalary || 0,
-          assignedTarget: record.assignedTarget || 0,
-          achieve: record.achieve || 0,
-          achievementPct: record.achievementPct || 0,
+          payMonth: record.payMonth, monthsOfService: record.monthsOfService,
+          basicSalary: record.basicSalary || 0, assignedTarget: record.assignedTarget || 0,
+          achieve: record.achieve || 0, achievementPct: record.achievementPct || 0,
         },
         earnings: {
-          basicOffers: record.achieve || 0,
-          vehicleAllowance: record.vehicleAllowance || 0,
-          fuelAllowance: record.fuelAllowance || 0,
-          generalAllowance: record.generalAllowance || 0,
-          orc: record.orc || 0,
-          otherOffer: record.otherOffer || 0,
-          customEarningName: record.customEarningName || '',
-          customEarningAmount: record.customEarningAmount || 0,
+          basicOffers: record.achieve || 0, vehicleAllowance: record.vehicleAllowance || 0,
+          fuelAllowance: record.fuelAllowance || 0, generalAllowance: record.generalAllowance || 0,
+          orc: record.orc || 0, otherOffer: record.otherOffer || 0,
+          customEarningName: record.customEarningName || '', customEarningAmount: record.customEarningAmount || 0,
           grossSalary: record.grossSalary || 0,
         },
         deductions: {
-          epfEmployee: record.epfEmployee || 0,
-          nopayDeduction: record.nopayDeduction || 0,
-          lateDeduction: record.lateDeduction || 0,
-          welfare: record.welfare || 0,
-          customDeductionName: record.customDeductionName || '',
-          customDeductionAmount: record.customDeductionAmount || 0,
+          epfEmployee: record.epfEmployee || 0, nopayDeduction: record.nopayDeduction || 0,
+          lateDeduction: record.lateDeduction || 0, welfare: record.welfare || 0,
+          customDeductionName: record.customDeductionName || '', customDeductionAmount: record.customDeductionAmount || 0,
         },
-        employerContributions: {
-          epfEmployer: record.epfEmployer || 0,
-          etf: record.etf || 0,
-        },
+        employerContributions: { epfEmployer: record.epfEmployer || 0, etf: record.etf || 0 },
         summary: {
           grossSalary: record.grossSalary || 0,
-          totalDeductions:
-            (record.epfEmployee || 0) +
-            (record.nopayDeduction || 0) +
-            (record.lateDeduction || 0) +
-            (record.welfare || 0) +
-            (record.customDeductionAmount || 0),
+          totalDeductions: (record.epfEmployee || 0) + (record.nopayDeduction || 0) +
+            (record.lateDeduction || 0) + (record.welfare || 0) + (record.customDeductionAmount || 0),
           netSalary: record.netSalary || 0,
         },
       };
@@ -150,6 +133,15 @@ router.get('/paysheets-json', async (req: Request, res: Response): Promise<void>
     // Create ZIP
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="paysheets_json_${payMonth}.zip"`);
+    if (skipped.length > 0) {
+      const skippedNames = skipped.map((r) => {
+        const u = userMap.get(r.codeNo);
+        return u ? `${u.firstName} ${u.lastName} (${r.codeNo})` : r.codeNo;
+      });
+      res.setHeader('X-Skipped-Count', String(skipped.length));
+      res.setHeader('X-Skipped-Names', encodeURIComponent(skippedNames.join(', ')));
+      res.setHeader('Access-Control-Expose-Headers', 'X-Skipped-Count, X-Skipped-Names');
+    }
 
     const archive = archiver('zip', { zlib: { level: 6 } });
     archive.on('error', (err) => {
@@ -163,7 +155,6 @@ router.get('/paysheets-json', async (req: Request, res: Response): Promise<void>
     archive.directory(tempDir, false);
     await archive.finalize();
 
-    // Cleanup temp directory
     fs.rmSync(tempDir, { recursive: true, force: true });
   } catch (error) {
     console.error('JSON export error:', error);
@@ -176,8 +167,6 @@ router.get('/paysheets-json', async (req: Request, res: Response): Promise<void>
 // POST /api/export/backup — Google Drive backup placeholder
 router.post('/backup', async (_req: Request, res: Response): Promise<void> => {
   try {
-    // Placeholder for Google Drive backup
-    // In production, this would use Google Drive API with OAuth2
     res.json({
       message: 'Google Drive backup feature requires OAuth2 setup. See README for configuration.',
       status: 'not_configured',

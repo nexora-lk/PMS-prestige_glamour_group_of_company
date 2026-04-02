@@ -120,8 +120,22 @@ export default function DotMatrixPrinting() {
         paysheets = paysheets.filter((p) => selectedCodeNos.has(p.codeNo));
       }
 
+      // Filter out paysheets with achievedSalary = 0 and warn
+      const zeroSalary = paysheets.filter((p) => !p.achievedSalary || p.achievedSalary === 0);
+      if (zeroSalary.length > 0) {
+        const names = zeroSalary.map((p) => {
+          const u = userMap.get(p.codeNo);
+          return u ? `${u.firstName} ${u.lastName} (${p.codeNo})` : p.codeNo;
+        });
+        showToast(
+          `Cannot generate payslip for: ${names.join(', ')} — Basic offer is 0.`,
+          'error'
+        );
+        paysheets = paysheets.filter((p) => p.achievedSalary && p.achievedSalary > 0);
+      }
+
       if (paysheets.length === 0) {
-        showToast('No monthly paysheets found for the selected period/employees. Create paysheets first in Monthly Paysheets.', 'error');
+        showToast('No valid paysheets found for the selected period/employees.', 'error');
       } else {
         showToast(`Loaded ${paysheets.length} paysheet(s)`, 'success');
       }
@@ -178,12 +192,18 @@ export default function DotMatrixPrinting() {
     try {
       // Use the codeNos from loaded preview paysheets
       const codeNos = previewPaysheets.map((p) => p.codeNo);
-      const res = await api.post<{ jobId: string; total: number }>('/dot-matrix/generate', {
+      const res = await api.post<{ jobId: string; total: number; skipped: string[] }>('/dot-matrix/generate', {
         payMonth,
         codeNos,
         useEscP,
       });
 
+      if (res.data.skipped.length > 0) {
+        showToast(
+          `Skipped (basic offer is 0): ${res.data.skipped.join(', ')}`,
+          'error'
+        );
+      }
       showToast(`Started generation for ${res.data.total} payslips`, 'info');
       setJob({
         id: res.data.jobId,

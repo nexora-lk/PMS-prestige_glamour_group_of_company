@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import fs from 'fs';
 import logger from '../utils/logger';
-import { readJSON } from './jsonStore';
+import { dbGetAllPaysheets, dbGetAllUsers } from './dbStore';
 import type { MonthlyPaysheetDTO, User } from '../models';
 import type { PayslipEmployee } from '../types/worker';
 import type {
@@ -44,18 +44,21 @@ export function getActiveDotMatrixJob(): DotMatrixJob | undefined {
 
 // ── Public: Start generation ────────────────────────────────
 
-export function startDotMatrixGeneration(
+export async function startDotMatrixGeneration(
   payMonth: string,
   codeNos: string[] | undefined,
   useEscP: boolean
-): DotMatrixJob {
+): Promise<{ job: DotMatrixJob; skipped: string[] }> {
   const active = getActiveDotMatrixJob();
   if (active) {
     throw new Error(`A dot matrix generation job is already in progress (ID: ${active.id})`);
   }
 
-  const employees = buildPayslipData(payMonth, codeNos);
+  const { employees, skipped } = await buildPayslipData(payMonth, codeNos);
   if (employees.length === 0) {
+    if (skipped.length > 0) {
+      throw new Error(`All paysheets have achievedSalary = 0. Cannot generate.`);
+    }
     throw new Error(`No paysheets found for ${payMonth}`);
   }
 
@@ -73,7 +76,7 @@ export function startDotMatrixGeneration(
   };
   jobs.set(job.id, job);
 
-  logger.info(`Dot matrix job ${job.id} created for ${employees.length} employees (month: ${payMonth}, escP: ${useEscP})`);
+  logger.info(`Dot matrix job ${job.id} created for ${employees.length} employees (month: ${payMonth}, escP: ${useEscP})${skipped.length > 0 ? `, skipped ${skipped.length} with zero salary` : ''}`);
 
   processJob(job, employees, useEscP).catch((err) => {
     job.status = 'failed';
@@ -81,7 +84,7 @@ export function startDotMatrixGeneration(
     logger.error(`Dot matrix job ${job.id} failed`, { error: job.error });
   });
 
-  return job;
+  return { job, skipped };
 }
 
 // ── Public: Print file ──────────────────────────────────────
@@ -122,12 +125,12 @@ export async function printDotMatrixFile(
 
 // ── Data assembly (reuses same logic as PDF service) ────────
 
-function buildPayslipData(
+async function buildPayslipData(
   payMonth: string,
   codeNos: string[] | undefined
-): PayslipEmployee[] {
-  const paysheets = readJSON<MonthlyPaysheetDTO>('monthly-paysheets.json');
-  const users = readJSON<User>('users.json');
+): Promise<{ employees: PayslipEmployee[]; skipped: string[] }> {
+  const paysheets = await dbGetAllPaysheets();
+  const users = await dbGetAllUsers();
   const userMap = new Map(users.map((u) => [u.codeNo, u]));
 
   let filtered = paysheets.filter((p) => p.payMonth === payMonth);
@@ -136,7 +139,19 @@ function buildPayslipData(
     filtered = filtered.filter((p) => codeSet.has(p.codeNo));
   }
 
-  return filtered.map((p): PayslipEmployee => {
+  // Skip paysheets where achievedSalary is 0
+  const skipped: string[] = [];
+  const valid = filtered.filter((p) => {
+    if (!p.achievedSalary || p.achievedSalary === 0) {
+      const user = userMap.get(p.codeNo);
+      const name = user ? `${user.firstName} ${user.lastName} (${p.codeNo})` : p.codeNo;
+      skipped.push(name);
+      return false;
+    }
+    return true;
+  });
+
+  const employees = valid.map((p): PayslipEmployee => {
     const user = userMap.get(p.codeNo);
     return {
       id: p.id || p.codeNo,
@@ -171,6 +186,8 @@ function buildPayslipData(
       createdAt: p.createdAt || new Date().toISOString(),
     };
   });
+
+  return { employees, skipped };
 }
 
 // ── Job processing ──────────────────────────────────────────

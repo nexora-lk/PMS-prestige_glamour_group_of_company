@@ -10,9 +10,14 @@ interface Toast {
 
 let toastId = 0;
 let addToastFn: ((message: string, type: Toast['type']) => void) | null = null;
+const pendingToasts: { message: string; type: Toast['type'] }[] = [];
 
 export function showToast(message: string, type: Toast['type'] = 'info') {
-  if (addToastFn) addToastFn(message, type);
+  if (addToastFn) {
+    addToastFn(message, type);
+  } else {
+    pendingToasts.push({ message, type });
+  }
 }
 
 export function ToastContainer() {
@@ -28,13 +33,18 @@ export function ToastContainer() {
 
   useEffect(() => {
     addToastFn = addToast;
+    // Flush any toasts that were queued before mount
+    while (pendingToasts.length > 0) {
+      const pending = pendingToasts.shift()!;
+      addToast(pending.message, pending.type);
+    }
     return () => { addToastFn = null; };
   }, [addToast]);
 
   if (toasts.length === 0) return null;
 
   return createPortal(
-    <div style={{ position: 'fixed', top: 24, right: 24, zIndex: 2000, display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div className="toast-wrapper">
       {toasts.map((toast) => (
         <div key={toast.id} className={`toast toast-${toast.type}`}>
           {toast.type === 'success' && <FiCheckCircle size={20} />}

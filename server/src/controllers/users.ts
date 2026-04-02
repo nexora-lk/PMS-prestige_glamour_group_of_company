@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { readJSON, writeJSON } from '../services/jsonStore';
+import { dbCreateUser, dbUpdateUser, dbDeleteUser, dbGetAllUsers } from '../services/dbStore';
+import { isDbEnabled } from '../services/db';
 import { User } from '../models';
 
 const router = Router();
@@ -11,9 +13,14 @@ function isCodeNoDuplicate(codeNo: string, existingUsers: User[], excludeCodeNo?
 }
 
 // GET /api/users — List all users with search, filter, sort, pagination
-router.get('/', (req: Request, res: Response): void => {
+router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    const allUsers = readJSON<User>(USERS_FILE);
+    let allUsers: User[];
+    if (isDbEnabled()) {
+      allUsers = await dbGetAllUsers();
+    } else {
+      allUsers = readJSON<User>(USERS_FILE);
+    }
     let users = [...allUsers];
     const { search, branch, role, status, sortBy, sortOrder, page, limit } = req.query;
 
@@ -80,9 +87,9 @@ router.get('/', (req: Request, res: Response): void => {
 });
 
 // GET /api/users/stats — Dashboard stats
-router.get('/stats', (_req: Request, res: Response): void => {
+router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
   try {
-    const users = readJSON<User>(USERS_FILE);
+    const users = isDbEnabled() ? await dbGetAllUsers() : readJSON<User>(USERS_FILE);
     const active = users.filter((u) => u.status === 'active').length;
     const deleted = users.filter((u) => u.status === 'delete').length;
     const branches = [...new Set(users.map((u) => u.branch).filter(Boolean))];
@@ -104,9 +111,9 @@ router.get('/stats', (_req: Request, res: Response): void => {
 });
 
 // GET /api/users/:codeNo — Get single user by codeNo
-router.get('/:codeNo', (req: Request, res: Response): void => {
+router.get('/:codeNo', async (req: Request, res: Response): Promise<void> => {
   try {
-    const users = readJSON<User>(USERS_FILE);
+    const users = isDbEnabled() ? await dbGetAllUsers() : readJSON<User>(USERS_FILE);
     const user = users.find((u) => u.codeNo === req.params.codeNo);
     if (!user) {
       res.status(404).json({ error: 'User not found.' });
@@ -119,7 +126,7 @@ router.get('/:codeNo', (req: Request, res: Response): void => {
 });
 
 // POST /api/users — Create user
-router.post('/', (req: Request, res: Response): void => {
+router.post('/', async (req: Request, res: Response): Promise<void> => {
   try {
     const users = readJSON<User>(USERS_FILE);
     const {
@@ -169,6 +176,8 @@ router.post('/', (req: Request, res: Response): void => {
 
     users.push(newUser);
     writeJSON(USERS_FILE, users);
+    // Save to DB
+    await dbCreateUser(newUser);
     res.status(201).json(newUser);
   } catch (error) {
     res.status(500).json({ error: 'Failed to create user.' });
@@ -176,7 +185,7 @@ router.post('/', (req: Request, res: Response): void => {
 });
 
 // PUT /api/users/:codeNo — Update user by codeNo
-router.put('/:codeNo', (req: Request, res: Response): void => {
+router.put('/:codeNo', async (req: Request, res: Response): Promise<void> => {
   try {
     const users = readJSON<User>(USERS_FILE);
     const index = users.findIndex((u) => u.codeNo === req.params.codeNo);
@@ -210,6 +219,8 @@ router.put('/:codeNo', (req: Request, res: Response): void => {
 
     users[index] = updatedUser;
     writeJSON(USERS_FILE, users);
+    // Update in DB
+    await dbUpdateUser(req.params.codeNo, updatedUser);
     res.json(updatedUser);
   } catch (error) {
     res.status(500).json({ error: 'Failed to update user.' });
@@ -217,7 +228,7 @@ router.put('/:codeNo', (req: Request, res: Response): void => {
 });
 
 // DELETE /api/users/:codeNo — Delete user by codeNo
-router.delete('/:codeNo', (req: Request, res: Response): void => {
+router.delete('/:codeNo', async (req: Request, res: Response): Promise<void> => {
   try {
     const users = readJSON<User>(USERS_FILE);
     const index = users.findIndex((u) => u.codeNo === req.params.codeNo);
@@ -229,6 +240,8 @@ router.delete('/:codeNo', (req: Request, res: Response): void => {
 
     const deleted = users.splice(index, 1)[0];
     writeJSON(USERS_FILE, users);
+    // Delete from DB
+    await dbDeleteUser(req.params.codeNo);
     res.json({ message: 'User deleted successfully.', user: deleted });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete user.' });

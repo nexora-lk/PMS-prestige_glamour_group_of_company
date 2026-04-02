@@ -112,8 +112,8 @@ export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetPr
           <div style={ds.companyName}>PRESTIGE GLAMOUR WORKING CAPITAL SOLUTIONS</div>
           <div style={ds.companySub}>GROUP OF COMPANY (PRIVATE) LIMITED</div>
           <div style={s.contactRow}>
-            <span style={ds.contactText}>404/A, Galle Road, Maggona</span>
-            <span style={ds.contactText}>info@pgwcs.com</span>
+            <span style={ds.contactText}>404/A, Galle Road, Maggona, Sri Lanka</span>
+            <span style={ds.contactText}>www.pgwcs.com</span>
             <span style={ds.contactText}>+94 75 169 3138</span>
           </div>
         </div>

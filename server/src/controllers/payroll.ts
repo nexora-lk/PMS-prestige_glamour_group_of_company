@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { readJSON, writeJSON } from '../services/jsonStore';
+import { dbCreatePayroll, dbGetAllPayroll, dbDeletePayroll } from '../services/dbStore';
+import { isDbEnabled } from '../services/db';
 import { generatePaySheet } from '../services/payrollCalc';
 import { User, PayrollRecord } from '../models';
 
@@ -9,7 +11,7 @@ const PAYROLL_FILE = 'payroll.json';
 const USERS_FILE = 'users.json';
 
 // POST /api/payroll/generate — Generate paysheet for user(s)
-router.post('/generate', (req: Request, res: Response): void => {
+router.post('/generate', async (req: Request, res: Response): Promise<void> => {
   try {
     const { codeNos, period } = req.body;
 
@@ -52,6 +54,10 @@ router.post('/generate', (req: Request, res: Response): void => {
     }
 
     writeJSON(PAYROLL_FILE, payrollRecords);
+    // Save to DB
+    for (const record of generatedRecords) {
+      await dbCreatePayroll(record);
+    }
     res.json({
       message: `Generated ${generatedRecords.length} payroll record(s).`,
       records: generatedRecords,
@@ -62,9 +68,9 @@ router.post('/generate', (req: Request, res: Response): void => {
 });
 
 // GET /api/payroll/history — List payroll records
-router.get('/history', (req: Request, res: Response): void => {
+router.get('/history', async (req: Request, res: Response): Promise<void> => {
   try {
-    let records = readJSON<PayrollRecord>(PAYROLL_FILE);
+    let records = isDbEnabled() ? await dbGetAllPayroll() : readJSON<PayrollRecord>(PAYROLL_FILE);
     const { codeNo, period, search } = req.query;
 
     if (codeNo && typeof codeNo === 'string') {
@@ -95,9 +101,9 @@ router.get('/history', (req: Request, res: Response): void => {
 });
 
 // GET /api/payroll/:id — Get single payroll record
-router.get('/:id', (req: Request, res: Response): void => {
+router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
-    const records = readJSON<PayrollRecord>(PAYROLL_FILE);
+    const records = isDbEnabled() ? await dbGetAllPayroll() : readJSON<PayrollRecord>(PAYROLL_FILE);
     const record = records.find((r) => r.id === req.params.id);
     if (!record) {
       res.status(404).json({ error: 'Payroll record not found.' });
@@ -110,7 +116,7 @@ router.get('/:id', (req: Request, res: Response): void => {
 });
 
 // DELETE /api/payroll/:id — Delete payroll record
-router.delete('/:id', (req: Request, res: Response): void => {
+router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const records = readJSON<PayrollRecord>(PAYROLL_FILE);
     const index = records.findIndex((r) => r.id === req.params.id);
@@ -120,6 +126,8 @@ router.delete('/:id', (req: Request, res: Response): void => {
     }
     records.splice(index, 1);
     writeJSON(PAYROLL_FILE, records);
+    // Delete from DB
+    await dbDeletePayroll(req.params.id);
     res.json({ message: 'Payroll record deleted.' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete payroll record.' });

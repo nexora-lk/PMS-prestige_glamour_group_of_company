@@ -1,7 +1,16 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { readSingleJSON, writeSingleJSON } from '../services/jsonStore';
-import { generateToken, authMiddleware } from '../middleware/auth';
+import { dbSaveAdmin } from '../services/dbStore';
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+  storeRefreshHash,
+  isRefreshTokenValid,
+  revokeRefreshToken,
+  authMiddleware,
+} from '../middleware/auth';
 import { AdminCredentials } from '../models';
 
 const router = Router();
@@ -11,12 +20,15 @@ function ensureAdmin(): void {
   const admin = readSingleJSON<AdminCredentials>('admin.json');
   if (!admin) {
     const hashed = bcrypt.hashSync('admin123', 10);
-    writeSingleJSON<AdminCredentials>('admin.json', {
+    const defaultAdmin: AdminCredentials = {
       username: 'admin',
       password: hashed,
       name: 'Super Admin',
       role: 'super_admin',
-    });
+    };
+    writeSingleJSON<AdminCredentials>('admin.json', defaultAdmin);
+    // Also save to DB
+    dbSaveAdmin(defaultAdmin).catch(() => {});
   }
 }
 
@@ -49,9 +61,16 @@ router.post('/login', (req: Request, res: Response): void => {
       return;
     }
 
-    const token = generateToken({ username: admin.username, role: admin.role });
+    const tokenPayload = { username: admin.username, role: admin.role };
+    const accessToken = generateAccessToken(tokenPayload);
+    const refreshToken = generateRefreshToken(tokenPayload);
+
+    // Store hash of refresh token server-side for validation
+    storeRefreshHash(refreshToken);
+
     res.json({
-      token,
+      accessToken,
+      refreshToken,
       user: {
         username: admin.username,
         name: admin.name,
@@ -61,6 +80,40 @@ router.post('/login', (req: Request, res: Response): void => {
   } catch (error) {
     res.status(500).json({ error: 'Login failed.' });
   }
+});
+
+// POST /api/auth/refresh — exchange refresh token for new access token
+router.post('/refresh', (req: Request, res: Response): void => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      res.status(400).json({ error: 'Refresh token is required.' });
+      return;
+    }
+
+    // Verify the token hasn't been revoked
+    if (!isRefreshTokenValid(refreshToken)) {
+      res.status(401).json({ error: 'Refresh token has been revoked.' });
+      return;
+    }
+
+    // Verify JWT signature and expiry
+    const decoded = verifyRefreshToken(refreshToken);
+
+    // Issue new access token
+    const accessToken = generateAccessToken({ username: decoded.username, role: decoded.role });
+
+    res.json({ accessToken });
+  } catch {
+    res.status(401).json({ error: 'Invalid or expired refresh token.' });
+  }
+});
+
+// POST /api/auth/logout — revoke refresh token
+router.post('/logout', (_req: Request, res: Response): void => {
+  revokeRefreshToken();
+  res.json({ message: 'Logged out successfully.' });
 });
 
 // GET /api/auth/me — Protected: requires valid JWT

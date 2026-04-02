@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { showToast } from '../components/Toast';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -9,9 +10,14 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { isOnline } = useNetworkStatus();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isOnline) {
+      showToast('Please connect to the internet. Without a connection, you cannot sign in.', 'error');
+      return;
+    }
     if (!username || !password) {
       showToast('Please enter both username and password', 'error');
       return;
@@ -73,9 +79,9 @@ export default function Login() {
             type="submit"
             className="btn btn-primary btn-full btn-lg"
             style={{ marginTop: 12 }}
-            disabled={isLoading}
+            disabled={isLoading || !isOnline}
           >
-            {isLoading ? 'Signing in...' : 'Sign In'}
+            {!isOnline ? 'No Internet Connection' : isLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
       </div>

@@ -7,9 +7,11 @@
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "build": "tsc",
     "start": "node dist/app.js",
+    "seed": "ts-node src/scripts/seed-db.ts",
     "postinstall": "npx puppeteer browsers install chrome"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
     "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
     "bcryptjs": "^2.4.3",

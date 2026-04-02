@@ -74,5 +74,43 @@
     "status": "active",
     "createdAt": "2026-04-02T01:47:29.862Z",
     "updatedAt": "2026-04-02T01:47:29.862Z"
+  },
+  {
+    "codeNo": "fdg3",
+    "firstName": "sfa",
+    "lastName": "asdf",
+    "email": "nidafreefasdire045@gmail.com",
+    "phone": "0781828941",
+    "branch": "Kalmunai",
+    "role": "Regional Manager",
+    "designation": "Regional Manager",
+    "joinDate": "2026-01-15",
+    "bankAccount": "2345",
+    "bankName": "sdf",
+    "basicSalary": 80000,
+    "allowances": 0,
+    "deductions": 0,
+    "status": "active",
+    "createdAt": "2026-04-02T02:43:50.558Z",
+    "updatedAt": "2026-04-02T02:43:50.558Z"
+  },
+  {
+    "codeNo": "47fut8t",
+    "firstName": "SL",
+    "lastName": "it",
+    "email": "nidafreefire045@gmail.com",
+    "phone": "0781828941",
+    "branch": "Matara",
+    "role": "Branch Manager",
+    "designation": "Branch Manager",
+    "joinDate": "2026-02-12",
+    "bankAccount": "2345",
+    "bankName": "sdf",
+    "basicSalary": 50000,
+    "allowances": 0,
+    "deductions": 0,
+    "status": "active",
+    "createdAt": "2026-04-02T02:54:57.551Z",
+    "updatedAt": "2026-04-02T02:54:57.551Z"
   }
 ]

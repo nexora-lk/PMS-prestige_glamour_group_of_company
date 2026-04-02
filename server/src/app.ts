@@ -10,6 +10,7 @@ import payslipRoutes from './controllers/payslips';
 import dotMatrixRoutes from './controllers/dotMatrix';
 import exportRoutes from './controllers/export';
 import { authMiddleware } from './middleware/auth';
+import { initDatabase } from './services/db';
 import logger from './utils/logger';
 
 const app = express();
@@ -50,11 +51,25 @@ app.get('*', (_req, res) => {
   res.sendFile(path.join(clientPath, 'index.html'));
 });
 
-// Start server
-app.listen(PORT, () => {
-  logger.info(`PMS Application Server running on http://localhost:${PORT}`);
-  logger.info(`Data stored in: ${process.env.DATA_DIR || path.join(__dirname, '..', 'data')}`);
-  logger.info('Default login: admin / admin123');
-});
+// Initialize database and start server
+initDatabase()
+  .then(() => {
+    app.listen(PORT, () => {
+      logger.info(`PMS Application Server running on http://localhost:${PORT}`);
+      logger.info(`Data stored in: ${process.env.DATA_DIR || path.join(__dirname, '..', 'data')}`);
+      if (process.env.DATABASE_URL) {
+        logger.info('Neon PostgreSQL database connected');
+      }
+      logger.info('Default login: admin / admin123');
+    });
+  })
+  .catch((err) => {
+    logger.error('Failed to initialize database:', err);
+    // Still start server with JSON-only mode
+    app.listen(PORT, () => {
+      logger.info(`PMS Application Server running on http://localhost:${PORT} (JSON-only mode)`);
+      logger.info('Default login: admin / admin123');
+    });
+  });
 
 export default app;

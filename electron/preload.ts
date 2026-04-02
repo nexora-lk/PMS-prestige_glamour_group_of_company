@@ -7,4 +7,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   isProduction: (): boolean => process.env.NODE_ENV === 'production',
   saveFile: (options: { data: number[]; defaultName: string }): Promise<{ success: boolean; filePath?: string; error?: string }> =>
     ipcRenderer.invoke('save-file', options),
+
+  // ── Encrypted refresh-token storage ──────────────────────────
+  saveRefreshToken: (token: string): Promise<boolean> =>
+    ipcRenderer.invoke('save-refresh-token', token),
+  getRefreshToken: (): Promise<string | null> =>
+    ipcRenderer.invoke('get-refresh-token'),
+  deleteRefreshToken: (): Promise<boolean> =>
+    ipcRenderer.invoke('delete-refresh-token'),
 });

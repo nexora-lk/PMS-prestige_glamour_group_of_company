@@ -1,6 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { readJSON, writeJSON } from '../services/jsonStore';
+import {
+  dbCreatePaysheet, dbUpdatePaysheet, dbUpdatePaysheetStatus,
+  dbDeletePaysheet, dbGetAllPaysheets, dbGetPaysheetsByMonth,
+} from '../services/dbStore';
+import { isDbEnabled } from '../services/db';
 import { MonthlyPaysheetDTO, User } from '../models';
 import {
   calculatePaysheet,
@@ -199,7 +204,7 @@ router.post('/calculate', (req: Request, res: Response): void => {
 });
 
 // POST /api/paysheets/bulk-create — Auto-create basic paysheets for employees missing them
-router.post('/bulk-create', (req: Request, res: Response): void => {
+router.post('/bulk-create', async (req: Request, res: Response): Promise<void> => {
   try {
     const { codeNos, payMonth } = req.body;
     if (!Array.isArray(codeNos) || !payMonth) {
@@ -284,6 +289,10 @@ router.post('/bulk-create', (req: Request, res: Response): void => {
 
     if (created.length > 0) {
       writeJSON(PAYSHEETS_FILE, paysheets);
+      // Save to DB
+      for (const p of created) {
+        await dbCreatePaysheet(p);
+      }
     }
 
     res.json({
@@ -298,10 +307,15 @@ router.post('/bulk-create', (req: Request, res: Response): void => {
 });
 
 // GET /api/paysheets/month/:payMonth — Paysheets for a specific month (paginated)
-router.get('/month/:payMonth', (req: Request, res: Response): void => {
+router.get('/month/:payMonth', async (req: Request, res: Response): Promise<void> => {
   try {
-    let paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE)
-      .filter((p) => p.payMonth === req.params.payMonth);
+    let paysheets: MonthlyPaysheetDTO[];
+    if (isDbEnabled()) {
+      paysheets = await dbGetPaysheetsByMonth(req.params.payMonth);
+    } else {
+      paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE)
+        .filter((p) => p.payMonth === req.params.payMonth);
+    }
 
     const { search, status } = req.query;
 
@@ -344,7 +358,7 @@ router.get('/month/:payMonth', (req: Request, res: Response): void => {
 // ── Standard CRUD routes ────────────────────────────────────
 
 // POST /api/paysheets — Create a new monthly paysheet
-router.post('/', (req: Request, res: Response): void => {
+router.post('/', async (req: Request, res: Response): Promise<void> => {
   try {
     const {
       codeNo, payMonth, role,
@@ -430,6 +444,8 @@ router.post('/', (req: Request, res: Response): void => {
 
     paysheets.push(newPaysheet);
     writeJSON(PAYSHEETS_FILE, paysheets);
+    // Save to DB
+    await dbCreatePaysheet(newPaysheet);
     res.status(201).json({ message: 'Monthly paysheet created successfully', paysheet: newPaysheet });
   } catch (error) {
     console.error('Error creating paysheet:', error);
@@ -438,9 +454,9 @@ router.post('/', (req: Request, res: Response): void => {
 });
 
 // GET /api/paysheets — List all paysheets (paginated)
-router.get('/', (req: Request, res: Response): void => {
+router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    let paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
+    let paysheets = isDbEnabled() ? await dbGetAllPaysheets() : readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
     const { codeNo, payMonth, role, search, status, page, limit } = req.query;
 
     // Filter by status (default: show only active)
@@ -490,9 +506,9 @@ router.get('/', (req: Request, res: Response): void => {
 });
 
 // GET /api/paysheets/:id — Single paysheet
-router.get('/:id', (req: Request, res: Response): void => {
+router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
-    const paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
+    const paysheets = isDbEnabled() ? await dbGetAllPaysheets() : readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
     const paysheet = paysheets.find((p) => p.id === req.params.id);
     if (!paysheet) {
       res.status(404).json({ error: 'Paysheet not found' });
@@ -506,7 +522,7 @@ router.get('/:id', (req: Request, res: Response): void => {
 });
 
 // PUT /api/paysheets/:id — Update paysheet
-router.put('/:id', (req: Request, res: Response): void => {
+router.put('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
     const index = paysheets.findIndex((p) => p.id === req.params.id);
@@ -587,6 +603,8 @@ router.put('/:id', (req: Request, res: Response): void => {
 
     paysheets[index] = updated;
     writeJSON(PAYSHEETS_FILE, paysheets);
+    // Update in DB
+    await dbUpdatePaysheet(req.params.id, updated);
     res.json({ message: 'Paysheet updated successfully', paysheet: updated });
   } catch (error) {
     console.error('Error updating paysheet:', error);
@@ -595,7 +613,7 @@ router.put('/:id', (req: Request, res: Response): void => {
 });
 
 // PATCH /api/paysheets/:id/status — Soft delete or activate a paysheet
-router.patch('/:id/status', (req: Request, res: Response): void => {
+router.patch('/:id/status', async (req: Request, res: Response): Promise<void> => {
   try {
     const { status } = req.body;
     if (!status || !['active', 'delete'].includes(status)) {
@@ -613,6 +631,8 @@ router.patch('/:id/status', (req: Request, res: Response): void => {
     paysheets[index].status = status;
     paysheets[index].updatedAt = new Date().toISOString();
     writeJSON(PAYSHEETS_FILE, paysheets);
+    // Update status in DB
+    await dbUpdatePaysheetStatus(req.params.id, status);
 
     const action = status === 'delete' ? 'deactivated' : 'activated';
     res.json({ message: `Paysheet ${action} successfully`, paysheet: paysheets[index] });
@@ -623,7 +643,7 @@ router.patch('/:id/status', (req: Request, res: Response): void => {
 });
 
 // DELETE /api/paysheets/:id — Permanently delete a paysheet
-router.delete('/:id', (req: Request, res: Response): void => {
+router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const paysheets = readJSON<MonthlyPaysheetDTO>(PAYSHEETS_FILE);
     const index = paysheets.findIndex((p) => p.id === req.params.id);
@@ -634,6 +654,8 @@ router.delete('/:id', (req: Request, res: Response): void => {
 
     const deleted = paysheets.splice(index, 1)[0];
     writeJSON(PAYSHEETS_FILE, paysheets);
+    // Delete from DB
+    await dbDeletePaysheet(req.params.id);
     res.json({ message: 'Paysheet deleted successfully', paysheet: deleted });
   } catch (error) {
     console.error('Error deleting paysheet:', error);

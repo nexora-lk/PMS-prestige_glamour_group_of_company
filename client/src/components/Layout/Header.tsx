@@ -1,4 +1,5 @@
 import { useAuth } from '../../context/AuthContext';
+import { NetworkIndicator } from '../NetworkStatus';
 
 interface HeaderProps {
   collapsed: boolean;
@@ -19,6 +20,7 @@ export default function Header({ collapsed, title, subtitle }: HeaderProps) {
       </div>
 
       <div className="header-right">
+        <NetworkIndicator />
         <div className="header-user">
           <div className="header-avatar">
             {user?.name?.charAt(0) || 'A'}

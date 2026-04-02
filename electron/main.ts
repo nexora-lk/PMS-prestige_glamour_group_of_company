@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, session } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, session, safeStorage } from 'electron';
 import { fork, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -122,8 +122,48 @@ function waitForServer(onReady: () => void): void {
   socket.connect(Number(SERVER_PORT), '127.0.0.1');
 }
 
-// IPC handlers
+// ── IPC handlers ─────────────────────────────────────────────
 ipcMain.handle('get-app-version', () => app.getVersion());
+
+// ── Encrypted refresh-token storage (safeStorage) ────────────
+const REFRESH_TOKEN_FILE = 'refresh-token.enc';
+
+function getTokenFilePath(): string {
+  return getUserDataPath(REFRESH_TOKEN_FILE);
+}
+
+ipcMain.handle('save-refresh-token', (_event, token: string): boolean => {
+  try {
+    if (!safeStorage.isEncryptionAvailable()) return false;
+    const encrypted = safeStorage.encryptString(token);
+    fs.writeFileSync(getTokenFilePath(), encrypted);
+    return true;
+  } catch {
+    return false;
+  }
+});
+
+ipcMain.handle('get-refresh-token', (): string | null => {
+  try {
+    const filePath = getTokenFilePath();
+    if (!fs.existsSync(filePath)) return null;
+    if (!safeStorage.isEncryptionAvailable()) return null;
+    const encrypted = fs.readFileSync(filePath);
+    return safeStorage.decryptString(encrypted);
+  } catch {
+    return null;
+  }
+});
+
+ipcMain.handle('delete-refresh-token', (): boolean => {
+  try {
+    const filePath = getTokenFilePath();
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+});
 
 // Save file via native dialog (used for ZIP downloads in Electron)
 ipcMain.handle('save-file', async (_event, options: { data: number[]; defaultName: string }) => {

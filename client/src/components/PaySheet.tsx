@@ -14,7 +14,7 @@ export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetPr
   // a5 = 420×595px, a4 = 595×842px, 2up = 561×794px (fills 148.5×210mm print slot)
   const scale = size === 'a4' ? 1.42 : size === '2up' ? 1.335 : 1;
   const earnings = {
-    basicSalary: paysheet.grossSalary || 0,
+    basicSalary: paysheet.achievedSalary || 0,
     vehicleAllowance: paysheet.vehicleAllowance || 0,
     fuelAllowance: paysheet.fuelAllowance || 0,
     orc: paysheet.orc || 0,

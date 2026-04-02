@@ -35,7 +35,8 @@ export interface PayrollRecord {
 }
 
 export interface LoginResponse {
-  token: string;
+  accessToken: string;
+  refreshToken: string;
   user: {
     username: string;
     name: string;
@@ -99,6 +100,7 @@ export interface MonthlyPaysheet {
   assignedTarget?: number;
   achievementPct?: number;
   grossSalary?: number;
+  achievedSalary?: number;
   vehicleAllowance?: number;
   fuelAllowance?: number;
   generalAllowance?: number;

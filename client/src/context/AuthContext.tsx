@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import api from '../services/api';
+import { setAccessToken } from '../services/api';
 import type { LoginResponse } from '../types';
 
 interface AuthUser {
@@ -11,7 +12,6 @@ interface AuthUser {
 
 interface AuthContextType {
   user: AuthUser | null;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
@@ -22,37 +22,79 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // ── Session restore on app launch ──────────────────────────
+  // Try to get encrypted refresh token from main process,
+  // exchange it for a new access token, then fetch /me.
   useEffect(() => {
-    const savedToken = localStorage.getItem('payroll_token');
-    const savedUser = localStorage.getItem('payroll_user');
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
+    let cancelled = false;
+
+    async function restoreSession() {
+      try {
+        const refreshToken = await window.electronAPI?.getRefreshToken();
+        if (!refreshToken) return;
+
+        // Exchange refresh token for a new access token
+        const { data } = await api.post<{ accessToken: string }>('/auth/refresh', { refreshToken });
+        if (cancelled) return;
+
+        setAccessToken(data.accessToken);
+
+        // Fetch current user info
+        const meRes = await api.get<AuthUser>('/auth/me');
+        if (cancelled) return;
+
+        setUser(meRes.data);
+      } catch {
+        // Refresh failed — token expired or revoked, stay logged out
+        setAccessToken(null);
+        await window.electronAPI?.deleteRefreshToken();
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
     }
-    setIsLoading(false);
+
+    // Fallback: if not running in Electron (e.g. dev browser), skip restore
+    if (!window.electronAPI) {
+      setIsLoading(false);
+      return;
+    }
+
+    restoreSession();
+    return () => { cancelled = true; };
   }, []);
 
-  const login = async (username: string, password: string) => {
+  // ── Login ──────────────────────────────────────────────────
+  const login = useCallback(async (username: string, password: string) => {
     const response = await api.post<LoginResponse>('/auth/login', { username, password });
-    const { token: newToken, user: newUser } = response.data;
-    setToken(newToken);
-    setUser(newUser);
-    localStorage.setItem('payroll_token', newToken);
-    localStorage.setItem('payroll_user', JSON.stringify(newUser));
-  };
+    const { accessToken, refreshToken, user: newUser } = response.data;
 
-  const logout = () => {
-    setToken(null);
+    // Access token → memory only
+    setAccessToken(accessToken);
+
+    // Refresh token → encrypted via Electron main process
+    await window.electronAPI?.saveRefreshToken(refreshToken);
+
+    setUser(newUser);
+  }, []);
+
+  // ── Logout ─────────────────────────────────────────────────
+  const logout = useCallback(async () => {
+    try {
+      // Revoke refresh token server-side
+      await api.post('/auth/logout');
+    } catch {
+      // Server unreachable — still clear local state
+    }
+
+    setAccessToken(null);
     setUser(null);
-    localStorage.removeItem('payroll_token');
-    localStorage.removeItem('payroll_user');
-  };
+    await window.electronAPI?.deleteRefreshToken();
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -112,5 +112,24 @@
     "status": "active",
     "createdAt": "2026-04-02T02:54:57.551Z",
     "updatedAt": "2026-04-02T02:54:57.551Z"
+  },
+  {
+    "codeNo": "H0001",
+    "firstName": "Heshan",
+    "lastName": "Kavinda",
+    "email": "nidafreefire05@gmail.com",
+    "phone": "0781828941",
+    "branch": "Batticaloa",
+    "role": "Branch Manager",
+    "designation": "Branch Manager",
+    "joinDate": "2026-04-01",
+    "bankAccount": "2345",
+    "bankName": "sdf",
+    "basicSalary": 50000,
+    "allowances": 0,
+    "deductions": 0,
+    "status": "active",
+    "createdAt": "2026-04-02T06:38:32.553Z",
+    "updatedAt": "2026-04-02T06:38:32.553Z"
   }
 ]

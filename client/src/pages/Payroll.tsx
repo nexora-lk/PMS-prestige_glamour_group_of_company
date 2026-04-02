@@ -186,8 +186,22 @@ export default function Payroll() {
         }
       }
 
+      // Filter out paysheets with achievedSalary = 0 and warn
+      const zeroSalary = paysheets.filter((p) => !p.achievedSalary || p.achievedSalary === 0);
+      if (zeroSalary.length > 0) {
+        const names = zeroSalary.map((p) => {
+          const u = userMap.get(p.codeNo);
+          return u ? `${u.firstName} ${u.lastName} (${p.codeNo})` : p.codeNo;
+        });
+        showToast(
+          `Cannot generate paysheet for: ${names.join(', ')} — Basic offer is 0.`,
+          'error'
+        );
+        paysheets = paysheets.filter((p) => p.achievedSalary && p.achievedSalary > 0);
+      }
+
       if (paysheets.length === 0) {
-        showToast('No monthly paysheets found for the selected period/employees. Create paysheets first in Monthly Paysheets.', 'error');
+        showToast('No valid paysheets found for the selected period/employees.', 'error');
       } else {
         showToast(`Loaded ${paysheets.length} paysheet(s)`, 'success');
       }

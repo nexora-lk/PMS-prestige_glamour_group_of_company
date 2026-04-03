@@ -1566,6 +1566,7 @@ body {
   html {
     margin: 0 !important;
     padding: 0 !important;
+    background: #fff !important;
   }
   body * {
     visibility: hidden;
@@ -1594,8 +1595,9 @@ body {
   }
 
   /* ── Mode: A4 Portrait (1 per page) ── */
+  /* Page margins are handled by @page { margin: 8mm 10mm } — no extra padding needed */
   .print-area.print-mode-a4 {
-    width: 210mm;
+    width: 100%;
   }
   .print-area.print-mode-a4 > div {
     page-break-inside: avoid;
@@ -1603,10 +1605,10 @@ body {
     page-break-after: always;
     break-after: page;
     box-shadow: none !important;
-    width: 210mm !important;
-    max-width: 210mm !important;
-    margin: 0 auto !important;
-    padding: 10mm !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   .print-area.print-mode-a4 > div:last-child {
     page-break-after: auto;

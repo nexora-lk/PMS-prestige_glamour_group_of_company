@@ -436,7 +436,7 @@ const s: Record<string, CSSProperties> = {
     textAlign: 'right' as const,
   },
 
-  /* ── Net salary ── */
+  /* ── Net offer ── */
   netRow: {
     background: NAVY_DARK,
     display: 'flex',

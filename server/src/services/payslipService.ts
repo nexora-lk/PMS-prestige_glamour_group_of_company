@@ -5,8 +5,11 @@ import path from 'path';
 import fs from 'fs';
 import archiver from 'archiver';
 import logger from '../utils/logger';
-import { dbGetAllPaysheets, dbGetAllUsers } from './dbStore';
-import type { MonthlyPaysheetDTO, User } from '../models';
+import { dbGetAllPaysheets, dbGetAllUsers, dbGetPaysheet, dbGetUser } from './dbStore';
+
+import puppeteer from 'puppeteer';
+import { renderPayslipHTML } from '../templates/payslip';
+import { findChromePath } from '../utils/chromePath';
 import type {
   Job,
   PayslipEmployee,
@@ -436,6 +439,75 @@ function printPdfsUnix(
       });
     }
   });
+}
+
+// ── Single PDF generation ──────────────────────────────────
+
+export async function generateSinglePdf(paysheetId: string): Promise<Buffer> {
+  const paysheet = await dbGetPaysheet(paysheetId);
+  if (!paysheet) throw new Error('Paysheet not found');
+
+  const user = await dbGetUser(paysheet.codeNo);
+
+  const emp: PayslipEmployee = {
+    id: paysheet.id || paysheet.codeNo,
+    codeNo: paysheet.codeNo,
+    firstName: user?.firstName || paysheet.codeNo,
+    lastName: user?.lastName || '',
+    designation: user?.designation || paysheet.role,
+    branch: user?.branch || '',
+    bankName: user?.bankName || '',
+    bankAccount: user?.bankAccount || '',
+    payMonth: paysheet.payMonth,
+    basicSalary: paysheet.basicSalary || 0,
+    vehicleAllowance: paysheet.vehicleAllowance || 0,
+    fuelAllowance: paysheet.fuelAllowance || 0,
+    generalAllowance: paysheet.generalAllowance || 0,
+    orc: paysheet.orc || 0,
+    otherOffer: paysheet.otherOffer || 0,
+    customEarningName: paysheet.customEarningName || '',
+    customEarningAmount: paysheet.customEarningAmount || 0,
+    grossSalary: paysheet.grossSalary || 0,
+    epfEmployee: paysheet.epfEmployee || 0,
+    epfEmployer: paysheet.epfEmployer || 0,
+    etf: paysheet.etf || 0,
+    nopayDeduction: paysheet.nopayDeduction || 0,
+    lateDeduction: paysheet.lateDeduction || 0,
+    welfare: paysheet.welfare || 0,
+    customDeductionName: paysheet.customDeductionName || '',
+    customDeductionAmount: paysheet.customDeductionAmount || 0,
+    netSalary: paysheet.netSalary || 0,
+    achievementPct: paysheet.achievementPct || 0,
+    assignedTarget: paysheet.assignedTarget || 0,
+    createdAt: paysheet.createdAt || new Date().toISOString(),
+  };
+
+  const html = renderPayslipHTML(emp);
+
+  const chromePath = findChromePath();
+  const browser = await puppeteer.launch({
+    headless: true,
+    ...(chromePath ? { executablePath: chromePath } : {}),
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 794, height: 1123 });
+    await page.setContent(html, { waitUntil: 'domcontentloaded' });
+
+    const pdfBuffer = await page.pdf({
+      width: '210mm',
+      height: '297mm',
+      printBackground: true,
+      margin: { top: '8mm', bottom: '8mm', left: '10mm', right: '10mm' },
+    });
+
+    await page.close();
+    return Buffer.from(pdfBuffer);
+  } finally {
+    await browser.close();
+  }
 }
 
 // ── Cleanup ─────────────────────────────────────────────────

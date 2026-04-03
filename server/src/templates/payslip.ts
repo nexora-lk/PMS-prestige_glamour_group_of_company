@@ -47,84 +47,84 @@ export function renderPayslipHTML(emp: PayslipEmployee): string {
 <head>
 <meta charset="UTF-8"/>
 <style>
-  @page { size: 148mm 210mm; margin: 0; }
+  @page { size: 210mm 297mm; margin: 8mm 10mm; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: 'Segoe UI', Arial, sans-serif;
     background: #fff; color: #333;
-    width: 148mm; margin: 0 auto; font-size: 8.5px;
+    width: 190mm; margin: 0 auto; font-size: 11px;
   }
   .header {
     background: ${NAVY}; display: flex; align-items: center;
-    padding: 6px 10px; gap: 8px;
+    padding: 12px 20px; gap: 14px;
   }
   .logo-img {
-    width: 36px; height: 36px; border-radius: 50%;
+    width: 52px; height: 52px; border-radius: 50%;
     object-fit: cover; flex-shrink: 0;
   }
   .logo-circle {
-    width: 36px; height: 36px; border-radius: 50%;
+    width: 52px; height: 52px; border-radius: 50%;
     background: linear-gradient(135deg, ${GOLD} 0%, #e8c930 40%, #a08510 100%);
     display: flex; align-items: center; justify-content: center;
     border: 2px solid ${GOLD}; flex-shrink: 0;
   }
   .logo-inner {
-    width: 26px; height: 26px; border-radius: 50%;
+    width: 38px; height: 38px; border-radius: 50%;
     background: ${NAVY_DARK}; display: flex; align-items: center; justify-content: center;
     border: 1px solid ${GOLD};
   }
-  .logo-text { color: ${GOLD}; font-size: 6.5px; font-weight: 800; letter-spacing: 1px; font-family: Georgia, serif; }
+  .logo-text { color: ${GOLD}; font-size: 9px; font-weight: 800; letter-spacing: 1px; font-family: Georgia, serif; }
   .hdr-right { flex: 1; }
-  .co-name { color: #fff; font-size: 9px; font-weight: 700; letter-spacing: 0.4px; line-height: 1.2; font-family: Georgia, serif; }
-  .co-sub { color: #fff; font-size: 7.5px; font-weight: 600; margin: 1px 0 3px; font-family: Georgia, serif; }
-  .contact { display: flex; gap: 8px; flex-wrap: wrap; }
-  .contact span { color: #ccc; font-size: 6.5px; }
+  .co-name { color: #fff; font-size: 13px; font-weight: 700; letter-spacing: 0.5px; line-height: 1.3; font-family: Georgia, serif; }
+  .co-sub { color: #fff; font-size: 10.5px; font-weight: 600; margin: 2px 0 5px; font-family: Georgia, serif; }
+  .contact { display: flex; gap: 14px; flex-wrap: wrap; }
+  .contact span { color: #ccc; font-size: 9px; }
 
-  .info { padding: 5px 10px; border-bottom: 1.5px solid #ddd; }
-  .info-grid { display: flex; gap: 6px; }
+  .info { padding: 10px 20px; border-bottom: 1.5px solid #ddd; }
+  .info-grid { display: flex; gap: 12px; }
   .info-col { flex: 1; }
-  .info-row { display: flex; align-items: center; padding: 1.5px 0; gap: 3px; }
-  .info-row .lbl { font-weight: 600; font-size: 7.5px; color: #222; min-width: 55px; }
-  .info-row .col { font-weight: 600; color: #222; font-size: 7.5px; }
-  .info-row .val { font-size: 7.5px; color: #444; }
+  .info-row { display: flex; align-items: center; padding: 3px 0; gap: 6px; }
+  .info-row .lbl { font-weight: 600; font-size: 10.5px; color: #222; min-width: 85px; }
+  .info-row .col { font-weight: 600; color: #222; font-size: 10.5px; }
+  .info-row .val { font-size: 10.5px; color: #444; }
 
   .sh {
     background: ${NAVY}; display: flex; justify-content: space-between;
-    align-items: center; padding: 3px 10px;
+    align-items: center; padding: 6px 20px;
   }
-  .sh span { color: #fff; font-size: 7.5px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; }
+  .sh span { color: #fff; font-size: 10.5px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
 
   .row {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 2.5px 10px; border-bottom: 0.5px solid #ddd;
+    padding: 5px 20px; border-bottom: 0.5px solid #ddd;
   }
-  .row span { font-size: 8px; color: #333; }
-  .row .amt { font-weight: 500; min-width: 70px; text-align: right; }
+  .row span { font-size: 11px; color: #333; }
+  .row .amt { font-weight: 500; min-width: 100px; text-align: right; }
   .alt { background: #f6f6f6; }
 
   .total {
     background: ${NAVY}; display: flex; justify-content: space-between;
-    align-items: center; padding: 3px 10px;
+    align-items: center; padding: 6px 20px;
   }
-  .total span { color: #fff; font-size: 8px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; }
-  .total .amt { font-weight: 700; min-width: 70px; text-align: right; }
+  .total span { color: #fff; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+  .total .amt { font-weight: 700; min-width: 100px; text-align: right; }
 
   .epf-row {
     display: flex; border-bottom: 0.5px solid #ddd;
   }
-  .epf-row > div { flex: 1; display: flex; justify-content: space-between; padding: 2.5px 10px; }
+  .epf-row > div { flex: 1; display: flex; justify-content: space-between; padding: 5px 20px; }
   .epf-row > div:nth-child(2) { background: #f6f6f6; }
-  .epf-row span { font-size: 8px; }
-  .epf-row .amt { font-weight: 500; min-width: 60px; text-align: right; }
+  .epf-row span { font-size: 11px; }
+  .epf-row .amt { font-weight: 500; min-width: 90px; text-align: right; }
 
   .net {
     background: ${NAVY_DARK}; display: flex; justify-content: space-between;
-    align-items: center; padding: 5px 10px; border-top: 2px solid ${GOLD};
+    align-items: center; padding: 10px 20px; border-top: 3px solid ${GOLD};
   }
-  .net-lbl { color: #fff; font-size: 9.5px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
-  .net-amt { color: ${GOLD}; font-size: 9.5px; font-weight: 800; min-width: 70px; text-align: right; }
+  .net-lbl { color: #fff; font-size: 13px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
+  .net-amt { color: ${GOLD}; font-size: 13px; font-weight: 800; min-width: 100px; text-align: right; }
 
-  .footer { text-align: center; padding: 4px 10px; font-size: 6px; color: #999; border-top: 0.5px solid #ddd; }
+  .footer { text-align: center; padding: 8px 20px; font-size: 8.5px; color: #999; border-top: 0.5px solid #ddd; }
 </style>
 </head>
 <body>
@@ -161,7 +161,7 @@ export function renderPayslipHTML(emp: PayslipEmployee): string {
   </div>
 
   <div class="sh"><span>Earnings</span><span>Amount (Rs.)</span></div>
-  ${row('Basic Salary', emp.basicSalary)}
+  ${row('Basic Offer', emp.basicSalary)}
   ${row('Vehicle Allowance', emp.vehicleAllowance, true)}
   ${row('Fuel Allowance', emp.fuelAllowance)}
   ${row('General Allowance', emp.generalAllowance, true)}
@@ -169,7 +169,7 @@ export function renderPayslipHTML(emp: PayslipEmployee): string {
   ${row('Other Offers', emp.otherOffer, true)}
   ${emp.customEarningAmount > 0 ? row(emp.customEarningName || 'Custom Earning', emp.customEarningAmount) : ''}
 
-  <div class="total"><span>Gross Salary</span><span class="amt">${fmt(emp.grossSalary)}</span></div>
+  <div class="total"><span>Gross Offer</span><span class="amt">${fmt(emp.grossSalary)}</span></div>
 
   <div class="sh"><span>Deductions</span><span>Amount (Rs.)</span></div>
   ${row('EPF (8%)', emp.epfEmployee)}
@@ -186,7 +186,7 @@ export function renderPayslipHTML(emp: PayslipEmployee): string {
   </div>
 
   <div class="net">
-    <span class="net-lbl">Net Salary</span>
+    <span class="net-lbl">Net Offer</span>
     <span class="net-amt">${fmt(emp.netSalary)}</span>
   </div>
 

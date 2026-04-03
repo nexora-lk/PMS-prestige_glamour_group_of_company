@@ -60,12 +60,15 @@ export default function Payroll() {
   const [pdfCopies, setPdfCopies] = useState(1);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ── Preview PDF download state ─────────────────────────────
+  const [previewPdfDownloading, setPreviewPdfDownloading] = useState(false);
+
   // ── Print ref ─────────────────────────────────────────────
   const printRef = useRef<HTMLDivElement>(null);
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: `Payroll_${period}`,
-    pageStyle: '@page { size: A4 portrait; margin: 0; }',
+    pageStyle: '@page { size: A4 portrait; margin: 8mm 10mm; }',
   });
 
   // ── Data fetching ─────────────────────────────────────────
@@ -211,6 +214,70 @@ export default function Payroll() {
       showToast(err instanceof Error ? err.message : 'Failed to fetch paysheets', 'error');
     } finally {
       setFetching(false);
+    }
+  };
+
+  // ── Download preview paysheets as PDF ─────────────────────
+
+  const handlePreviewPdfDownload = async () => {
+    if (previewPaysheets.length === 0) return;
+    setPreviewPdfDownloading(true);
+
+    try {
+      if (previewPaysheets.length === 1 && previewPaysheets[0].id) {
+        // Single paysheet — use the single PDF endpoint
+        const res = await api.get(`/payslips/pdf/${previewPaysheets[0].id}`, { responseType: 'arraybuffer' });
+        const ps = previewPaysheets[0];
+        const filename = `PaySlip_${ps.codeNo}_${ps.payMonth}.pdf`;
+
+        if (window.electronAPI?.saveFile) {
+          const result = await window.electronAPI.saveFile({
+            data: Array.from(new Uint8Array(res.data as ArrayBuffer)),
+            defaultName: filename,
+          });
+          if (result.success) showToast(`Saved to ${result.filePath}`, 'success');
+          else if (result.error !== 'Cancelled') showToast(result.error || 'Save failed', 'error');
+        } else {
+          const url = window.URL.createObjectURL(new Blob([res.data as ArrayBuffer], { type: 'application/pdf' }));
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', filename);
+          document.body.appendChild(link);
+          link.click();
+          link.parentNode?.removeChild(link);
+          window.URL.revokeObjectURL(url);
+          showToast('PDF download started', 'success');
+        }
+      } else {
+        // Multiple paysheets — use bulk generation for selected code numbers
+        const codeNos = previewPaysheets.map((p) => p.codeNo);
+        const res = await api.post<{ jobId: string; total: number; skipped: string[] }>('/payslips/generate', {
+          payMonth: period,
+          codeNos,
+          concurrency: 5,
+        });
+
+        if (res.data.skipped.length > 0) {
+          showToast(`Skipped (basic offer is 0): ${res.data.skipped.join(', ')}`, 'error');
+        }
+        showToast(`Generating ${res.data.total} PDFs... Go to "Bulk PDF Export" tab to download when ready.`, 'info');
+        setJob({
+          id: res.data.jobId,
+          status: 'processing',
+          total: res.data.total,
+          completed: 0,
+          failed: 0,
+          progress: 0,
+          error: null,
+        });
+        setPdfMonth(period);
+        setActiveTab('bulk-pdf');
+        pollProgress(res.data.jobId);
+      }
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'PDF download failed', 'error');
+    } finally {
+      setPreviewPdfDownloading(false);
     }
   };
 
@@ -638,6 +705,14 @@ export default function Payroll() {
                       A4 (2/page)
                     </button>
                   </div>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={handlePreviewPdfDownload}
+                    disabled={previewPdfDownloading}
+                  >
+                    <FiDownload size={14} style={{ marginRight: 6 }} />
+                    {previewPdfDownloading ? 'Generating...' : 'Download PDF'}
+                  </button>
                   <button className="btn btn-secondary btn-sm" onClick={() => handlePrint()}>
                     <FiPrinter size={14} style={{ marginRight: 6 }} />
                     Print

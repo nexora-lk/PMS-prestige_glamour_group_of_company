@@ -133,7 +133,7 @@ export function renderDotMatrixPayslip(emp: PayslipEmployee, useEscP: boolean): 
 
   // Row-by-row: earnings on left half, deductions on right half
   const earningsRows: [string, number][] = [
-    ['Basic Salary', emp.basicSalary],
+    ['Basic Offer', emp.basicSalary],
     ['Vehicle Allowance', emp.vehicleAllowance],
     ['Fuel Allowance', emp.fuelAllowance],
     ['General Allowance', emp.generalAllowance],
@@ -195,9 +195,9 @@ export function renderDotMatrixPayslip(emp: PayslipEmployee, useEscP: boolean): 
   lines.push(twoColumn(' EPF Employer (12%): ', currency(emp.epfEmployer), ' ETF (3%)       : ', currency(emp.etf)));
   lines.push('');
 
-  // ── Gross / Net Salary ────────────────────────────────────
+  // ── Gross / Net Offer ─────────────────────────────────────
   lines.push(doubleLine());
-  lines.push(labelValue(' GROSS SALARY  : ' + currency(emp.grossSalary), 'NET SALARY  : ' + currency(emp.netSalary)));
+  lines.push(labelValue(' GROSS OFFER   : ' + currency(emp.grossSalary), 'NET OFFER   : ' + currency(emp.netSalary)));
   lines.push(doubleLine());
   lines.push('');
 

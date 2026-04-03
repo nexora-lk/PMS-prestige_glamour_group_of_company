@@ -6,6 +6,7 @@ import { MonthlyPaysheetForm } from '../components/MonthlyPaysheetForm';
 import { PaysheetList } from '../components/PaysheetList';
 import PaySheet from '../components/PaySheet';
 import { userService } from '../services/userService';
+import api from '../services/api';
 
 export default function MonthlyPaysheets() {
   const [showForm, setShowForm] = useState(false);
@@ -23,6 +24,7 @@ export default function MonthlyPaysheets() {
     documentTitle: previewPaysheet
       ? `PaySheet_${previewPaysheet.codeNo}_${previewPaysheet.payMonth}`
       : 'PaySheet',
+    pageStyle: '@page { size: A4 portrait; margin: 8mm 10mm; }',
   });
 
   const handleEdit = (paysheet: MonthlyPaysheet) => {
@@ -64,6 +66,43 @@ export default function MonthlyPaysheets() {
     setTimeout(() => {
       document.getElementById('paysheet-preview')?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
+  };
+
+  const [pdfDownloading, setPdfDownloading] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (!previewPaysheet?.id) return;
+    setPdfDownloading(true);
+    try {
+      const res = await api.get(`/payslips/pdf/${previewPaysheet.id}`, { responseType: 'arraybuffer' });
+      const filename = `PaySlip_${previewPaysheet.codeNo}_${previewPaysheet.payMonth}.pdf`;
+
+      if (window.electronAPI?.saveFile) {
+        const result = await window.electronAPI.saveFile({
+          data: Array.from(new Uint8Array(res.data as ArrayBuffer)),
+          defaultName: filename,
+        });
+        if (result.success) {
+          showToast(`Saved to ${result.filePath}`, 'success');
+        } else if (result.error !== 'Cancelled') {
+          showToast(result.error || 'Save failed', 'error');
+        }
+      } else {
+        const url = window.URL.createObjectURL(new Blob([res.data as ArrayBuffer], { type: 'application/pdf' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        showToast('PDF download started', 'success');
+      }
+    } catch {
+      showToast('PDF download failed', 'error');
+    } finally {
+      setPdfDownloading(false);
+    }
   };
 
   const handleClosePreview = () => {
@@ -140,10 +179,17 @@ export default function MonthlyPaysheets() {
           >
             <h2 style={{ margin: 0 }}>PaySheet Preview - {previewPaysheet.codeNo}</h2>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-primary" onClick={() => handlePrint()}>
+              <button
+                className="btn btn-primary"
+                onClick={handleDownloadPdf}
+                disabled={pdfDownloading}
+              >
+                {pdfDownloading ? 'Generating...' : 'Download PDF'}
+              </button>
+              <button className="btn btn-secondary" onClick={() => handlePrint()}>
                 Print
               </button>
-              <button className="btn btn-secondary" onClick={handleClosePreview}>
+              <button className="btn btn-ghost" onClick={handleClosePreview}>
                 Close
               </button>
             </div>
@@ -157,8 +203,8 @@ export default function MonthlyPaysheets() {
               padding: 24,
             }}
           >
-            <div ref={printRef} className="print-area">
-              <PaySheet paysheet={previewPaysheet} employee={previewEmployee} />
+            <div ref={printRef} className="print-area print-mode-a4">
+              <PaySheet paysheet={previewPaysheet} employee={previewEmployee} size="a4" />
             </div>
           </div>
         </div>

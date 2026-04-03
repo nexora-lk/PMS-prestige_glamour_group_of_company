@@ -1668,7 +1668,7 @@ body {
 /* Default print page size — overridden by react-to-print pageStyle */
 @page {
   size: A4 portrait;
-  margin: 0;
+  margin: 8mm 10mm;
 }
 
 /* ═══ Responsive ═══ */

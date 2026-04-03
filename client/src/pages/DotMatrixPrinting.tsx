@@ -319,7 +319,7 @@ Designation : ${pad(ps.role || employee?.designation || '', 30)} Date      :    
 
  EARNINGS                                DEDUCTIONS
 --------------------------------------------------------------------------------
- Basic Salary${formatNumber(basicSalary)}   EPF (Employee 8%)${formatNumber(epfEmployee)}
+ Basic Offer${formatNumber(basicSalary)}    EPF (Employee 8%)${formatNumber(epfEmployee)}
  Vehicle Allowance${formatNumber(vehicleAllowance)}   No-Pay Deduction${formatNumber(nopayDeduction)}
  Fuel Allowance${formatNumber(fuelAllowance)}   Late Deduction${formatNumber(lateDeduction)}
  General Allowance${formatNumber(generalAllowance)}   Welfare${formatNumber(welfare)}
@@ -332,7 +332,7 @@ Designation : ${pad(ps.role || employee?.designation || '', 30)} Date      :    
  EPF Employer (12%):${formatNumber(epfEmployer)}   ETF (3%)       :${formatNumber(etf)}
 
 ================================================================================
- GROSS SALARY  : ${grossSalary.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${' '.repeat(30)}NET SALARY  : ${netSalary.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+ GROSS OFFER   : ${grossSalary.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${' '.repeat(30)}NET OFFER   : ${netSalary.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
 ================================================================================
 
            *** This is a system-generated payslip ***
@@ -777,7 +777,7 @@ Designation : General Manager           Date      :       30/03/2026
 
  EARNINGS                                DEDUCTIONS
 --------------------------------------------------------------------------------
- Basic Salary               275,000.00   EPF (Employee 8%)        22,000.00
+ Basic Offer                275,000.00   EPF (Employee 8%)        22,000.00
  Vehicle Allowance          200,000.00   No-Pay Deduction              0.00
  Fuel Allowance             100,000.00   Late Deduction                0.00
  General Allowance                0.00   Welfare                       0.00
@@ -790,7 +790,7 @@ Designation : General Manager           Date      :       30/03/2026
  EPF Employer (12%):         33,000.00   ETF (3%)       :           8,250.00
 
 ================================================================================
- GROSS SALARY  : 575,000.00                    NET SALARY  : 553,000.00
+ GROSS OFFER   : 575,000.00                    NET OFFER   : 553,000.00
 ================================================================================
 
            *** This is a system-generated payslip ***

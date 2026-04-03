@@ -27,10 +27,10 @@ async function renderPDF(
 
   await page.pdf({
     path: filePath,
-    width: '148mm',
-    height: '210mm',
+    width: '210mm',
+    height: '297mm',
     printBackground: true,
-    margin: { top: '0', bottom: '0', left: '0', right: '0' },
+    margin: { top: '8mm', bottom: '8mm', left: '10mm', right: '10mm' },
   });
 
   return filePath;
@@ -57,7 +57,7 @@ async function processBatch(task: WorkerTask): Promise<void> {
 
   try {
     const page = await browser.newPage();
-    await page.setViewport({ width: 560, height: 794 });
+    await page.setViewport({ width: 794, height: 1123 });
 
     for (const employee of batch) {
       let lastError: Error | null = null;

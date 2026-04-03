@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { generatePayslipsSchema, printPayslipsSchema } from '../validation/payslip';
-import { startPayslipGeneration, getJob, printPayslips } from '../services/payslipService';
+import { startPayslipGeneration, getJob, printPayslips, generateSinglePdf } from '../services/payslipService';
 import logger from '../utils/logger';
 
 const router = Router();
@@ -101,6 +101,23 @@ router.post('/print', async (req: Request, res: Response): Promise<void> => {
     const message = error instanceof Error ? error.message : 'Print failed';
     logger.error('PDF print failed', { error: message });
     res.status(500).json({ error: message });
+  }
+});
+
+// GET /api/payslips/pdf/:paysheetId — Download a single paysheet as A4 PDF
+router.get('/pdf/:paysheetId', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const pdfBuffer = await generateSinglePdf(req.params.paysheetId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="payslip_${req.params.paysheetId}.pdf"`,
+      'Content-Length': String(pdfBuffer.length),
+    });
+    res.send(pdfBuffer);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'PDF generation failed';
+    logger.error('Single PDF generation failed', { error: message, paysheetId: req.params.paysheetId });
+    res.status(error instanceof Error && error.message === 'Paysheet not found' ? 404 : 500).json({ error: message });
   }
 });
 

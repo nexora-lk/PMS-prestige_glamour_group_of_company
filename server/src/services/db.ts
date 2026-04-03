@@ -7,7 +7,7 @@ let sql: NeonQueryFunction<false, false> | null = null;
 
 export function getDb(): NeonQueryFunction<false, false> {
   if (!sql) {
-    const dbUrl = process.env.DATABASE_URL;
+    const dbUrl = 'postgresql://neondb_owner:npg_KBqY7NVdjE4x@ep-bitter-voice-an6xlilf.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require';
     if (!dbUrl) {
       throw new Error('DATABASE_URL environment variable is not set. A database connection is required.');
     }

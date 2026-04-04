@@ -39,7 +39,7 @@ export default function Export() {
             <FiUsers size={40} />
           </div>
           <h3>Employees Data</h3>
-          <p>Download a complete Excel (.xlsx) report of all employee profiles, bank details and salary information.</p>
+          <p>Download a complete Excel (.xlsx) report of all employee profiles, bank details and offer information.</p>
           <button
             className="btn btn-primary btn-full"
             onClick={handleExportUsers}

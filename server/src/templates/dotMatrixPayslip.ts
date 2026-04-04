@@ -134,11 +134,11 @@ export function renderDotMatrixPayslip(emp: PayslipEmployee, useEscP: boolean): 
   // Row-by-row: earnings on left half, deductions on right half
   const earningsRows: [string, number][] = [
     ['Basic Offer', emp.basicSalary],
-    ['Vehicle Allowance', emp.vehicleAllowance],
-    ['Fuel Allowance', emp.fuelAllowance],
-    ['General Allowance', emp.generalAllowance],
+    ['Vehicle Offer', emp.vehicleAllowance],
+    ['Fuel Offer', emp.fuelAllowance],
+    ['General Offer', emp.generalAllowance],
     ['ORC', emp.orc],
-    ['Other Allowance', emp.otherOffer],
+    ['Other Offer', emp.otherOffer],
   ];
   if (emp.customEarningAmount > 0) {
     earningsRows.push([emp.customEarningName || 'Custom Earning', emp.customEarningAmount]);

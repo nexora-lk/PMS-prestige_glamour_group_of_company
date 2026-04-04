@@ -181,7 +181,7 @@ export default function Users() {
                   <th>Contact</th>
                   <th>Branch</th>
                   <th>Role</th>
-                  <th>Salary</th>
+                  <th>Offer</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>

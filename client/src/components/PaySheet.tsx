@@ -149,13 +149,13 @@ export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetPr
       <SectionHdr left="EARNINGS" right="AMOUNT (Rs.)" ds={ds} />
       <DataItem label="Basic Offers" amount={earnings.basicSalary} ds={ds} />
       {earnings.vehicleAllowance > 0 && (
-        <DataItem label="Vehicle Allowance" amount={earnings.vehicleAllowance} ds={ds} alt />
+        <DataItem label="Vehicle Offer" amount={earnings.vehicleAllowance} ds={ds} alt />
       )}
       {earnings.fuelAllowance > 0 && (
-        <DataItem label="Fuel Allowance" amount={earnings.fuelAllowance} ds={ds} />
+        <DataItem label="Fuel Offer" amount={earnings.fuelAllowance} ds={ds} />
       )}
       {earnings.generalAllowance > 0 && (
-        <DataItem label="General Allowance" amount={earnings.generalAllowance} ds={ds} alt />
+        <DataItem label="General Offer" amount={earnings.generalAllowance} ds={ds} alt />
       )}
       {earnings.orc > 0 && <DataItem label="ORC" amount={earnings.orc} ds={ds} />}
       {earnings.otherOffers > 0 && (

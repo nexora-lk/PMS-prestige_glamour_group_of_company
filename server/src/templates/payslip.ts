@@ -162,9 +162,9 @@ export function renderPayslipHTML(emp: PayslipEmployee): string {
 
   <div class="sh"><span>Earnings</span><span>Amount (Rs.)</span></div>
   ${row('Basic Offer', emp.basicSalary)}
-  ${row('Vehicle Allowance', emp.vehicleAllowance, true)}
-  ${row('Fuel Allowance', emp.fuelAllowance)}
-  ${row('General Allowance', emp.generalAllowance, true)}
+  ${row('Vehicle Offer', emp.vehicleAllowance, true)}
+  ${row('Fuel Offer', emp.fuelAllowance)}
+  ${row('General Offer', emp.generalAllowance, true)}
   ${row('ORC', emp.orc)}
   ${row('Other Offers', emp.otherOffer, true)}
   ${emp.customEarningAmount > 0 ? row(emp.customEarningName || 'Custom Earning', emp.customEarningAmount) : ''}

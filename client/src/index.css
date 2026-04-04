@@ -802,6 +802,8 @@ body {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: all var(--transition-base);
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .card:hover {
@@ -912,10 +914,31 @@ body {
 /* ═══ Table ═══ */
 .table-wrapper {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  min-width: 0;
+  max-width: 100%;
 }
+
+/* Visible scrollbar for table wrapper */
+.table-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+.table-wrapper::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: var(--neutral-600);
+  border-radius: 4px;
+}
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--neutral-500);
+}
+
 
 .data-table {
   width: 100%;
+  min-width: 700px;
   border-collapse: collapse;
 }
 
@@ -942,7 +965,6 @@ body {
   padding: 14px 16px;
   font-size: 14px;
   border-bottom: 1px solid var(--border);
-  white-space: nowrap;
 }
 
 .data-table tr {
@@ -975,16 +997,25 @@ body {
 
 .data-table .user-name {
   font-weight: 600;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .data-table .user-email {
   font-size: 12px;
   color: var(--text-muted);
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .data-table .actions {
   display: flex;
   gap: 4px;
+  white-space: nowrap;
 }
 
 /* ═══ Badges ═══ */
@@ -1102,9 +1133,11 @@ body {
 .pagination {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 16px;
   padding: 16px 24px;
   border-top: 1px solid var(--border);
+  flex-wrap: wrap;
 }
 
 .pagination-info {
@@ -1279,6 +1312,7 @@ body {
   font-size: 14px;
   font-weight: 600;
   animation: slideDown 0.3s ease-out;
+  pointer-events: none;
 }
 .network-bar--offline {
   background: var(--danger);

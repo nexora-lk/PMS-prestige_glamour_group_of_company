@@ -158,8 +158,8 @@ export function PaysheetList({ onEdit, onView, onDelete, refreshTrigger }: Paysh
                 <th>Role</th>
                 <th>Months</th>
                 <th>Achievement %</th>
-                <th>Gross Salary</th>
-                <th>Net Salary</th>
+                <th>Gross Offer</th>
+                <th>Net Offer</th>
                 <th>Actions</th>
               </tr>
             </thead>

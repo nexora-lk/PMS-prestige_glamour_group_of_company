@@ -320,11 +320,11 @@ Designation : ${pad(ps.role || employee?.designation || '', 30)} Date      :    
  EARNINGS                                DEDUCTIONS
 --------------------------------------------------------------------------------
  Basic Offer${formatNumber(basicSalary)}    EPF (Employee 8%)${formatNumber(epfEmployee)}
- Vehicle Allowance${formatNumber(vehicleAllowance)}   No-Pay Deduction${formatNumber(nopayDeduction)}
- Fuel Allowance${formatNumber(fuelAllowance)}   Late Deduction${formatNumber(lateDeduction)}
- General Allowance${formatNumber(generalAllowance)}   Welfare${formatNumber(welfare)}
+ Vehicle Offer${formatNumber(vehicleAllowance)}      No-Pay Deduction${formatNumber(nopayDeduction)}
+ Fuel Offer${formatNumber(fuelAllowance)}         Late Deduction${formatNumber(lateDeduction)}
+ General Offer${formatNumber(generalAllowance)}      Welfare${formatNumber(welfare)}
  ORC${formatNumber(orc)}
- Other Allowance${formatNumber(otherOffer)}
+ Other Offer${formatNumber(otherOffer)}
 --------------------------------------------------------------------------------
  TOTAL EARNINGS${formatNumber(totalEarnings)}   TOTAL DEDUCTIONS${formatNumber(totalDeductions)}
 --------------------------------------------------------------------------------
@@ -778,11 +778,11 @@ Designation : General Manager           Date      :       30/03/2026
  EARNINGS                                DEDUCTIONS
 --------------------------------------------------------------------------------
  Basic Offer                275,000.00   EPF (Employee 8%)        22,000.00
- Vehicle Allowance          200,000.00   No-Pay Deduction              0.00
- Fuel Allowance             100,000.00   Late Deduction                0.00
- General Allowance                0.00   Welfare                       0.00
+ Vehicle Offer              200,000.00   No-Pay Deduction              0.00
+ Fuel Offer                 100,000.00   Late Deduction                0.00
+ General Offer                    0.00   Welfare                       0.00
  ORC                              0.00
- Other Allowance                  0.00
+ Other Offer                      0.00
 --------------------------------------------------------------------------------
  TOTAL EARNINGS             575,000.00   TOTAL DEDUCTIONS          22,000.00
 --------------------------------------------------------------------------------

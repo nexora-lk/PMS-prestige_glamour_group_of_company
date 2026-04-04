@@ -350,7 +350,7 @@ export function MonthlyPaysheetForm({
 
       <div style={{ borderTop: '1px solid var(--neutral-700)', paddingTop: 16, marginTop: 8 }}>
         <h3 style={{ marginBottom: 16, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
-          Salary Components
+          Offer Components
         </h3>
         <div className="form-row">
           <div className="form-group">
@@ -370,7 +370,7 @@ export function MonthlyPaysheetForm({
           </div>
 
           <div className="form-group">
-            <label>Allowance</label>
+            <label>Offer</label>
             <input
               type="text"
               inputMode='numeric'

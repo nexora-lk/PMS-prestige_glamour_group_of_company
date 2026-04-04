@@ -290,7 +290,7 @@ export default function UserForm() {
           </h3>
           <div className="form-row">
             <div className="form-group">
-              <label>Basic Salary (Monthly) *</label>
+              <label>Basic Offer (Monthly) *</label>
               <input
                 required
                 type="text"
@@ -302,7 +302,7 @@ export default function UserForm() {
               />
             </div>
             <div className="form-group">
-              <label>Total Allowances (Monthly)</label>
+              <label>Total Offers (Monthly)</label>
               <input
                 type="text"
                 inputMode='numeric'

@@ -244,7 +244,7 @@ router.post('/bulk-create', async (req: Request, res: Response): Promise<void> =
 router.get('/month/:payMonth', async (req: Request, res: Response): Promise<void> => {
   try {
     let paysheets = await dbGetPaysheetsByMonth(req.params.payMonth);
-    const { search, status } = req.query;
+    const { search, status, branch, role } = req.query;
 
     if (status && typeof status === 'string' && status !== 'all') {
       paysheets = paysheets.filter((p) => (p.status || 'active') === status);
@@ -257,6 +257,19 @@ router.get('/month/:payMonth', async (req: Request, res: Response): Promise<void
       paysheets = paysheets.filter(
         (p) => p.codeNo.toLowerCase().includes(q) || p.role.toLowerCase().includes(q)
       );
+    }
+
+    if (role && typeof role === 'string') {
+      paysheets = paysheets.filter((p) => p.role === role);
+    }
+
+    if (branch && typeof branch === 'string') {
+      const users = await dbGetAllUsers();
+      const userMap = new Map(users.map((u) => [u.codeNo, u]));
+      paysheets = paysheets.filter((p) => {
+        const user = userMap.get(p.codeNo);
+        return user?.branch === branch;
+      });
     }
 
     paysheets.sort((a, b) => a.codeNo.localeCompare(b.codeNo));

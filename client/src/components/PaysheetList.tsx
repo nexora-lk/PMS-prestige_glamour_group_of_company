@@ -4,6 +4,10 @@ import { paysheetService } from '../services/paysheetService';
 import { formatCurrency } from '../utils/format';
 import type { MonthlyPaysheet } from '../types';
 import { showToast } from './Toast';
+import { BRANCHES } from '../constants/branches';
+import { ROLE_CODE_TO_NAME } from '../constants/roleSalaries';
+
+const ALL_ROLE_CODES = ['GM', 'AGM', 'PH', 'DPH', 'SRM', 'RM', 'BM', 'BDE', 'CCI', 'HR_FIN_HEAD', 'MANAGER_ADMIN', 'SR_EXEC_HR', 'SR_EXEC_FINANCE', 'ASST_HR_EXEC', 'ASST_FIN_EXEC', 'MICRO_FIN_MANAGER', 'MICRO_FIN_EXEC'];
 
 interface PaysheetListProps {
   onEdit?: (paysheet: MonthlyPaysheet) => void;
@@ -17,6 +21,8 @@ export function PaysheetList({ onEdit, onView, onDelete, refreshTrigger }: Paysh
   const [loading, setLoading] = useState(false);
   const [filterMonth, setFilterMonth] = useState<string>(new Date().toISOString().slice(0, 7));
   const [filterStatus, setFilterStatus] = useState<string>('active');
+  const [filterBranch, setFilterBranch] = useState<string>('');
+  const [filterRole, setFilterRole] = useState<string>('');
   const [searchText, setSearchText] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -29,6 +35,8 @@ export function PaysheetList({ onEdit, onView, onDelete, refreshTrigger }: Paysh
       const res = await paysheetService.getMonthPaysheets(filterMonth, {
         search: searchText || undefined,
         status: filterStatus || 'all',
+        branch: filterBranch || undefined,
+        role: filterRole || undefined,
         page,
         limit,
       });
@@ -40,7 +48,7 @@ export function PaysheetList({ onEdit, onView, onDelete, refreshTrigger }: Paysh
     } finally {
       setLoading(false);
     }
-  }, [filterMonth, filterStatus, searchText, page]);
+  }, [filterMonth, filterStatus, filterBranch, filterRole, searchText, page]);
 
   useEffect(() => {
     fetchPaysheets();
@@ -58,6 +66,16 @@ export function PaysheetList({ onEdit, onView, onDelete, refreshTrigger }: Paysh
 
   const handleStatusChange = (value: string) => {
     setFilterStatus(value);
+    setPage(1);
+  };
+
+  const handleBranchChange = (value: string) => {
+    setFilterBranch(value);
+    setPage(1);
+  };
+
+  const handleRoleChange = (value: string) => {
+    setFilterRole(value);
     setPage(1);
   };
 
@@ -121,6 +139,26 @@ export function PaysheetList({ onEdit, onView, onDelete, refreshTrigger }: Paysh
           onChange={(e) => handleMonthChange(e.target.value)}
           style={{ width: 'auto' }}
         />
+        <select
+          className="filter-select"
+          value={filterBranch}
+          onChange={(e) => handleBranchChange(e.target.value)}
+        >
+          <option value="">All Branches</option>
+          {BRANCHES.map((b) => (
+            <option key={b} value={b}>{b}</option>
+          ))}
+        </select>
+        <select
+          className="filter-select"
+          value={filterRole}
+          onChange={(e) => handleRoleChange(e.target.value)}
+        >
+          <option value="">All Roles</option>
+          {ALL_ROLE_CODES.map((code) => (
+            <option key={code} value={code}>{ROLE_CODE_TO_NAME[code] || code}</option>
+          ))}
+        </select>
         <select
           className="filter-select"
           value={filterStatus}

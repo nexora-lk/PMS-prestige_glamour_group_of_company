@@ -238,7 +238,7 @@ export function calculateAchieveSalary(achPct: number, basicSalary: number): num
 export function calculateVehicleAllowance(achPct: number, vehicleAmount: number): number {
   if (achPct > 0.81) return vehicleAmount;
   if (achPct > 0.66) return vehicleAmount * 0.75;
-  if (achPct > 0.51) return vehicleAmount;
+  if (achPct > 0.51) return vehicleAmount * 0.5;
   return 0;
 }
 
@@ -246,7 +246,7 @@ export function calculateVehicleAllowance(achPct: number, vehicleAmount: number)
 export function calculateFuelAllowance(achPct: number, fuelAmount: number): number {
   if (achPct > 0.81) return fuelAmount;
   if (achPct > 0.66) return fuelAmount * 0.75;
-  if (achPct > 0.51) return fuelAmount;
+  if (achPct > 0.51) return fuelAmount * 0.5;
   return 0;
 }
 

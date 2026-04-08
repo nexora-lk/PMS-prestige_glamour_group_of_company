@@ -81,7 +81,7 @@ export const paysheetService = {
 
   async getMonthPaysheets(
     payMonth: string,
-    params: { search?: string; status?: string; page?: number; limit?: number } = {}
+    params: { search?: string; status?: string; branch?: string; role?: string; page?: number; limit?: number } = {}
   ): Promise<PaysheetResponse & { month: string }> {
     try {
       const response = await api.get(`/paysheets/month/${payMonth}`, { params });

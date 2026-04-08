@@ -24,5 +24,7 @@ async function downloadExcel(endpoint: string, filenamePrefix: string): Promise<
 
 export const exportService = {
   downloadUsersExcel: () => downloadExcel('/export/users-excel', 'employees'),
-  downloadPaysheetsExcel: () => downloadExcel('/export/paysheets-excel', 'monthly-paysheets'),
+  // downloadPaysheetsExcel: () => downloadExcel('/export/paysheets-excel', 'monthly-paysheets'),
+  downloadPaysheetsByRoleExcel: () => downloadExcel('/export/paysheets-excel-by-role', 'monthly-paysheets-by-role'),
+  downloadPaysheetsByBranchExcel: () => downloadExcel('/export/paysheets-excel-by-branch', 'monthly-paysheets-by-branch'),
 };

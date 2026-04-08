@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import archiver from 'archiver';
 import { dbGetAllUsers, dbGetAllPaysheets, dbGetPaysheetsByMonth } from '../services/dbStore';
-import { exportUsersToExcel, exportMonthlyPaysheetsToExcel } from '../utils/excelExport';
+import { exportUsersToExcel, exportMonthlyPaysheetsToExcel, exportMonthlyPaysheetsByBranchToExcel, exportMonthlyPaysheetsByRoleToExcel } from '../utils/excelExport';
 
 const router = Router();
 
@@ -47,6 +47,50 @@ router.get('/paysheets-excel', async (_req: Request, res: Response): Promise<voi
   } catch (error) {
     console.error('Export error:', error);
     res.status(500).json({ error: 'Failed to export monthly paysheets.' });
+  }
+});
+
+// GET /api/export/paysheets-excel-by-role — Export monthly paysheets to Excel organized by Role
+router.get('/paysheets-excel-by-role', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const records = await dbGetAllPaysheets();
+    if (records.length === 0) {
+      res.status(400).json({ error: 'No monthly paysheet data to export.' });
+      return;
+    }
+
+    const users = await dbGetAllUsers();
+    const filePath = await exportMonthlyPaysheetsByRoleToExcel(records, users);
+    res.download(filePath, path.basename(filePath), (err) => {
+      if (err) {
+        console.error('Download error:', err);
+      }
+    });
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({ error: 'Failed to export monthly paysheets by role.' });
+  }
+});
+
+// GET /api/export/paysheets-excel-by-branch — Export monthly paysheets to Excel organized by Branch
+router.get('/paysheets-excel-by-branch', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const records = await dbGetAllPaysheets();
+    if (records.length === 0) {
+      res.status(400).json({ error: 'No monthly paysheet data to export.' });
+      return;
+    }
+
+    const users = await dbGetAllUsers();
+    const filePath = await exportMonthlyPaysheetsByBranchToExcel(records, users);
+    res.download(filePath, path.basename(filePath), (err) => {
+      if (err) {
+        console.error('Download error:', err);
+      }
+    });
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({ error: 'Failed to export monthly paysheets by branch.' });
   }
 });
 

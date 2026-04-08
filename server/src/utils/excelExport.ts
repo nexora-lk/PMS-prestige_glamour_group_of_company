@@ -102,10 +102,12 @@ export async function exportMonthlyPaysheetsToExcel(
   const ROLE_SECTION_COLOR = 'FF059669';   // Green
   const GOLD_COLOR = 'FFc8a415';           // Gold
 
-  const dataColumns = [
-    { header: 'Code No', key: 'codeNo', width: 14 },
-    { header: 'Employee Name', key: 'employeeName', width: 24 },
-    { header: 'Role', key: 'role', width: 18 },
+   const dataColumns = [
+     { header: 'Code No', key: 'codeNo', width: 14 },
+     { header: 'Employee Name', key: 'employeeName', width: 24 },
+     { header: 'Bank Name', key: 'bankName', width: 16 },
+     { header: 'Bank Account', key: 'bankAccount', width: 18 },
+     { header: 'Role', key: 'role', width: 18 },
     { header: 'Basic Offer', key: 'basicSalary', width: 14 },
     { header: 'Achieve', key: 'achieve', width: 14 },
     { header: 'Offer', key: 'allowance', width: 14 },
@@ -199,16 +201,21 @@ export async function exportMonthlyPaysheetsToExcel(
       let roleGross = 0;
       let roleNet = 0;
 
-      for (const rec of roleRecords) {
-        const user = userMap.get(rec.codeNo);
-        const empName = user ? `${user.firstName} ${user.lastName}` : rec.codeNo;
-        const row = sheet.getRow(currentRow);
+       for (const rec of roleRecords) {
+         const user = userMap.get(rec.codeNo);
+         const empName = user ? `${user.firstName} ${user.lastName}` : rec.codeNo;
+         const row = sheet.getRow(currentRow);
 
-        const values: Record<string, unknown> = { ...rec, employeeName: empName };
-        dataColumns.forEach((col, idx) => {
-          row.getCell(idx + 1).value = values[col.key] as string | number;
-          row.getCell(idx + 1).alignment = { vertical: 'middle' };
-        });
+         const values: Record<string, unknown> = {
+           ...rec,
+           employeeName: empName,
+           bankName: user?.bankName || '',
+           bankAccount: user?.bankAccount || ''
+         };
+         dataColumns.forEach((col, idx) => {
+           row.getCell(idx + 1).value = values[col.key] as string | number;
+           row.getCell(idx + 1).alignment = { vertical: 'middle' };
+         });
 
         roleGross += rec.grossSalary || 0;
         roleNet += rec.netSalary || 0;
@@ -273,3 +280,209 @@ export async function exportMonthlyPaysheetsToExcel(
   await workbook.xlsx.writeFile(filePath);
   return filePath;
 }
+
+export async function exportMonthlyPaysheetsByBranchToExcel(
+  records: MonthlyPaysheetDTO[],
+  users?: User[]
+): Promise<string> {
+  ensureExportsDir();
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Payroll System';
+  workbook.created = new Date();
+
+  // Build user lookup
+  const userMap = new Map<string, User>();
+  if (users) {
+    users.forEach((u) => userMap.set(u.codeNo, u));
+  }
+
+  // Group by payMonth → branch → data
+  const byMonth = new Map<string, MonthlyPaysheetDTO[]>();
+  for (const rec of records) {
+    if (!byMonth.has(rec.payMonth)) byMonth.set(rec.payMonth, []);
+    byMonth.get(rec.payMonth)!.push(rec);
+  }
+
+  const sortedMonths = [...byMonth.keys()].sort();
+
+  const HEADER_COLOR = 'FF1b1464';
+  const BRANCH_SECTION_COLOR = 'FF7c3aed';  // Purple
+  const GOLD_COLOR = 'FFc8a415';
+
+  const dataColumns = [
+    { header: 'Code No', key: 'codeNo', width: 14 },
+    { header: 'Employee Name', key: 'employeeName', width: 24 },
+    { header: 'Bank Name', key: 'bankName', width: 16 },
+    { header: 'Bank Account', key: 'bankAccount', width: 18 },
+    { header: 'Role', key: 'role', width: 18 },
+    { header: 'Basic Offer', key: 'basicSalary', width: 14 },
+    { header: 'Achieve', key: 'achieve', width: 14 },
+    { header: 'Offer', key: 'allowance', width: 14 },
+    { header: 'Vehicle Offer', key: 'vehicleAllowance', width: 14 },
+    { header: 'Fuel Offer', key: 'fuelAllowance', width: 14 },
+    { header: 'General Offer', key: 'generalAllowance', width: 14 },
+    { header: 'ORC', key: 'orc', width: 12 },
+    { header: 'Other Offer', key: 'otherOffer', width: 14 },
+    { header: 'Custom Earning', key: 'customEarningAmount', width: 14 },
+    { header: 'Gross Offer', key: 'grossSalary', width: 14 },
+    { header: 'No Pay Days', key: 'nopay', width: 10 },
+    { header: 'No Pay Ded.', key: 'nopayDeduction', width: 14 },
+    { header: 'Late Ded.', key: 'lateDeduction', width: 14 },
+    { header: 'EPF 8%', key: 'epfEmployee', width: 14 },
+    { header: 'Welfare', key: 'welfare', width: 12 },
+    { header: 'Custom Ded.', key: 'customDeductionAmount', width: 14 },
+    { header: 'Net Offer', key: 'netSalary', width: 14 },
+    { header: 'EPF 12%', key: 'epfEmployer', width: 14 },
+    { header: 'ETF 3%', key: 'etf', width: 12 },
+  ];
+
+  for (const month of sortedMonths) {
+    const monthRecords = byMonth.get(month)!;
+
+    const [yr, mo] = month.split('-');
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const sheetLabel = `${monthNames[parseInt(mo, 10) - 1] || mo} ${yr}`;
+    const safeName = sheetLabel.replace(/[\\/*?[\]:]/g, '').slice(0, 31);
+    const sheet = workbook.addWorksheet(safeName);
+
+    // Group by branch
+    const byBranch = new Map<string, MonthlyPaysheetDTO[]>();
+    for (const rec of monthRecords) {
+      const user = userMap.get(rec.codeNo);
+      const branch = user?.branch || 'Unknown';
+      if (!byBranch.has(branch)) byBranch.set(branch, []);
+      byBranch.get(branch)!.push(rec);
+    }
+    const sortedBranches = [...byBranch.keys()].sort();
+
+    sheet.columns = dataColumns.map((c) => ({ key: c.key, width: c.width }));
+
+    let currentRow = 1;
+
+    const titleRow = sheet.getRow(currentRow);
+    titleRow.getCell(1).value = `Monthly Paysheets by Branch — ${sheetLabel}`;
+    titleRow.getCell(1).font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+    titleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_COLOR } };
+    titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.mergeCells(currentRow, 1, currentRow, dataColumns.length);
+    titleRow.height = 28;
+    currentRow += 1;
+
+    let monthGross = 0;
+    let monthNet = 0;
+    let monthEpfEr = 0;
+    let monthEtf = 0;
+
+    for (const branch of sortedBranches) {
+      const branchRecords = byBranch.get(branch)!;
+
+      const branchRow = sheet.getRow(currentRow);
+      branchRow.getCell(1).value = `Branch: ${branch}`;
+      branchRow.getCell(1).font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
+      branchRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRANCH_SECTION_COLOR } };
+      branchRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
+      for (let i = 2; i <= dataColumns.length; i++) {
+        branchRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRANCH_SECTION_COLOR } };
+      }
+      sheet.mergeCells(currentRow, 1, currentRow, dataColumns.length);
+      branchRow.height = 22;
+      currentRow += 1;
+
+      const hdrRow = sheet.getRow(currentRow);
+      dataColumns.forEach((col, idx) => {
+        const cell = hdrRow.getCell(idx + 1);
+        cell.value = col.header;
+        cell.font = { bold: true, size: 10, color: { argb: 'FF222222' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = { bottom: { style: 'thin', color: { argb: 'FFAAAAAA' } } };
+      });
+      currentRow += 1;
+
+      let branchGross = 0;
+      let branchNet = 0;
+
+      for (const rec of branchRecords) {
+        const user = userMap.get(rec.codeNo);
+        const empName = user ? `${user.firstName} ${user.lastName}` : rec.codeNo;
+        const row = sheet.getRow(currentRow);
+
+        const values: Record<string, unknown> = {
+          ...rec,
+          employeeName: empName,
+          bankName: user?.bankName || '',
+          bankAccount: user?.bankAccount || ''
+        };
+        dataColumns.forEach((col, idx) => {
+          row.getCell(idx + 1).value = values[col.key] as string | number;
+          row.getCell(idx + 1).alignment = { vertical: 'middle' };
+        });
+
+        branchGross += rec.grossSalary || 0;
+        branchNet += rec.netSalary || 0;
+        currentRow += 1;
+      }
+
+      const subtotalRow = sheet.getRow(currentRow);
+      subtotalRow.getCell(1).value = `${branch} Subtotal (${branchRecords.length})`;
+      subtotalRow.getCell(1).font = { bold: true, size: 10 };
+      const grossIdx = dataColumns.findIndex((c) => c.key === 'grossSalary') + 1;
+      const netIdx = dataColumns.findIndex((c) => c.key === 'netSalary') + 1;
+      subtotalRow.getCell(grossIdx).value = branchGross;
+      subtotalRow.getCell(grossIdx).font = { bold: true };
+      subtotalRow.getCell(grossIdx).numFmt = '#,##0.00';
+      subtotalRow.getCell(netIdx).value = branchNet;
+      subtotalRow.getCell(netIdx).font = { bold: true };
+      subtotalRow.getCell(netIdx).numFmt = '#,##0.00';
+      for (let i = 1; i <= dataColumns.length; i++) {
+        subtotalRow.getCell(i).border = { top: { style: 'thin', color: { argb: 'FFAAAAAA' } } };
+        subtotalRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FAFB' } };
+      }
+      currentRow += 2;
+
+      monthGross += branchGross;
+      monthNet += branchNet;
+      monthEpfEr += branchRecords.reduce((s, r) => s + (r.epfEmployer || 0), 0);
+      monthEtf += branchRecords.reduce((s, r) => s + (r.etf || 0), 0);
+    }
+
+    currentRow += 1;
+    const totalRow = sheet.getRow(currentRow);
+    totalRow.getCell(1).value = `GRAND TOTAL — ${sheetLabel} (${monthRecords.length} employees)`;
+    totalRow.getCell(1).font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
+    const grossIdx = dataColumns.findIndex((c) => c.key === 'grossSalary') + 1;
+    const netIdx = dataColumns.findIndex((c) => c.key === 'netSalary') + 1;
+    const epfErIdx = dataColumns.findIndex((c) => c.key === 'epfEmployer') + 1;
+    const etfIdx = dataColumns.findIndex((c) => c.key === 'etf') + 1;
+    totalRow.getCell(grossIdx).value = monthGross;
+    totalRow.getCell(grossIdx).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    totalRow.getCell(grossIdx).numFmt = '#,##0.00';
+    totalRow.getCell(netIdx).value = monthNet;
+    totalRow.getCell(netIdx).font = { bold: true, color: { argb: GOLD_COLOR } };
+    totalRow.getCell(netIdx).numFmt = '#,##0.00';
+    totalRow.getCell(epfErIdx).value = monthEpfEr;
+    totalRow.getCell(epfErIdx).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    totalRow.getCell(epfErIdx).numFmt = '#,##0.00';
+    totalRow.getCell(etfIdx).value = monthEtf;
+    totalRow.getCell(etfIdx).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    totalRow.getCell(etfIdx).numFmt = '#,##0.00';
+    for (let i = 1; i <= dataColumns.length; i++) {
+      totalRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_COLOR } };
+    }
+    totalRow.height = 24;
+  }
+
+  const filename = `monthly_paysheets_branch_export_${Date.now()}.xlsx`;
+  const filePath = path.join(EXPORTS_DIR, filename);
+  await workbook.xlsx.writeFile(filePath);
+  return filePath;
+}
+
+export async function exportMonthlyPaysheetsByRoleToExcel(
+  records: MonthlyPaysheetDTO[],
+  users?: User[]
+): Promise<string> {
+  // This is the same as the original exportMonthlyPaysheetsToExcel function
+  return exportMonthlyPaysheetsToExcel(records, users);
+}
+

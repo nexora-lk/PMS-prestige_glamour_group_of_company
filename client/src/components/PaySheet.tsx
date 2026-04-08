@@ -178,8 +178,8 @@ export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetPr
         <DataItem label={customDeductionLabel} amount={deductions.customDeduction} ds={ds} />
       )}
 
-      {/*/!* ── TOTAL DEDUCTIONS ── *!/*/}
-      {/*<TotalItem label="TOTAL DEDUCTIONS" amount={totalDeductions} ds={ds} />*/}
+      {/* ── TOTAL DEDUCTIONS ── */}
+      <TotalItem label="TOTAL DEDUCTIONS" amount={totalDeductions} ds={ds} />
 
       {/*/!* ── EPF / ETF (employer) ── *!/*/}
       {/*<div style={{ display: 'flex', borderBottom: `1px solid ${BORDER}` }}>*/}

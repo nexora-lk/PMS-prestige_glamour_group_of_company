@@ -84,7 +84,7 @@ export const SALES_CONFIG: Record<SalesRole, SalesRoleConfig> = {
     basicSalary: 150_000,
     baseTarget: 30_000_000,
     vehicleAllowance: 100_000,
-    fuelAllowance: 50_000,
+    fuelAllowance: 70_000,
     orcValue: 0.5,
   },
   SRM: {
@@ -100,7 +100,7 @@ export const SALES_CONFIG: Record<SalesRole, SalesRoleConfig> = {
     basicSalary: 80_000,
     baseTarget: 7_000_000,
     vehicleAllowance: 80_000,
-    fuelAllowance: 80_000,
+    fuelAllowance: 30_000,
     orcValue: 1,
   },
   BM: {

@@ -110,6 +110,8 @@ export async function exportMonthlyPaysheetsToExcel(
      { header: 'Role', key: 'role', width: 18 },
     { header: 'Basic Offer', key: 'basicSalary', width: 14 },
     { header: 'Achieve', key: 'achieve', width: 14 },
+    { header: 'Assigned Target', key: 'assignedTarget', width: 16 },
+    { header: 'Achievement %', key: 'achievementPct', width: 14 },
     { header: 'Offer', key: 'allowance', width: 14 },
     { header: 'Vehicle Offer', key: 'vehicleAllowance', width: 14 },
     { header: 'Fuel Offer', key: 'fuelAllowance', width: 14 },
@@ -210,7 +212,8 @@ export async function exportMonthlyPaysheetsToExcel(
            ...rec,
            employeeName: empName,
            bankName: user?.bankName || '',
-           bankAccount: user?.bankAccount || ''
+           bankAccount: user?.bankAccount || '',
+           achievementPct: Number(((rec.achievementPct || 0) * 100).toFixed(2)),
          };
          dataColumns.forEach((col, idx) => {
            row.getCell(idx + 1).value = values[col.key] as string | number;
@@ -317,6 +320,8 @@ export async function exportMonthlyPaysheetsByBranchToExcel(
     { header: 'Role', key: 'role', width: 18 },
     { header: 'Basic Offer', key: 'basicSalary', width: 14 },
     { header: 'Achieve', key: 'achieve', width: 14 },
+    { header: 'Assigned Target', key: 'assignedTarget', width: 16 },
+    { header: 'Achievement %', key: 'achievementPct', width: 14 },
     { header: 'Offer', key: 'allowance', width: 14 },
     { header: 'Vehicle Offer', key: 'vehicleAllowance', width: 14 },
     { header: 'Fuel Offer', key: 'fuelAllowance', width: 14 },
@@ -411,7 +416,8 @@ export async function exportMonthlyPaysheetsByBranchToExcel(
           ...rec,
           employeeName: empName,
           bankName: user?.bankName || '',
-          bankAccount: user?.bankAccount || ''
+          bankAccount: user?.bankAccount || '',
+          achievementPct: Number(((rec.achievementPct || 0) * 100).toFixed(2)),
         };
         dataColumns.forEach((col, idx) => {
           row.getCell(idx + 1).value = values[col.key] as string | number;

@@ -191,10 +191,6 @@ export function renderDotMatrixPayslip(emp: PayslipEmployee, useEscP: boolean): 
   lines.push(line());
   lines.push('');
 
-  // ── Employer contributions ────────────────────────────────
-  lines.push(twoColumn(' EPF Employer (12%): ', currency(emp.epfEmployer), ' ETF (3%)       : ', currency(emp.etf)));
-  lines.push('');
-
   // ── Gross / Net Offer ─────────────────────────────────────
   lines.push(doubleLine());
   lines.push(labelValue(' GROSS OFFER   : ' + currency(emp.grossSalary), 'NET OFFER   : ' + currency(emp.netSalary)));

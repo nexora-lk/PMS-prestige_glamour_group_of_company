@@ -160,7 +160,7 @@ router.get('/paysheets-json', async (req: Request, res: Response): Promise<void>
           lateDeduction: record.lateDeduction || 0, welfare: record.welfare || 0,
           customDeductionName: record.customDeductionName || '', customDeductionAmount: record.customDeductionAmount || 0,
         },
-        employerContributions: { epfEmployer: record.epfEmployer || 0, etf: record.etf || 0 },
+        employerContributions: {},
         summary: {
           grossSalary: record.grossSalary || 0,
           totalDeductions: (record.epfEmployee || 0) + (record.nopayDeduction || 0) +

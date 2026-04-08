@@ -296,8 +296,6 @@ export default function DotMatrixPrinting() {
     const welfare = ps.welfare || 0;
     const totalDeductions = epfEmployee + nopayDeduction + lateDeduction + welfare;
     
-    const epfEmployer = ps.epfEmployer || 0;
-    const etf = ps.etf || 0;
     const grossSalary = ps.grossSalary || totalEarnings;
     const netSalary = ps.netSalary || (grossSalary - totalDeductions);
 
@@ -328,8 +326,6 @@ Designation : ${pad(ps.role || employee?.designation || '', 30)} Date      :    
 --------------------------------------------------------------------------------
  TOTAL EARNINGS${formatNumber(totalEarnings)}   TOTAL DEDUCTIONS${formatNumber(totalDeductions)}
 --------------------------------------------------------------------------------
-
- EPF Employer (12%):${formatNumber(epfEmployer)}   ETF (3%)       :${formatNumber(etf)}
 
 ================================================================================
  GROSS OFFER   : ${grossSalary.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${' '.repeat(30)}NET OFFER   : ${netSalary.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

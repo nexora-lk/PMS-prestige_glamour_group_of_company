@@ -180,11 +180,6 @@ export function renderPayslipHTML(emp: PayslipEmployee): string {
 
   <div class="total"><span>Total Deductions</span><span class="amt">${fmt(totalDeductions)}</span></div>
 
-  <div class="epf-row">
-    <div><span>EPF 12% (Employer)</span><span class="amt">${fmt(emp.epfEmployer)}</span></div>
-    <div><span>ETF 3% (Employer)</span><span class="amt">${fmt(emp.etf)}</span></div>
-  </div>
-
   <div class="net">
     <span class="net-lbl">Net Offer</span>
     <span class="net-amt">${fmt(emp.netSalary)}</span>

@@ -181,18 +181,6 @@ export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetPr
       {/* ── TOTAL DEDUCTIONS ── */}
       <TotalItem label="TOTAL DEDUCTIONS" amount={totalDeductions} ds={ds} />
 
-      {/*/!* ── EPF / ETF (employer) ── *!/*/}
-      {/*<div style={{ display: 'flex', borderBottom: `1px solid ${BORDER}` }}>*/}
-      {/*  <div style={{ flex: 1, ...ds.dataRow, paddingLeft: px(14) }}>*/}
-      {/*    <span style={ds.rowLabel}>EPF 12% (Employer)</span>*/}
-      {/*    <span style={ds.rowAmt}>{formatCurrency(paysheet.epfEmployer || 0)}</span>*/}
-      {/*  </div>*/}
-      {/*  <div style={{ flex: 1, ...ds.dataRow, ...s.altBg, paddingLeft: px(14) }}>*/}
-      {/*    <span style={ds.rowLabel}>ETF 3% (Employer)</span>*/}
-      {/*    <span style={ds.rowAmt}>{formatCurrency(paysheet.etf || 0)}</span>*/}
-      {/*  </div>*/}
-      {/*</div>*/}
-
       {/* ── NET SALARY ── */}
       <div style={ds.netRow}>
         <span style={ds.netLabel}>NET OFFERS</span>

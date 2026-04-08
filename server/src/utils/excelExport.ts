@@ -127,8 +127,6 @@ export async function exportMonthlyPaysheetsToExcel(
     { header: 'Welfare', key: 'welfare', width: 12 },
     { header: 'Custom Ded.', key: 'customDeductionAmount', width: 14 },
     { header: 'Net Offer', key: 'netSalary', width: 14 },
-    { header: 'EPF 12%', key: 'epfEmployer', width: 14 },
-    { header: 'ETF 3%', key: 'etf', width: 12 },
   ];
 
   for (const month of sortedMonths) {
@@ -167,8 +165,6 @@ export async function exportMonthlyPaysheetsToExcel(
 
     let monthGross = 0;
     let monthNet = 0;
-    let monthEpfEr = 0;
-    let monthEtf = 0;
 
     for (const role of sortedRoles) {
       const roleRecords = byRole.get(role)!;
@@ -247,8 +243,6 @@ export async function exportMonthlyPaysheetsToExcel(
 
       monthGross += roleGross;
       monthNet += roleNet;
-      monthEpfEr += roleRecords.reduce((s, r) => s + (r.epfEmployer || 0), 0);
-      monthEtf += roleRecords.reduce((s, r) => s + (r.etf || 0), 0);
     }
 
     // Month grand total row
@@ -258,20 +252,12 @@ export async function exportMonthlyPaysheetsToExcel(
     totalRow.getCell(1).font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
     const grossIdx = dataColumns.findIndex((c) => c.key === 'grossSalary') + 1;
     const netIdx = dataColumns.findIndex((c) => c.key === 'netSalary') + 1;
-    const epfErIdx = dataColumns.findIndex((c) => c.key === 'epfEmployer') + 1;
-    const etfIdx = dataColumns.findIndex((c) => c.key === 'etf') + 1;
     totalRow.getCell(grossIdx).value = monthGross;
     totalRow.getCell(grossIdx).font = { bold: true, color: { argb: 'FFFFFFFF' } };
     totalRow.getCell(grossIdx).numFmt = '#,##0.00';
     totalRow.getCell(netIdx).value = monthNet;
     totalRow.getCell(netIdx).font = { bold: true, color: { argb: GOLD_COLOR } };
     totalRow.getCell(netIdx).numFmt = '#,##0.00';
-    totalRow.getCell(epfErIdx).value = monthEpfEr;
-    totalRow.getCell(epfErIdx).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    totalRow.getCell(epfErIdx).numFmt = '#,##0.00';
-    totalRow.getCell(etfIdx).value = monthEtf;
-    totalRow.getCell(etfIdx).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    totalRow.getCell(etfIdx).numFmt = '#,##0.00';
     for (let i = 1; i <= dataColumns.length; i++) {
       totalRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_COLOR } };
     }

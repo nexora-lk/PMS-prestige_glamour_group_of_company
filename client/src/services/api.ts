@@ -15,10 +15,6 @@ export function setAccessToken(token: string | null): void {
   accessToken = token;
 }
 
-export function getAccessToken(): string | null {
-  return accessToken;
-}
-
 // ── Request interceptor — attach access token ────────────────
 
 api.interceptors.request.use((config) => {
@@ -52,9 +48,18 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Provide detailed error message for network errors
+    if (!error.response) {
+      // Network error or timeout
+      console.error('Network Error:', error.message);
+      const detailedError = new Error(
+        `Network error: Unable to reach server at ${api.defaults.baseURL}. Make sure the server is running.`
+      );
+      return Promise.reject(detailedError);
+    }
+
     // Skip refresh attempts for auth endpoints or already-retried requests
     if (
-      !error.response ||
       error.response.status !== 401 ||
       originalRequest._retry ||
       originalRequest.url?.includes('/auth/')

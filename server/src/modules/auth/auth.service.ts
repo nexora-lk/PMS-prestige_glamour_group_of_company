@@ -8,7 +8,7 @@ import crypto from 'crypto';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { AuthPayload } from '../../models';
 import { ENV } from '../../config/env';
-import { getDb } from '../../services/db';
+import { getPrisma } from '../../plugins/prisma';
 
 // ── Fastify request augmentation ─────────────────────────────
 declare module 'fastify' {
@@ -74,79 +74,35 @@ function calculateExpiresAt(): Date {
 }
 
 export async function storeRefreshHash(token: string): Promise<void> {
-  const db = getDb();
+  const prisma = getPrisma();
   const hash = hashToken(token);
   const expiresAt = calculateExpiresAt();
-
-  try {
-    await db`
-      INSERT INTO refresh_tokens (hash, expires_at)
-      VALUES (${hash}, ${expiresAt.toISOString()})
-    `;
-  } catch (error) {
-    console.error('Failed to store refresh token hash:', error);
-    throw error;
-  }
+  await prisma.refreshToken.create({ data: { hash, expiresAt } });
 }
 
 export async function isRefreshTokenValid(token: string): Promise<boolean> {
-  const db = getDb();
+  const prisma = getPrisma();
   const hash = hashToken(token);
-  const now = new Date();
-
-  try {
-    const result = await db`
-      SELECT id FROM refresh_tokens
-      WHERE hash = ${hash}
-      AND expires_at > ${now.toISOString()}
-      LIMIT 1
-    `;
-
-    return result.length > 0;
-  } catch (error) {
-    console.error('Failed to verify refresh token:', error);
-    return false;
-  }
+  const row = await prisma.refreshToken.findFirst({
+    where: { hash, expiresAt: { gt: new Date() } },
+    select: { id: true },
+  });
+  return row !== null;
 }
 
 export async function revokeRefreshToken(token?: string): Promise<void> {
-  const db = getDb();
-
-  try {
-    if (token) {
-      // Revoke specific token
-      const hash = hashToken(token);
-      await db`
-        DELETE FROM refresh_tokens
-        WHERE hash = ${hash}
-      `;
-    } else {
-      // Revoke all tokens (for logout)
-      await db`
-        DELETE FROM refresh_tokens
-        WHERE expires_at <= NOW()
-      `;
-    }
-  } catch (error) {
-    console.error('Failed to revoke refresh token:', error);
-    throw error;
+  const prisma = getPrisma();
+  if (token) {
+    const hash = hashToken(token);
+    await prisma.refreshToken.deleteMany({ where: { hash } });
+  } else {
+    await prisma.refreshToken.deleteMany({ where: { expiresAt: { lte: new Date() } } });
   }
 }
 
-/**
- * Clean up expired refresh tokens (call periodically)
- */
 export async function cleanupExpiredTokens(): Promise<void> {
-  const db = getDb();
-
-  try {
-    await db`
-      DELETE FROM refresh_tokens
-      WHERE expires_at <= NOW()
-    `;
-  } catch (error) {
-    console.error('Failed to cleanup expired tokens:', error);
-  }
+  const prisma = getPrisma();
+  await prisma.refreshToken.deleteMany({ where: { expiresAt: { lte: new Date() } } });
 }
 
 // ── Fastify preHandler middleware ─────────────────────────────

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, session, safeStorage } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, safeStorage } from 'electron';
 import { fork, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -202,17 +202,22 @@ app.whenReady().then(() => {
   // In packaged app, server is in extraResources so node_modules, worker_threads, and puppeteer work
   const serverEntry = getExtraResourcePath('server', 'dist', 'app.js');
 
-  // Environment variables for the server process
-  const serverEnv: Record<string, string> = {
-    ...process.env as Record<string, string>,
-    PORT: SERVER_PORT,
-    NODE_ENV: IS_PACKAGED ? 'production' : 'development',
-    DATA_DIR: getUserDataPath('data'),
-    LOG_DIR: getUserDataPath('logs'),
-    TEMP_DIR: getUserDataPath('temp'),
-    OUTPUT_DIR: getUserDataPath('exports'),
-    CLIENT_PATH: getAsarPath('client', 'dist'),
-  };
+   // Environment variables for the server process
+   const serverEnv: Record<string, string> = {
+     ...process.env as Record<string, string>,
+     PORT: SERVER_PORT,
+     NODE_ENV: IS_PACKAGED ? 'production' : 'development',
+     DATA_DIR: getUserDataPath('data'),
+     LOG_DIR: getUserDataPath('logs'),
+     TEMP_DIR: getUserDataPath('temp'),
+     OUTPUT_DIR: getUserDataPath('exports'),
+     CLIENT_PATH: getAsarPath('client', 'dist'),
+     // Database configuration - use from process.env if set, otherwise use default
+     DATABASE_URL: process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_KBqY7NVdjE4x@ep-bitter-voice-an6xlilf.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require',
+     // Auth secrets
+     JWT_SECRET: process.env.JWT_SECRET || 'payroll-system-secret-key-2026',
+     REFRESH_SECRET: process.env.REFRESH_SECRET || 'payroll-refresh-secret-key-2026',
+   };
 
   // Fork the compiled Express backend
   backendProcess = fork(serverEntry, [], {

@@ -9,7 +9,7 @@ export const ENV = {
   // ── Database ─────────────────────────────────────────────────
   DATABASE_URL:
     process.env.DATABASE_URL ||
-    'postgresql://neondb_owner:npg_KBqY7NVdjE4x@ep-bitter-voice-an6xlilf.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require',
+    'postgresql://neondb_owner:npg_3UeVGMk6lDEF@ep-delicate-water-ahwvsfhl-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
 
   // ── Auth ─────────────────────────────────────────────────────
   JWT_SECRET: process.env.JWT_SECRET || 'payroll-system-secret-key-2026',

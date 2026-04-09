@@ -1,12 +1,16 @@
+// Load environment variables first
+require('dotenv').config();
+
 import path from 'path';
 import Fastify from 'fastify';
 import staticPlugin from '@fastify/static';
-import rateLimit from '@fastify/rate-limit';
+// import rateLimit from '@fastify/rate-limit';
 import helmet from '@fastify/helmet';
 import compress from '@fastify/compress';
 
 import { ENV } from './config/env';
 import corsPlugin from './plugins/cors';
+import prismaPlugin from './plugins/prisma';
 
 // ── Module routes ────────────────────────────────────────────
 import authRoutes from './modules/auth/auth.routes';
@@ -28,6 +32,7 @@ const app = Fastify({
 }); // 1 MB body limit
 
 // ── Plugins ──────────────────────────────────────────────────
+app.register(prismaPlugin);
 app.register(corsPlugin);
 app.register(compress, { global: true });
 app.register(helmet, {
@@ -43,14 +48,14 @@ app.register(staticPlugin, {
 });
 
 // Strict limit on login — 5 attempts per 15 minutes per IP
-app.register(rateLimit, {
-  max: 5,
-  timeWindow: '15 minutes',
-  keyGenerator: (req) => req.ip,
-  errorResponseBuilder: () => ({
-    error: 'Too many login attempts. Try again in 15 minutes.',
-  }),
-});
+// app.register(rateLimit, {
+//   max: 5,
+//   timeWindow: '15 minutes',
+//   keyGenerator: (req) => req.ip,
+//   errorResponseBuilder: () => ({
+//     error: 'Too many login attempts. Try again in 15 minutes.',
+//   }),
+// });
 
 // ── Public routes ────────────────────────────────────────────
 app.register(authRoutes, { prefix: '/api/auth' });
@@ -85,21 +90,27 @@ app.setNotFoundHandler(async (_request, reply) => {
 });
 
 // ── Bootstrap ─────────────────────────────────────────────────
+logger.info(`Starting PMS Server with NODE_ENV=${ENV.NODE_ENV}, PORT=${ENV.PORT}`);
+
 initDatabase()
   .then(async () => {
+    logger.info('Database initialized successfully');
     await ensureAdmin();
+    logger.info('Admin user ensured');
+
     app.listen({ port: ENV.PORT, host: '0.0.0.0' }, (err) => {
       if (err) {
         logger.error('Server failed to start:', err);
         process.exit(1);
       }
-      logger.info(`PMS Application Server running on http://localhost:${ENV.PORT}`);
-      logger.info('Neon PostgreSQL database connected');
-      logger.info('Default login: admin / admin123');
+      logger.info(`✓ PMS Application Server running on http://localhost:${ENV.PORT}`);
+      logger.info('✓ Neon PostgreSQL database connected');
+      logger.info('✓ CORS enabled for: ' + [...ENV.ALLOWED_ORIGINS, `http://localhost:${ENV.PORT}`].join(', '));
     });
   })
   .catch((err) => {
     logger.error('Failed to initialize database:', err);
+    logger.error('Stack:', err instanceof Error ? err.stack : '');
     process.exit(1);
   });
 

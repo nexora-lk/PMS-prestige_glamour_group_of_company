@@ -29,7 +29,20 @@ export default function Login() {
       showToast('Login successful', 'success');
       navigate('/');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Login failed';
+      let message = 'Login failed';
+
+      if (err instanceof Error) {
+        message = err.message;
+        // Provide more specific guidance for common errors
+        if (message.includes('Network error') || message.includes('Unable to reach server')) {
+          message = 'Cannot connect to server. Please ensure the PMS server is running on port 4500.';
+        } else if (message.includes('Invalid credentials')) {
+          message = 'Invalid username or password';
+        } else if (message.includes('timeout')) {
+          message = 'Connection timeout. Server may be unresponsive.';
+        }
+      }
+
       showToast(message, 'error');
     } finally {
       setIsLoading(false);

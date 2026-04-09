@@ -10,6 +10,8 @@ import {
   calculatePaysheet,
   getRoleConfig,
   isSalesRole,
+  SALES_BASED_ROLES,
+  NON_TARGET_ROLES,
   type PaysheetInput,
   type PaysheetResult,
   type SalesRoleConfig,
@@ -104,7 +106,6 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
       const existingPaysheets = await dbGetPaysheetsByMonth(payMonth);
       const existingKeys = new Set(existingPaysheets.map((p) => p.codeNo));
 
-      const { SALES_BASED_ROLES, NON_TARGET_ROLES } = require('../../engine/salary-calculator');
       const nameToCode: Record<string, string> = {};
       for (const [code, name] of Object.entries(SALES_BASED_ROLES)) nameToCode[name as string] = code;
       for (const [code, name] of Object.entries(NON_TARGET_ROLES)) nameToCode[name as string] = code;

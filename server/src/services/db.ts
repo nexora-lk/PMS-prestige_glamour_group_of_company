@@ -1,13 +1,12 @@
-import { neon, neonConfig, NeonQueryFunction } from '@neondatabase/serverless';
+import { neon, NeonQueryFunction } from '@neondatabase/serverless';
 import logger from '../utils/logger';
 
-neonConfig.fetchConnectionCache = true;
 
 let sql: NeonQueryFunction<false, false> | null = null;
 
 export function getDb(): NeonQueryFunction<false, false> {
   if (!sql) {
-    const dbUrl = 'postgresql://neondb_owner:npg_KBqY7NVdjE4x@ep-bitter-voice-an6xlilf.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require';
+    const dbUrl = 'postgresql://neondb_owner:npg_3UeVGMk6lDEF@ep-delicate-water-ahwvsfhl-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
     if (!dbUrl) {
       throw new Error('DATABASE_URL environment variable is not set. A database connection is required.');
     }
@@ -114,6 +113,15 @@ export async function initDatabase(): Promise<void> {
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(code_no, pay_month)
+    )
+  `;
+
+  await db`
+    CREATE TABLE refresh_tokens(
+       id SERIAL PRIMARY KEY,
+       hash TEXT NOT NULL,
+       created_at TIMESTAMPTZ DEFAULT NOW(),
+       expires_at TIMESTAMPTZ NOT NULL
     )
   `;
 

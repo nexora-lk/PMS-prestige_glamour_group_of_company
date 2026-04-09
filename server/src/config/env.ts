@@ -6,6 +6,9 @@ export const ENV = {
   PORT: Number(process.env.PORT) || 4500,
   NODE_ENV: process.env.NODE_ENV || 'development',
 
+  // ── Cache / Queue ────────────────────────────────────────────
+  REDIS_URL: process.env.REDIS_URL || '',   // e.g. redis://localhost:6379
+
   // ── Database ─────────────────────────────────────────────────
   DATABASE_URL:
     process.env.DATABASE_URL ||

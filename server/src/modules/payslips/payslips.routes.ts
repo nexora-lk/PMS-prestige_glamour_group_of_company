@@ -33,7 +33,7 @@ export default async function payslipRoutes(fastify: FastifyInstance): Promise<v
 
   // GET /progress/:jobId
   fastify.get<{ Params: { jobId: string } }>('/progress/:jobId', async (request, reply) => {
-    const job = getJob(request.params.jobId);
+    const job = await getJob(request.params.jobId);
     if (!job) return reply.code(404).send({ error: 'Job not found' });
 
     return reply.send({
@@ -45,7 +45,7 @@ export default async function payslipRoutes(fastify: FastifyInstance): Promise<v
 
   // GET /download/:jobId
   fastify.get<{ Params: { jobId: string } }>('/download/:jobId', async (request, reply) => {
-    const job = getJob(request.params.jobId);
+    const job = await getJob(request.params.jobId);
     if (!job) return reply.code(404).send({ error: 'Job not found' });
 
     if (job.status !== 'completed' || !job.zipPath) {

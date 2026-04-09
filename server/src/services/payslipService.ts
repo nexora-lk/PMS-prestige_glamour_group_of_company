@@ -6,6 +6,7 @@ import fs from 'fs';
 import archiver from 'archiver';
 import logger from '../utils/logger';
 import { dbGetAllPaysheets, dbGetAllUsers, dbGetPaysheet, dbGetUser } from './dbStore';
+import { cacheGet, cacheSet, CK } from './cache';
 
 import puppeteer from 'puppeteer';
 import { renderPayslipHTML } from '../templates/payslip';
@@ -29,10 +30,22 @@ function ensureDirs(): void {
   }
 }
 
+// ── Job persistence helpers ─────────────────────────────────
+
+async function persistJob(job: Job): Promise<void> {
+  await cacheSet(CK.JOB(job.id), job, 86400); // 24 h
+}
+
 // ── Public API ──────────────────────────────────────────────
 
-export function getJob(jobId: string): Job | undefined {
-  return jobs.get(jobId);
+export async function getJob(jobId: string): Promise<Job | undefined> {
+  // In-memory first (fast path)
+  const local = jobs.get(jobId);
+  if (local) return local;
+  // Fall back to Redis (survives restarts / multi-instance)
+  const cached = await cacheGet<Job>(CK.JOB(jobId));
+  if (cached) { jobs.set(jobId, cached); return cached; }
+  return undefined;
 }
 
 export function getActiveJob(): Job | undefined {
@@ -77,6 +90,7 @@ export async function startPayslipGeneration(
     createdAt: new Date().toISOString(),
   };
   jobs.set(job.id, job);
+  await persistJob(job);
 
   logger.info(`Payslip job ${job.id} created for ${employees.length} employees (month: ${payMonth})${skipped.length > 0 ? `, skipped ${skipped.length} with zero salary` : ''}`);
 
@@ -84,10 +98,34 @@ export async function startPayslipGeneration(
   processJob(job, employees, concurrency).catch((err) => {
     job.status = 'failed';
     job.error = err instanceof Error ? err.message : String(err);
+    persistJob(job).catch(() => {});
     logger.error(`Job ${job.id} failed`, { error: job.error });
   });
 
   return { job, skipped };
+}
+
+/**
+ * Called by BullMQ worker — resumes/drives a job that was already created
+ * and stored in Redis (job data was persisted before enqueueing).
+ */
+export async function processJobById(
+  jobId: string,
+  payMonth: string,
+  codeNos: string[] | undefined,
+  concurrency: number,
+): Promise<void> {
+  const { employees } = await buildPayslipData(payMonth, codeNos);
+  let job = await getJob(jobId);
+  if (!job) {
+    job = {
+      id: jobId, status: 'pending', total: employees.length,
+      completed: 0, failed: 0, progress: 0,
+      zipPath: null, error: null, createdAt: new Date().toISOString(),
+    };
+    jobs.set(jobId, job);
+  }
+  await processJob(job, employees, concurrency);
 }
 
 // ── Data assembly ───────────────────────────────────────────
@@ -170,6 +208,7 @@ async function processJob(
   fs.mkdirSync(jobDir, { recursive: true });
 
   job.status = 'processing';
+  await persistJob(job);
 
   // Split into batches
   const batchSize = Math.ceil(employees.length / concurrency);
@@ -197,6 +236,7 @@ async function processJob(
 
   // ZIP phase
   job.status = 'zipping';
+  await persistJob(job);
   logger.info(`Job ${job.id}: zipping ${job.completed} PDFs`);
 
   try {
@@ -204,10 +244,12 @@ async function processJob(
     job.zipPath = zipPath;
     job.status = 'completed';
     job.progress = 100;
+    await persistJob(job);
     logger.info(`Job ${job.id}: completed. ZIP at ${zipPath}`);
   } catch (err) {
     job.status = 'failed';
     job.error = `ZIP creation failed: ${err instanceof Error ? err.message : String(err)}`;
+    await persistJob(job);
     logger.error(`Job ${job.id} zip failed`, { error: job.error });
   } finally {
     cleanup(jobDir);

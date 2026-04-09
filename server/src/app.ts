@@ -11,6 +11,7 @@ import compress from '@fastify/compress';
 import { ENV } from './config/env';
 import corsPlugin from './plugins/cors';
 import prismaPlugin from './plugins/prisma';
+import redisPlugin from './plugins/redis';
 
 // ── Module routes ────────────────────────────────────────────
 import authRoutes from './modules/auth/auth.routes';
@@ -24,20 +25,21 @@ import exportRoutes from './modules/payslips/export.routes';
 import { authMiddleware } from './modules/auth/auth.service';
 import { ensureAdmin } from './modules/auth/auth.routes';
 import { initDatabase } from './services/db';
+import { registerAllWorkers } from './queues/processors';
+import { closeQueues } from './queues/queues';
 import logger from './utils/logger';
 
 const app = Fastify({
   logger: true,
-  bodyLimit: 1_048_576
-}); // 1 MB body limit
+  bodyLimit: 1_048_576,
+});
 
 // ── Plugins ──────────────────────────────────────────────────
 app.register(prismaPlugin);
+app.register(redisPlugin);
 app.register(corsPlugin);
 app.register(compress, { global: true });
-app.register(helmet, {
-  contentSecurityPolicy: false, // enable and tune per your frontend needs
-});
+app.register(helmet, { contentSecurityPolicy: false });
 
 // ── Serve exported files ─────────────────────────────────────
 const exportsDir = ENV.OUTPUT_DIR || path.join(__dirname, '..', 'exports');
@@ -46,16 +48,6 @@ app.register(staticPlugin, {
   prefix: '/exports/',
   decorateReply: true,
 });
-
-// Strict limit on login — 5 attempts per 15 minutes per IP
-// app.register(rateLimit, {
-//   max: 5,
-//   timeWindow: '15 minutes',
-//   keyGenerator: (req) => req.ip,
-//   errorResponseBuilder: () => ({
-//     error: 'Too many login attempts. Try again in 15 minutes.',
-//   }),
-// });
 
 // ── Public routes ────────────────────────────────────────────
 app.register(authRoutes, { prefix: '/api/auth' });
@@ -89,6 +81,16 @@ app.setNotFoundHandler(async (_request, reply) => {
   return reply.sendFile('index.html', clientPath);
 });
 
+// ── Graceful shutdown ─────────────────────────────────────────
+const shutdown = async (signal: string) => {
+  logger.info(`${signal} received — shutting down`);
+  await closeQueues();
+  await app.close();
+  process.exit(0);
+};
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
 // ── Bootstrap ─────────────────────────────────────────────────
 logger.info(`Starting PMS Server with NODE_ENV=${ENV.NODE_ENV}, PORT=${ENV.PORT}`);
 
@@ -98,6 +100,9 @@ initDatabase()
     await ensureAdmin();
     logger.info('Admin user ensured');
 
+    // Register BullMQ workers (no-op if Redis not configured)
+    registerAllWorkers();
+
     app.listen({ port: ENV.PORT, host: '0.0.0.0' }, (err) => {
       if (err) {
         logger.error('Server failed to start:', err);
@@ -105,6 +110,7 @@ initDatabase()
       }
       logger.info(`✓ PMS Application Server running on http://localhost:${ENV.PORT}`);
       logger.info('✓ Neon PostgreSQL database connected');
+      logger.info(`✓ Redis: ${ENV.REDIS_URL ? 'enabled' : 'not configured (in-memory fallback)'}`);
       logger.info('✓ CORS enabled for: ' + [...ENV.ALLOWED_ORIGINS, `http://localhost:${ENV.PORT}`].join(', '));
     });
   })

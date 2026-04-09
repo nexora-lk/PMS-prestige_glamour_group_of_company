@@ -5,6 +5,7 @@ import {
   dbCreatePaysheet, dbUpdatePaysheet, dbUpdatePaysheetStatus,
   dbDeletePaysheet, dbGetAllPaysheets, dbGetPaysheetsByMonth, dbGetPaysheet,
 } from '../../services/dbStore';
+import { cacheGet, cacheSet, cacheDel, cacheInvalidatePrefix, CK } from '../../services/cache';
 import { MonthlyPaysheetDTO } from '../../models';
 import {
   calculatePaysheet,
@@ -146,6 +147,7 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
         created.push(newPaysheet);
       }
 
+      await cacheInvalidatePrefix('paysheets:');
       return reply.send({ message: `Created ${created.length} paysheet(s)`, created: created.length, errors });
     } catch (error) {
       console.error('Error in bulk-create:', error);
@@ -165,7 +167,15 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
       }
       const { search, status, branch, role, page, limit } = parsed.data;
 
-      let paysheets = await dbGetPaysheetsByMonth(request.params.payMonth);
+      const cacheKey = CK.PAYSHEETS_MONTH(request.params.payMonth);
+      const cachedSheets = await cacheGet<MonthlyPaysheetDTO[]>(cacheKey);
+      let paysheets: MonthlyPaysheetDTO[];
+      if (cachedSheets) {
+        paysheets = cachedSheets;
+      } else {
+        paysheets = await dbGetPaysheetsByMonth(request.params.payMonth);
+        await cacheSet(cacheKey, paysheets, 300); // 5 min
+      }
 
       if (status && status !== 'all') {
         paysheets = paysheets.filter((p) => (p.status || 'active') === status);
@@ -244,6 +254,7 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
       };
 
       await dbCreatePaysheet(newPaysheet);
+      await cacheInvalidatePrefix('paysheets:');
       return reply.code(201).send({ message: 'Monthly paysheet created successfully', paysheet: newPaysheet });
     } catch (error) {
       console.error('Error creating paysheet:', error);
@@ -356,6 +367,7 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
       };
 
       await dbUpdatePaysheet(request.params.id, updated);
+      await cacheInvalidatePrefix('paysheets:');
       return reply.send({ message: 'Paysheet updated successfully', paysheet: updated });
     } catch (error) {
       console.error('Error updating paysheet:', error);
@@ -376,6 +388,7 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
       if (!paysheet) return reply.code(404).send({ error: 'Paysheet not found' });
 
       await dbUpdatePaysheetStatus(request.params.id, status);
+      await cacheInvalidatePrefix('paysheets:');
       paysheet.status = status;
       paysheet.updatedAt = new Date().toISOString();
 
@@ -393,6 +406,7 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
       const paysheet = await dbGetPaysheet(request.params.id);
       if (!paysheet) return reply.code(404).send({ error: 'Paysheet not found' });
       await dbDeletePaysheet(request.params.id);
+      await cacheInvalidatePrefix('paysheets:');
       return reply.send({ message: 'Paysheet deleted successfully', paysheet });
     } catch (error) {
       console.error('Error deleting paysheet:', error);

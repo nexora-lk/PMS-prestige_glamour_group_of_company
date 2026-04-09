@@ -9,6 +9,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { AuthPayload } from '../../models';
 import { ENV } from '../../config/env';
 import { getPrisma } from '../../plugins/prisma';
+import logger from '../../utils/logger';
 
 // ── Fastify request augmentation ─────────────────────────────
 declare module 'fastify' {
@@ -109,8 +110,10 @@ export async function cleanupExpiredTokens(): Promise<void> {
 
 export async function authMiddleware(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const authHeader = request.headers.authorization;
+  const ip = request.ip;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    logger.warn(`[auth] 401 No token — ${request.method} ${request.url} from ${ip}`);
     return reply.code(401).send({ error: 'Access denied. No token provided.' });
   }
 
@@ -120,11 +123,13 @@ export async function authMiddleware(request: FastifyRequest, reply: FastifyRepl
     const decoded = jwt.verify(token, ENV.JWT_SECRET) as AuthPayload;
 
     if (decoded.role !== 'super_admin') {
+      logger.warn(`[auth] 403 Forbidden — role "${decoded.role}" for ${request.method} ${request.url} from ${ip}`);
       return reply.code(403).send({ error: 'Forbidden. This application is strictly restricted to Super Admin access only.' });
     }
 
     request.user = decoded;
-  } catch {
+  } catch (err) {
+    logger.warn(`[auth] 401 Invalid token — ${request.method} ${request.url} from ${ip}: ${err instanceof Error ? err.message : String(err)}`);
     return reply.code(401).send({ error: 'Invalid or expired token.' });
   }
 }

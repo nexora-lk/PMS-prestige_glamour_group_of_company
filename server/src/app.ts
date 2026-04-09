@@ -4,7 +4,7 @@ require('dotenv').config();
 import path from 'path';
 import Fastify from 'fastify';
 import staticPlugin from '@fastify/static';
-// import rateLimit from '@fastify/rate-limit';
+import rateLimit from '@fastify/rate-limit';
 import helmet from '@fastify/helmet';
 import compress from '@fastify/compress';
 
@@ -49,8 +49,19 @@ app.register(staticPlugin, {
   decorateReply: true,
 });
 
-// ── Public routes ────────────────────────────────────────────
-app.register(authRoutes, { prefix: '/api/auth' });
+// ── Rate limit login only (5 attempts / 15 min per IP) ───────
+app.register(async (fastify) => {
+  await fastify.register(rateLimit, {
+    max: 5,
+    timeWindow: '15 minutes',
+    keyGenerator: (req) => req.ip,
+    errorResponseBuilder: () => ({
+      error: 'Too many login attempts. Please try again in 15 minutes.',
+    }),
+  });
+  fastify.register(authRoutes, { prefix: '/api/auth' });
+});
+
 
 // ── Protected routes ─────────────────────────────────────────
 app.register(async (fastify) => {

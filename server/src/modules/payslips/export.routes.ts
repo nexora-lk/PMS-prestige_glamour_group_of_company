@@ -2,7 +2,12 @@ import { FastifyInstance, FastifyReply } from 'fastify';
 import path from 'path';
 import fs from 'fs';
 import archiver from 'archiver';
+import { z } from 'zod';
 import { dbGetAllUsers, dbGetAllPaysheets, dbGetPaysheetsByMonth } from '../../services/dbStore';
+
+const payMonthQuerySchema = z.object({
+  payMonth: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'payMonth must be in YYYY-MM format'),
+});
 import {
   exportUsersToExcel,
   exportMonthlyPaysheetsToExcel,
@@ -83,10 +88,11 @@ export default async function exportRoutes(fastify: FastifyInstance): Promise<vo
   // GET /paysheets-json?payMonth=YYYY-MM
   fastify.get<{ Querystring: { payMonth?: string } }>('/paysheets-json', async (request, reply) => {
     try {
-      const payMonth = request.query.payMonth;
-      if (!payMonth) {
-        return reply.code(400).send({ error: 'payMonth query parameter is required (e.g. 2026-03)' });
+      const parsed = payMonthQuerySchema.safeParse(request.query);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: parsed.error.issues[0].message });
       }
+      const { payMonth } = parsed.data;
 
       const allForMonth = await dbGetPaysheetsByMonth(payMonth);
       const users = await dbGetAllUsers();

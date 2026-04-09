@@ -12,6 +12,7 @@ import {
 } from './auth.service';
 import { AdminCredentials } from '../../models';
 import { loginSchema, refreshTokenSchema } from '../../validation/auth';
+import logger from '../../utils/logger';
 
 // ── Initialize default admin on server startup ───────────────
 
@@ -29,14 +30,17 @@ export async function ensureAdmin(): Promise<void> {
   }
 }
 
+export { authMiddleware as ensureAdmin_middleware };
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
 
   // POST /login
   fastify.post<{ Body: unknown }>('/login', async (request, reply) => {
+    const ip = request.ip;
     try {
       const parsed = loginSchema.safeParse(request.body);
       if (!parsed.success) {
+        logger.warn(`[auth] Invalid login payload from ${ip}: ${parsed.error.issues[0].message}`);
         return reply.code(400).send({ error: parsed.error.issues[0].message });
       }
       const { username, password } = parsed.data;
@@ -47,11 +51,13 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       }
 
       if (username !== admin.username) {
+        logger.warn(`[auth] Failed login — unknown username "${username}" from ${ip}`);
         return reply.code(401).send({ error: 'Invalid credentials.' });
       }
 
       const isMatch = bcrypt.compareSync(password, admin.password);
       if (!isMatch) {
+        logger.warn(`[auth] Failed login — wrong password for "${username}" from ${ip}`);
         return reply.code(401).send({ error: 'Invalid credentials.' });
       }
 
@@ -60,18 +66,22 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       const refreshToken = generateRefreshToken(tokenPayload);
       await storeRefreshHash(refreshToken);
 
+      logger.info(`[auth] Login success — "${username}" from ${ip}`);
+
       return reply.send({
         accessToken,
         refreshToken,
         user: { username: admin.username, name: admin.name, role: admin.role },
       });
-    } catch {
+    } catch (err) {
+      logger.error(`[auth] Login error from ${ip}: ${err instanceof Error ? err.message : String(err)}`);
       return reply.code(500).send({ error: 'Login failed.' });
     }
   });
 
-  // POST /refresh
+  // POST /refresh — rotate refresh token on each use
   fastify.post<{ Body: unknown }>('/refresh', async (request, reply) => {
+    const ip = request.ip;
     try {
       const parsed = refreshTokenSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -81,14 +91,24 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
       const isValid = await isRefreshTokenValid(refreshToken);
       if (!isValid) {
+        logger.warn(`[auth] Invalid/expired refresh token used from ${ip}`);
         return reply.code(401).send({ error: 'Refresh token has been revoked or expired.' });
       }
 
       const decoded = verifyRefreshToken(refreshToken);
+
+      // Token rotation — revoke old, issue new
+      await revokeRefreshToken(refreshToken);
+      const newRefreshToken = generateRefreshToken({ username: decoded.username, role: decoded.role });
+      await storeRefreshHash(newRefreshToken);
+
       const accessToken = generateAccessToken({ username: decoded.username, role: decoded.role });
 
-      return reply.send({ accessToken });
-    } catch {
+      logger.info(`[auth] Token refreshed for "${decoded.username}" from ${ip}`);
+
+      return reply.send({ accessToken, refreshToken: newRefreshToken });
+    } catch (err) {
+      logger.warn(`[auth] Refresh token error from ${ip}: ${err instanceof Error ? err.message : String(err)}`);
       return reply.code(401).send({ error: 'Invalid or expired refresh token.' });
     }
   });
@@ -103,6 +123,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       const { refreshToken } = parsed.data;
 
       await revokeRefreshToken(refreshToken);
+      logger.info(`[auth] Logout from ${request.ip}`);
       return reply.send({ message: 'Logged out successfully.' });
     } catch {
       return reply.code(500).send({ error: 'Logout failed.' });

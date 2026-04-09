@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { v4 as uuidv4 } from 'uuid';
 import {
   dbGetAllUsers, dbGetUser,
-  dbCreatePaysheet, dbUpdatePaysheet, dbUpdatePaysheetStatus,
+  dbCreatePaysheet, dbCreateManyPaysheets, dbUpdatePaysheet, dbUpdatePaysheetStatus,
   dbDeletePaysheet, dbGetAllPaysheets, dbGetPaysheetsByMonth, dbGetPaysheet,
 } from '../../services/dbStore';
 import { cacheGet, cacheSet, cacheDel, cacheInvalidatePrefix, CK } from '../../services/cache';
@@ -111,8 +111,9 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
       for (const [code, name] of Object.entries(SALES_BASED_ROLES)) nameToCode[name as string] = code;
       for (const [code, name] of Object.entries(NON_TARGET_ROLES)) nameToCode[name as string] = code;
 
-      const created: MonthlyPaysheetDTO[] = [];
+      const toInsert: MonthlyPaysheetDTO[] = [];
       const errors: string[] = [];
+      const now = new Date().toISOString();
 
       for (const codeNo of codeNos) {
         if (existingKeys.has(codeNo)) continue;
@@ -132,8 +133,7 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
         });
 
         const calculated: PaysheetResult = calculatePaysheet(input);
-        const now = new Date().toISOString();
-        const newPaysheet: MonthlyPaysheetDTO = {
+        toInsert.push({
           id: uuidv4(), codeNo, payMonth, role: roleCode, monthsOfService: 1,
           achieve: 0, allowance: 0, nopay: 0, late: 0, lateHours: 0, lateMinutes: 0,
           epfAvailability: true, etfAvailability: true,
@@ -141,14 +141,13 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
           customDeductionName: '', customDeductionAmount: 0,
           ...calculated, welfare: 0, otherOffer: 0,
           status: 'active', createdAt: now, updatedAt: now,
-        };
-
-        await dbCreatePaysheet(newPaysheet);
-        created.push(newPaysheet);
+        });
       }
 
+      // Single batch INSERT instead of N individual inserts
+      await dbCreateManyPaysheets(toInsert);
       await cacheInvalidatePrefix('paysheets:');
-      return reply.send({ message: `Created ${created.length} paysheet(s)`, created: created.length, errors });
+      return reply.send({ message: `Created ${toInsert.length} paysheet(s)`, created: toInsert.length, errors });
     } catch (error) {
       console.error('Error in bulk-create:', error);
       return reply.code(500).send({ error: 'Failed to bulk-create paysheets' });
@@ -271,7 +270,14 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
       }
       const { codeNo, payMonth, role, search, status, page, limit } = parsed.data;
 
-      let paysheets = await dbGetAllPaysheets();
+      const cachedAll = await cacheGet<MonthlyPaysheetDTO[]>(CK.PAYSHEETS_ALL);
+      let paysheets: MonthlyPaysheetDTO[];
+      if (cachedAll) {
+        paysheets = cachedAll;
+      } else {
+        paysheets = await dbGetAllPaysheets();
+        await cacheSet(CK.PAYSHEETS_ALL, paysheets, 300); // 5 min
+      }
 
       if (status && status !== 'all') {
         paysheets = paysheets.filter((p) => (p.status || 'active') === status);

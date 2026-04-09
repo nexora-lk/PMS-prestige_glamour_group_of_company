@@ -310,6 +310,55 @@ export async function dbCreatePaysheet(ps: MonthlyPaysheetDTO): Promise<void> {
   });
 }
 
+/** Batch insert — replaces N individual dbCreatePaysheet() calls. */
+export async function dbCreateManyPaysheets(psList: MonthlyPaysheetDTO[]): Promise<void> {
+  if (psList.length === 0) return;
+  const prisma = getPrisma();
+  await prisma.monthlyPaysheet.createMany({
+    data: psList.map((ps) => ({
+      id:                   ps.id!,
+      codeNo:               ps.codeNo,
+      payMonth:             ps.payMonth,
+      role:                 ps.role,
+      monthsOfService:      ps.monthsOfService,
+      achieve:              ps.achieve,
+      allowance:            ps.allowance,
+      nopay:                ps.nopay,
+      late:                 ps.late ?? 0,
+      lateHours:            ps.lateHours,
+      lateMinutes:          ps.lateMinutes,
+      epfAvailability:      ps.epfAvailability,
+      etfAvailability:      ps.etfAvailability,
+      welfare:              ps.welfare,
+      otherOffer:           ps.otherOffer,
+      customEarningName:    ps.customEarningName,
+      customEarningAmount:  ps.customEarningAmount,
+      customDeductionName:  ps.customDeductionName,
+      customDeductionAmount: ps.customDeductionAmount,
+      basicSalary:          ps.basicSalary,
+      achievedSalary:       ps.achievedSalary,
+      assignedTarget:       ps.assignedTarget,
+      achievementPct:       ps.achievementPct,
+      grossSalary:          ps.grossSalary,
+      vehicleAllowance:     ps.vehicleAllowance,
+      fuelAllowance:        ps.fuelAllowance,
+      generalAllowance:     ps.generalAllowance,
+      orc:                  ps.orc,
+      subTotal:             ps.subTotal,
+      nopayDeduction:       ps.nopayDeduction,
+      lateDeduction:        ps.lateDeduction,
+      epfEmployee:          ps.epfEmployee,
+      epfEmployer:          ps.epfEmployer,
+      etf:                  ps.etf,
+      netSalary:            ps.netSalary,
+      status:               ps.status ?? 'active',
+      createdAt:            ps.createdAt ? new Date(ps.createdAt) : new Date(),
+      updatedAt:            ps.updatedAt ? new Date(ps.updatedAt) : new Date(),
+    })),
+    skipDuplicates: true,
+  });
+}
+
 export async function dbUpdatePaysheet(id: string, ps: MonthlyPaysheetDTO): Promise<void> {
   const prisma = getPrisma();
   await prisma.monthlyPaysheet.update({

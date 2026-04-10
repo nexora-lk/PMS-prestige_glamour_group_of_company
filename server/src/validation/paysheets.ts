@@ -152,7 +152,7 @@ export const listPaysheetsQuerySchema = z.object({
   search:   z.string().optional(),
   status:   z.enum(['active', 'delete', 'all']).optional(),
   page:     z.coerce.number().int().min(1).default(1),
-  limit:    z.coerce.number().int().min(1).max(200).default(15),
+  limit:    z.coerce.number().int().min(1).max(10000).default(15),
 });
 
 export const monthPaysheetsQuerySchema = z.object({
@@ -161,7 +161,7 @@ export const monthPaysheetsQuerySchema = z.object({
   branch:  z.string().optional(),
   role:    roleCodeSchema.optional(),
   page:    z.coerce.number().int().min(1).default(1),
-  limit:   z.coerce.number().int().min(1).max(200).default(15),
+  limit:   z.coerce.number().int().min(1).max(10000).default(15),
 });
 
 // ── Inferred types ────────────────────────────────────────────

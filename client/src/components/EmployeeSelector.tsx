@@ -5,7 +5,7 @@ import { BRANCHES } from '../constants/branches';
 import { ROLES } from '../constants/roleSalaries';
 import type { User } from '../types';
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 10;
 
 interface EmployeeSelectorProps {
   /** Currently selected employee code numbers */

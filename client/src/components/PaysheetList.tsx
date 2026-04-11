@@ -27,7 +27,7 @@ export function PaysheetList({ onEdit, onView, onDelete, refreshTrigger }: Paysh
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
-  const limit = 15;
+  const limit = 10;
 
   const fetchPaysheets = useCallback(async () => {
     setLoading(true);

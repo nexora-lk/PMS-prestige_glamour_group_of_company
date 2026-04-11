@@ -23,7 +23,7 @@ export default function Users() {
     role: role || undefined,
     status: (status as 'active' | 'delete' | 'all') || 'all',
     page,
-    limit: 15,
+    limit: 10,
   });
 
   const handleSoftDelete = useCallback(

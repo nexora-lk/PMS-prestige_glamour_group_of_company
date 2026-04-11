@@ -57,7 +57,6 @@ vi.mock('../../services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } 
 
 import { userService } from '../../services/userService';
 import { paysheetService } from '../../services/paysheetService';
-import { showToast } from '../../components/Toast';
 import Payroll from '../../pages/Payroll';
 
 const mockListUsers = userService.listUsers as ReturnType<typeof vi.fn>;

@@ -17,7 +17,7 @@ vi.mock('../../services/paysheetService', () => ({
   },
 }));
 
-const mockService = paysheetService as {
+const mockService = paysheetService as unknown as {
   listPaysheets: ReturnType<typeof vi.fn>;
   createPaysheet: ReturnType<typeof vi.fn>;
   updatePaysheet: ReturnType<typeof vi.fn>;
@@ -140,12 +140,9 @@ describe('usePaysheets — createPaysheet', () => {
     await waitFor(() => expect(result.current.paysheets).toHaveLength(1));
 
     await act(async () => {
-      const created = await result.current.createPaysheet({
-        ...samplePaysheet,
-        id: undefined,
-        createdAt: undefined,
-        updatedAt: undefined,
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id: _id, createdAt: _ca, updatedAt: _ua, ...paysheetData } = samplePaysheet;
+      const created = await result.current.createPaysheet(paysheetData);
       expect(created.id).toBe('ps-002');
     });
 

@@ -4,7 +4,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import React from 'react';
 
 vi.mock('../context/AuthContext', () => ({ useAuth: vi.fn(), AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 vi.mock('../components/Toast', () => ({ ToastContainer: () => null, showToast: vi.fn() }));

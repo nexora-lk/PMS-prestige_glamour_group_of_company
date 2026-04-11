@@ -6,7 +6,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
 vi.mock('../../services/userService', () => ({
@@ -91,7 +90,6 @@ describe('UserForm — add mode', () => {
     renderNew();
     await userEvent.type(screen.getByPlaceholderText(/e\.g\., E001/i), 'E002');
     // Fill required fields by label text
-    const inputs = screen.getAllByRole('textbox');
     // codeNo is first
     // Just submit — HTML required validation won't fire in jsdom, but we can check after filling minimal fields
     // Instead test that createUser is called with correct data by filling all fields

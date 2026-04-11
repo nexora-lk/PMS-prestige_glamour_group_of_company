@@ -5,7 +5,6 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import React from 'react';
 
 vi.mock('../../utils/format', () => ({
   formatCurrency: (n: number) => `Rs.${n}`,
@@ -49,6 +48,7 @@ const fakePaysheet = {
   achieve: 0,
   allowance: 0,
   nopay: 0,
+  late: 0,
   lateHours: 0,
   lateMinutes: 0,
   epfAvailability: true,
@@ -71,6 +71,8 @@ const fakeEmployee = {
   joinDate: '2022-01-01',
   bankAccount: '123456',
   bankName: 'BOC',
+  createdAt: '2022-01-01T00:00:00Z',
+  updatedAt: '2022-01-01T00:00:00Z',
 };
 
 describe('PaySheet component', () => {

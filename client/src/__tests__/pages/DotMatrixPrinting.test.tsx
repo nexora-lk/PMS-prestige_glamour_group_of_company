@@ -56,7 +56,6 @@ import DotMatrixPrinting from '../../pages/DotMatrixPrinting';
 
 const mockListUsers = userService.listUsers as ReturnType<typeof vi.fn>;
 const mockGetMonthPaysheets = paysheetService.getMonthPaysheets as ReturnType<typeof vi.fn>;
-const mockApiPost = api.post as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   vi.clearAllMocks();

@@ -12,7 +12,7 @@ import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 
 // Replace global fetch with a controllable mock
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+vi.stubGlobal('fetch', mockFetch);
 
 beforeEach(() => {
   vi.clearAllMocks();

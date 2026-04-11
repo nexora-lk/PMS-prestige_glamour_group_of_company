@@ -3,16 +3,15 @@
  * Page title mapping, sidebar collapse toggle
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import Layout from '../../components/Layout/Layout';
 
 // Mock child components to isolate Layout
 vi.mock('../../components/Layout/Sidebar', () => ({
-  default: ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) => (
+  default: ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void; mobileOpen?: boolean; onMobileClose?: () => void }) => (
     <div data-testid="sidebar" data-collapsed={String(collapsed)}>
       <button onClick={onToggle} data-testid="sidebar-toggle">Toggle</button>
     </div>
@@ -20,7 +19,7 @@ vi.mock('../../components/Layout/Sidebar', () => ({
 }));
 
 vi.mock('../../components/Layout/Header', () => ({
-  default: ({ title, subtitle, collapsed }: { title: string; subtitle?: string; collapsed: boolean }) => (
+  default: ({ title, subtitle, collapsed }: { title: string; subtitle?: string; collapsed: boolean; onMobileMenuOpen?: () => void }) => (
     <div data-testid="header" data-collapsed={String(collapsed)}>
       <span data-testid="header-title">{title}</span>
       {subtitle && <span data-testid="header-subtitle">{subtitle}</span>}

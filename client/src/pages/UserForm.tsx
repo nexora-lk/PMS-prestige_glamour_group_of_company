@@ -327,16 +327,7 @@ export default function UserForm() {
             </div>
           </div>
 
-          <div
-            style={{
-              marginTop: 32,
-              display: 'flex',
-              gap: 12,
-              justifyContent: 'flex-end',
-              borderTop: '1px solid var(--border)',
-              paddingTop: 24,
-            }}
-          >
+          <div className="form-actions">
             <button
               type="button"
               className="btn btn-secondary"

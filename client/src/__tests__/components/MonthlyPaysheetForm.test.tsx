@@ -6,7 +6,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 
 vi.mock('../../services/paysheetService', () => ({
   paysheetService: { createPaysheet: vi.fn(), updatePaysheet: vi.fn() },
@@ -47,6 +46,7 @@ const fakePaysheet = {
   achieve: 0,
   allowance: 0,
   nopay: 0,
+  late: 0,
   lateHours: 0,
   lateMinutes: 0,
   epfAvailability: true,

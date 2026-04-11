@@ -15,7 +15,7 @@ vi.mock('../../services/payrollService', () => ({
   },
 }));
 
-const mockPayrollService = payrollService as {
+const mockPayrollService = payrollService as unknown as {
   getPayrollHistory: ReturnType<typeof vi.fn>;
   deletePayroll: ReturnType<typeof vi.fn>;
 };

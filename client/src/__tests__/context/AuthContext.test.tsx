@@ -6,8 +6,8 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act, waitFor } from '@testing-library/react';
+import { useState } from 'react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { AuthProvider, useAuth } from '../../context/AuthContext';
 import api, { setAccessToken } from '../../services/api';
 
@@ -28,7 +28,7 @@ vi.mock('../../services/api', () => {
   };
 });
 
-const mockApi = api as { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn> };
+const mockApi = api as unknown as { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn> };
 const mockSetAccessToken = setAccessToken as ReturnType<typeof vi.fn>;
 
 // Helper to consume auth context in a component
@@ -56,9 +56,9 @@ function renderWithAuth() {
 beforeEach(() => {
   vi.clearAllMocks();
   // Default: no refresh token stored
-  (window.electronAPI.getRefreshToken as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-  (window.electronAPI.deleteRefreshToken as ReturnType<typeof vi.fn>).mockResolvedValue(true);
-  (window.electronAPI.saveRefreshToken as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+  (window.electronAPI!.getRefreshToken as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+  (window.electronAPI!.deleteRefreshToken as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+  (window.electronAPI!.saveRefreshToken as ReturnType<typeof vi.fn>).mockResolvedValue(true);
 });
 
 // ── Session restore ───────────────────────────────────────────
@@ -74,7 +74,7 @@ describe('AuthProvider — session restore', () => {
   });
 
   it('restores session when valid refresh token exists', async () => {
-    (window.electronAPI.getRefreshToken as ReturnType<typeof vi.fn>).mockResolvedValue('valid-refresh-token');
+    (window.electronAPI!.getRefreshToken as ReturnType<typeof vi.fn>).mockResolvedValue('valid-refresh-token');
     mockApi.post.mockResolvedValue({ data: { accessToken: 'new-access-token' } });
     mockApi.get.mockResolvedValue({ data: { username: 'admin', name: 'Super Admin', role: 'super_admin' } });
 
@@ -88,7 +88,7 @@ describe('AuthProvider — session restore', () => {
   });
 
   it('stays logged out when refresh token exchange fails', async () => {
-    (window.electronAPI.getRefreshToken as ReturnType<typeof vi.fn>).mockResolvedValue('expired-token');
+    (window.electronAPI!.getRefreshToken as ReturnType<typeof vi.fn>).mockResolvedValue('expired-token');
     mockApi.post.mockRejectedValue(new Error('Token expired'));
 
     renderWithAuth();
@@ -98,7 +98,7 @@ describe('AuthProvider — session restore', () => {
     });
     expect(screen.getByTestId('authenticated').textContent).toBe('false');
     expect(mockSetAccessToken).toHaveBeenCalledWith(null);
-    expect(window.electronAPI.deleteRefreshToken).toHaveBeenCalled();
+    expect(window.electronAPI!.deleteRefreshToken).toHaveBeenCalled();
   });
 
   it('sets isLoading=false immediately when not in Electron (no electronAPI)', async () => {
@@ -140,7 +140,7 @@ describe('AuthProvider — login', () => {
     expect(screen.getByTestId('username').textContent).toBe('admin');
     expect(screen.getByTestId('authenticated').textContent).toBe('true');
     expect(mockSetAccessToken).toHaveBeenCalledWith('access-token');
-    expect(window.electronAPI.saveRefreshToken).toHaveBeenCalledWith('refresh-token');
+    expect(window.electronAPI!.saveRefreshToken).toHaveBeenCalledWith('refresh-token');
   });
 
   it('leaves user unauthenticated when login API fails', async () => {
@@ -150,7 +150,7 @@ describe('AuthProvider — login', () => {
     // Render a consumer that catches the login error internally
     function SafeConsumer() {
       const { user, isAuthenticated, isLoading, login } = useAuth();
-      const [loginError, setLoginError] = React.useState('');
+      const [loginError, setLoginError] = useState('');
       return (
         <div>
           <div data-testid="loading">{String(isLoading)}</div>
@@ -191,7 +191,7 @@ describe('AuthProvider — login', () => {
 describe('AuthProvider — logout', () => {
   it('clears user and deletes refresh token', async () => {
     // Setup: already logged in
-    (window.electronAPI.getRefreshToken as ReturnType<typeof vi.fn>).mockResolvedValue('valid-refresh-token');
+    (window.electronAPI!.getRefreshToken as ReturnType<typeof vi.fn>).mockResolvedValue('valid-refresh-token');
     mockApi.post
       .mockResolvedValueOnce({ data: { accessToken: 'new-access-token' } }) // refresh
       .mockResolvedValueOnce({ data: {} }); // logout
@@ -207,11 +207,11 @@ describe('AuthProvider — logout', () => {
     expect(screen.getByTestId('authenticated').textContent).toBe('false');
     expect(screen.getByTestId('username').textContent).toBe('none');
     expect(mockSetAccessToken).toHaveBeenCalledWith(null);
-    expect(window.electronAPI.deleteRefreshToken).toHaveBeenCalled();
+    expect(window.electronAPI!.deleteRefreshToken).toHaveBeenCalled();
   });
 
   it('still clears local state even if server logout fails', async () => {
-    (window.electronAPI.getRefreshToken as ReturnType<typeof vi.fn>).mockResolvedValue('valid-refresh-token');
+    (window.electronAPI!.getRefreshToken as ReturnType<typeof vi.fn>).mockResolvedValue('valid-refresh-token');
     mockApi.post
       .mockResolvedValueOnce({ data: { accessToken: 'new-access-token' } })
       .mockRejectedValueOnce(new Error('Server unreachable'));

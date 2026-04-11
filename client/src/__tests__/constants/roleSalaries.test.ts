@@ -13,7 +13,7 @@ describe('ROLE_SALARIES', () => {
   });
 
   it('all salary values are positive numbers', () => {
-    for (const [role, salary] of Object.entries(ROLE_SALARIES)) {
+    for (const [, salary] of Object.entries(ROLE_SALARIES)) {
       expect(typeof salary).toBe('number');
       expect(salary).toBeGreaterThan(0);
     }

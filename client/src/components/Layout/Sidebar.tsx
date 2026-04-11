@@ -1,13 +1,15 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { FiBarChart2, FiUsers, FiDollarSign, FiFileText, FiGrid, FiDownload, FiLogOut, FiChevronRight, FiChevronLeft } from 'react-icons/fi';
+import { FiBarChart2, FiUsers, FiDollarSign, FiFileText, FiGrid, FiDownload, FiLogOut, FiChevronRight, FiChevronLeft, FiX } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) {
   const { logout } = useAuth();
   const location = useLocation();
 
@@ -31,21 +33,25 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   ];
 
   return (
-    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
+    <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' mobile-open' : ''}`}>
       <div className="sidebar-header">
         <div className="sidebar-logo" style={{ background: 'transparent', padding: 0 }}>
           <img src="/icon.png" alt="PMS Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
-        {!collapsed && (
+        {(!collapsed || mobileOpen) && (
           <div className="sidebar-brand">
             <h2>PMS</h2>
             <p>Application</p>
           </div>
         )}
+        {/* Mobile close button */}
+        <button className="btn btn-ghost btn-icon sidebar-close-btn" onClick={onMobileClose} aria-label="Close menu">
+          <FiX size={20} />
+        </button>
       </div>
 
       <nav className="sidebar-nav">
-        <span className="nav-section-label">{collapsed ? '•' : 'Main Menu'}</span>
+        <span className="nav-section-label">{(collapsed && !mobileOpen) ? '•' : 'Main Menu'}</span>
         {navItems.map((item) => (
           <NavLink
             key={item.path}
@@ -53,16 +59,16 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             className={`nav-item${location.pathname === item.path ? ' active' : ''}`}
           >
             <span className="nav-item-icon">{iconMap[item.icon]}</span>
-            {!collapsed && <span>{item.label}</span>}
+            {(!collapsed || mobileOpen) && <span>{item.label}</span>}
           </NavLink>
         ))}
 
         <span className="nav-section-label" style={{ marginTop: 'auto' }}>
-          {collapsed ? '•' : 'Account'}
+          {(collapsed && !mobileOpen) ? '•' : 'Account'}
         </span>
         <button className="nav-item" onClick={logout}>
           <span className="nav-item-icon">{iconMap.logout}</span>
-          {!collapsed && <span>Logout</span>}
+          {(!collapsed || mobileOpen) && <span>Logout</span>}
         </button>
       </nav>
 

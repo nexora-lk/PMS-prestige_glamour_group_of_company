@@ -6,7 +6,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 
 // Mocks
@@ -137,7 +136,7 @@ describe('Login page — successful login', () => {
   });
 
   it('shows "Signing in..." text while loading', async () => {
-    let resolve!: () => void;
+    let resolve!: (value?: unknown) => void;
     mockLogin.mockReturnValue(new Promise((r) => { resolve = r; }));
     renderLogin();
 

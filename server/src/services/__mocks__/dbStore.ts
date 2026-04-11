@@ -6,7 +6,7 @@
  */
 
 import { vi } from 'vitest';
-import type { User, PayrollRecord, MonthlyPaysheetDTO, AdminCredentials } from '../../../models';
+import type { User, PayrollRecord, MonthlyPaysheetDTO, AdminCredentials } from '../../models';
 
 // ── Shared in-memory state ─────────────────────────────────────
 

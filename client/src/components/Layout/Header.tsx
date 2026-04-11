@@ -1,21 +1,31 @@
 import { useAuth } from '../../context/AuthContext';
 import { NetworkIndicator } from '../NetworkStatus';
+import { FiMenu } from 'react-icons/fi';
 
 interface HeaderProps {
   collapsed: boolean;
   title: string;
   subtitle?: string;
+  onMobileMenuOpen?: () => void;
 }
 
-export default function Header({ collapsed, title, subtitle }: HeaderProps) {
+export default function Header({ collapsed, title, subtitle, onMobileMenuOpen }: HeaderProps) {
   const { user } = useAuth();
 
   return (
     <header className={`header${collapsed ? ' collapsed' : ''}`}>
       <div className="header-left">
+        {/* Hamburger — visible only on mobile/tablet */}
+        <button
+          className="btn btn-ghost btn-icon mobile-menu-btn"
+          onClick={onMobileMenuOpen}
+          aria-label="Open navigation menu"
+        >
+          <FiMenu size={22} />
+        </button>
         <div className="header-title">
           <h1>{title}</h1>
-          {subtitle && <p>{subtitle}</p>}
+          {subtitle && <p className="header-subtitle">{subtitle}</p>}
         </div>
       </div>
 

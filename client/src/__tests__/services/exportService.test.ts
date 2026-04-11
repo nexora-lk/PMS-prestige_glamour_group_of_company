@@ -13,13 +13,12 @@ vi.mock('../../services/api', () => ({
   },
 }));
 
-const mockApi = api as { get: ReturnType<typeof vi.fn> };
+const mockApi = api as unknown as { get: ReturnType<typeof vi.fn> };
 
 // Mock DOM blob/URL handling
 const mockCreateObjectURL = vi.fn(() => 'blob:mock-url');
 const mockRevokeObjectURL = vi.fn();
 const mockAppendChild = vi.fn();
-const mockRemoveChild = vi.fn();
 const mockClick = vi.fn();
 
 beforeEach(() => {

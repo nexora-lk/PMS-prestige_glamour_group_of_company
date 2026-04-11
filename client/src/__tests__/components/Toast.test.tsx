@@ -3,9 +3,8 @@
  * showToast(), ToastContainer renders/dismisses toasts
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
-import React from 'react';
 import { showToast, ToastContainer } from '../../components/Toast';
 
 // Real timers — waitFor and fake timers conflict badly

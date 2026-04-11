@@ -5,7 +5,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import React from 'react';
 
 vi.mock('../../services/userService', () => ({ userService: { getStats: vi.fn() } }));
 vi.mock('../../services/paysheetService', () => ({ paysheetService: { getMonthPaysheets: vi.fn() } }));

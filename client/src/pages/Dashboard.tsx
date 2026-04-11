@@ -83,16 +83,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="stat-card stagger-4">
-          <div className="stat-icon yellow">
-            <FiDollarSign size={24} />
-          </div>
-          <div className="stat-info">
-            <h3>{formatCurrency(stats.userStats?.totalMonthlySalary || 0)}</h3>
-            <p>Total Monthly Payroll</p>
-          </div>
-        </div>
-
         <div className="stat-card stagger-5">
           <div className="stat-icon orange">
             <FiFileText size={24} />
@@ -104,6 +94,15 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <div className="stat-card stagger-4">
+        <div className="stat-icon yellow">
+          <FiDollarSign size={24} />
+        </div>
+        <div className="stat-info">
+          <h3>{formatCurrency(stats.userStats?.totalMonthlySalary || 0)}</h3>
+          <p>Total Monthly Payroll</p>
+        </div>
+      </div>
       {/* Employee Status Chart */}
       <div className="card animate-in stagger-2" style={{ marginTop: '24px' }}>
         <div className="card-header">

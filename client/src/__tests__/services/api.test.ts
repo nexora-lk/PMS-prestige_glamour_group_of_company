@@ -4,7 +4,7 @@
  * response interceptor (401 → refresh, network error message)
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { setAccessToken } from '../../services/api';
 import api from '../../services/api';
 

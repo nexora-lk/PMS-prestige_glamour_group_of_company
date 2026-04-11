@@ -18,7 +18,7 @@ vi.mock('../../services/userService', () => ({
   },
 }));
 
-const mockUserService = userService as {
+const mockUserService = userService as unknown as {
   listUsers: ReturnType<typeof vi.fn>;
   createUser: ReturnType<typeof vi.fn>;
   updateUser: ReturnType<typeof vi.fn>;

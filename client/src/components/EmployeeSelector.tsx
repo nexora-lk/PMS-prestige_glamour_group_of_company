@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { FiSearch, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import {FiSearch, FiChevronLeft, FiChevronRight, FiRefreshCw} from 'react-icons/fi';
 import { useUsers } from '../hooks/useUsers';
 import { BRANCHES } from '../constants/branches';
 import { ROLES } from '../constants/roleSalaries';
@@ -33,8 +33,9 @@ export default function EmployeeSelector({
   const [branch, setBranch] = useState('');
   const [role, setRole] = useState('');
   const [page, setPage] = useState(1);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const { users, loading, response } = useUsers({
+  const { users, loading, response, refreshUsers } = useUsers({
     search,
     branch: branch || undefined,
     role: role || undefined,
@@ -42,6 +43,15 @@ export default function EmployeeSelector({
     page,
     limit: PAGE_SIZE,
   });
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshUsers();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const totalPages = response?.totalPages ?? 1;
   const total = response?.total ?? 0;
@@ -135,6 +145,16 @@ export default function EmployeeSelector({
           <option value="">All Roles</option>
           {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
         </select>
+        <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleRefresh}
+            disabled={loading || refreshing}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+        >
+          <FiRefreshCw size={14} />
+          {refreshing ? 'Refreshing...' : 'Refresh'}
+        </button>
 
         {selectedCodeNos.size > 0 && (
           <button

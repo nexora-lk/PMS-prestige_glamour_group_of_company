@@ -302,6 +302,13 @@ export function calculateETF(achievedSalary: number, epfAvailability: boolean): 
   return epfAvailability ? achievedSalary * ETF_RATE : 0;
 }
 
+// function calculateFinalValue(baseValue, attendance) {
+//   if (attendance <= 7) {
+//     return 0;
+//   }
+//   return baseValue;
+// }
+
 // ============================================================
 // Main paysheet calculation function
 // ============================================================
@@ -317,8 +324,13 @@ export function calculatePaysheet(input: PaysheetInput): PaysheetResult {
     const achievementAmount = input.achievementAmount || 0;
     const achievementPct = calculateAchievementPct(achievementAmount, assignedTarget);
     const achievedSalary = calculateAchieveSalary(achievementPct, basicSalary);
-    const vehicleAllowance = calculateVehicleAllowance(achievementPct, saleConfig.vehicleAllowance);
-    const fuelAllowance = calculateFuelAllowance(achievementPct, saleConfig.fuelAllowance);
+    const workedDays = WORKING_DAYS_PER_MONTH - input.nopayDays;
+    const vehicleAllowance = workedDays > 7
+        ? calculateVehicleAllowance(achievementPct, saleConfig.vehicleAllowance)
+        : 0;
+    const fuelAllowance = workedDays > 7
+        ? calculateFuelAllowance(achievementPct, saleConfig.fuelAllowance)
+        : 0;
     const generalAllowance = input.generalAllowance || 0;
     const otherOffer = input.otherOffer || 0;
     const orc = calculateORC(

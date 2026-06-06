@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { FiSearch, FiEye, FiEdit2, FiTrash2, FiRotateCcw, FiXCircle } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import { FiSearch, FiEye, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { paysheetService } from '../services/paysheetService';
 import { formatCurrency } from '../utils/format';
 import type { MonthlyPaysheet } from '../types';
@@ -16,7 +16,7 @@ interface PaysheetListProps {
   refreshTrigger?: number;
 }
 
-export function PaysheetList({ onEdit, onView, onDelete, refreshTrigger }: PaysheetListProps) {
+export function PaysheetList({ onEdit, onView, refreshTrigger }: PaysheetListProps) {
   const [paysheets, setPaysheets] = useState<MonthlyPaysheet[]>([]);
   const [loading, setLoading] = useState(false);
   const [filterMonth, setFilterMonth] = useState<string>(new Date().toISOString().slice(0, 7));
@@ -27,32 +27,39 @@ export function PaysheetList({ onEdit, onView, onDelete, refreshTrigger }: Paysh
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [localRefresh, setLocalRefresh] = useState(0);
   const limit = 10;
 
-  const fetchPaysheets = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await paysheetService.getMonthPaysheets(filterMonth, {
-        search: searchText || undefined,
-        status: filterStatus || 'all',
-        branch: filterBranch || undefined,
-        role: filterRole || undefined,
-        page,
-        limit,
-      });
-      setPaysheets(res.paysheets);
-      setTotalPages(res.totalPages);
-      setTotal(res.total);
-    } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : 'Failed to load paysheets', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [filterMonth, filterStatus, filterBranch, filterRole, searchText, page]);
-
   useEffect(() => {
-    fetchPaysheets();
-  }, [fetchPaysheets, refreshTrigger]);
+    let isMounted = true;
+    const fetch = async () => {
+      setLoading(true);
+      try {
+        const res = await paysheetService.getMonthPaysheets(filterMonth, {
+          search: searchText || undefined,
+          status: filterStatus || 'all',
+          branch: filterBranch || undefined,
+          role: filterRole || undefined,
+          page,
+          limit,
+        });
+        if (isMounted) {
+          setPaysheets(res.paysheets);
+          setTotalPages(res.totalPages);
+          setTotal(res.total);
+        }
+      } catch (err: unknown) {
+        if (isMounted) {
+          showToast(err instanceof Error ? err.message : 'Failed to load paysheets', 'error');
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetch();
+    return () => { isMounted = false; };
+  }, [filterMonth, filterStatus, filterBranch, filterRole, searchText, page, refreshTrigger, localRefresh]);
 
   const handleSearchChange = (value: string) => {
     setSearchText(value);
@@ -79,41 +86,13 @@ export function PaysheetList({ onEdit, onView, onDelete, refreshTrigger }: Paysh
     setPage(1);
   };
 
-  const handleSoftDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this paysheet?')) return;
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to permanently delete this paysheet?')) return;
     try {
-      await paysheetService.updatePaysheetStatus(id, 'delete');
-      showToast('Paysheet deleted', 'success');
-      fetchPaysheets();
-    } catch (error: unknown) {
-      showToast(error instanceof Error ? error.message : 'Failed to delete paysheet', 'error');
-    }
-  };
-
-  const handleRestore = async (id: string) => {
-    if (!confirm('Are you sure you want to restore this paysheet?')) return;
-    try {
-      await paysheetService.updatePaysheetStatus(id, 'active');
-      showToast('Paysheet restored', 'success');
-      fetchPaysheets();
-    } catch (error: unknown) {
-      showToast(error instanceof Error ? error.message : 'Failed to restore paysheet', 'error');
-    }
-  };
-
-  const handlePermanentDelete = async (id: string) => {
-    if (
-      !confirm(
-        '⚠️ PERMANENT DELETE\n\nAre you sure you want to permanently delete this paysheet?\n\nThis action cannot be undone.'
-      )
-    )
-      return;
-    try {
-      const paysheet = paysheets.find((p) => p.id === id);
       await paysheetService.deletePaysheet(id);
-      showToast('Paysheet permanently deleted', 'success');
-      fetchPaysheets();
-      onDelete?.(paysheet!);
+      showToast('Paysheet deleted from database', 'success');
+      // Trigger a refresh via the prop if available, or locally
+      setPage(1); // Resetting page will trigger the useEffect
     } catch (error: unknown) {
       showToast(error instanceof Error ? error.message : 'Failed to delete paysheet', 'error');
     }
@@ -141,6 +120,15 @@ export function PaysheetList({ onEdit, onView, onDelete, refreshTrigger }: Paysh
         />
         <select
           className="filter-select"
+          value={filterStatus}
+          onChange={(e) => handleStatusChange(e.target.value)}
+        >
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="delete">Deleted</option>
+        </select>
+        <select
+          className="filter-select"
           value={filterBranch}
           onChange={(e) => handleBranchChange(e.target.value)}
         >
@@ -159,21 +147,27 @@ export function PaysheetList({ onEdit, onView, onDelete, refreshTrigger }: Paysh
             <option key={code} value={code}>{ROLE_CODE_TO_NAME[code] || code}</option>
           ))}
         </select>
-        <select
-          className="filter-select"
-          value={filterStatus}
-          onChange={(e) => handleStatusChange(e.target.value)}
-        >
-          <option value="all">All</option>
-          <option value="active">Active</option>
-          <option value="delete">Deleted</option>
-        </select>
         <button
-          onClick={fetchPaysheets}
+          onClick={() => setLocalRefresh(r => r + 1)}
           className="btn btn-secondary"
           disabled={loading}
         >
           Refresh
+        </button>
+
+        <button
+          onClick={() => {
+            setSearchText('');
+            setFilterMonth(new Date().toISOString().slice(0, 7));
+            setFilterStatus('active');
+            setFilterBranch('');
+            setFilterRole('');
+            setPage(1);
+          }}
+          className="btn btn-ghost"
+          title="Clear all filters"
+        >
+          Clear Filters
         </button>
       </div>
 
@@ -203,20 +197,9 @@ export function PaysheetList({ onEdit, onView, onDelete, refreshTrigger }: Paysh
             </thead>
             <tbody>
               {paysheets.map((paysheet) => {
-                const isDeleted = (paysheet.status || 'active') === 'delete';
                 return (
-                  <tr
-                    key={paysheet.id}
-                    style={isDeleted ? { opacity: 0.55 } : undefined}
-                  >
-                    <td style={{ fontWeight: 500 }}>
-                      {paysheet.codeNo}
-                      {isDeleted && (
-                        <span className="badge badge-delete" style={{ marginLeft: 6, fontSize: 10 }}>
-                          deleted
-                        </span>
-                      )}
-                    </td>
+                  <tr key={paysheet.id}>
+                    <td style={{ fontWeight: 500 }}>{paysheet.codeNo}</td>
                     <td>{paysheet.role}</td>
                     <td style={{ textAlign: 'center' }}>{paysheet.monthsOfService}</td>
                     <td style={{ textAlign: 'right' }}>
@@ -239,42 +222,20 @@ export function PaysheetList({ onEdit, onView, onDelete, refreshTrigger }: Paysh
                         >
                           <FiEye size={16} />
                         </button>
-                        {!isDeleted ? (
-                          <>
-                            <button
-                              className="btn btn-ghost btn-sm"
-                              onClick={() => onEdit?.(paysheet)}
-                              title="Edit"
-                            >
-                              <FiEdit2 size={16} />
-                            </button>
-                            <button
-                              className="btn btn-ghost btn-danger btn-sm"
-                              onClick={() => handleSoftDelete(paysheet.id!)}
-                              title="Delete"
-                            >
-                              <FiTrash2 size={16} />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              className="btn btn-ghost btn-sm"
-                              onClick={() => handleRestore(paysheet.id!)}
-                              title="Restore"
-                              style={{ color: 'var(--success)' }}
-                            >
-                              <FiRotateCcw size={16} />
-                            </button>
-                            <button
-                              className="btn btn-ghost btn-danger btn-sm"
-                              onClick={() => handlePermanentDelete(paysheet.id!)}
-                              title="Permanent Delete"
-                            >
-                              <FiXCircle size={16} />
-                            </button>
-                          </>
-                        )}
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => onEdit?.(paysheet)}
+                          title="Edit"
+                        >
+                          <FiEdit2 size={16} />
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-danger btn-sm"
+                          onClick={() => handleDelete(paysheet.id!)}
+                          title="Delete"
+                        >
+                          <FiTrash2 size={16} />
+                        </button>
                       </div>
                     </td>
                   </tr>

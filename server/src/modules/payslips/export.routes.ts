@@ -13,6 +13,7 @@ import {
   exportMonthlyPaysheetsToExcel,
   exportMonthlyPaysheetsByBranchToExcel,
   exportMonthlyPaysheetsByRoleToExcel,
+  exportPaysheetsToMonthBranchZip,
 } from '../../utils/excelExport';
 
 function streamFile(
@@ -22,7 +23,10 @@ function streamFile(
 ): FastifyReply {
   const filename = path.basename(filePath);
   const stat = fs.statSync(filePath);
-  reply.header('Content-Type', contentType);
+  const isZip = filename.endsWith('.zip');
+  const finalContentType = isZip ? 'application/zip' : contentType;
+
+  reply.header('Content-Type', finalContentType);
   reply.header('Content-Disposition', `attachment; filename="${filename}"`);
   reply.header('Content-Length', String(stat.size));
   return reply.send(fs.createReadStream(filePath));
@@ -77,7 +81,7 @@ export default async function exportRoutes(fastify: FastifyInstance): Promise<vo
       const records = await dbGetAllPaysheets();
       if (records.length === 0) return reply.code(400).send({ error: 'No monthly paysheet data to export.' });
       const users = await dbGetAllUsers();
-      const filePath = await exportMonthlyPaysheetsByBranchToExcel(records, users);
+      const filePath = await exportPaysheetsToMonthBranchZip(records, users);
       return streamFile(reply, filePath);
     } catch (error) {
       console.error('Export error:', error);

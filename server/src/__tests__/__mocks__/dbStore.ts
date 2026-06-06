@@ -54,7 +54,13 @@ export const dbCreateManyPaysheets = vi.fn(async (psList: MonthlyPaysheetDTO[]) 
 export const dbUpdatePaysheet = vi.fn(async (id: string, ps: MonthlyPaysheetDTO) => { _paysheets.set(id, { ...ps, id }); });
 export const dbUpdatePaysheetStatus = vi.fn(async (id: string, status: 'active' | 'delete') => {
   const ps = _paysheets.get(id);
-  if (ps) _paysheets.set(id, { ...ps, status });
+  if (ps) {
+    if (status === 'delete') {
+      _paysheets.delete(id);
+    } else {
+      _paysheets.set(id, { ...ps, status });
+    }
+  }
 });
 export const dbDeletePaysheet = vi.fn(async (id: string) => { _paysheets.delete(id); });
 
@@ -85,7 +91,16 @@ export function __resetStore() {
   dbCreatePaysheet.mockImplementation(async (ps: MonthlyPaysheetDTO) => { _paysheets.set(ps.id!, ps); });
   dbCreateManyPaysheets.mockImplementation(async (psList: MonthlyPaysheetDTO[]) => { for (const ps of psList) _paysheets.set(ps.id!, ps); });
   dbUpdatePaysheet.mockImplementation(async (id: string, ps: MonthlyPaysheetDTO) => { _paysheets.set(id, { ...ps, id }); });
-  dbUpdatePaysheetStatus.mockImplementation(async (id: string, status: 'active' | 'delete') => { const ps = _paysheets.get(id); if (ps) _paysheets.set(id, { ...ps, status }); });
+  dbUpdatePaysheetStatus.mockImplementation(async (id: string, status: 'active' | 'delete') => {
+    const ps = _paysheets.get(id);
+    if (ps) {
+      if (status === 'delete') {
+        _paysheets.delete(id);
+      } else {
+        _paysheets.set(id, { ...ps, status });
+      }
+    }
+  });
   dbDeletePaysheet.mockImplementation(async (id: string) => { _paysheets.delete(id); });
 }
 

@@ -333,7 +333,7 @@ export function MonthlyPaysheetForm({
             Months of Service <span style={{ color: 'var(--ruby-500)' }}>*</span>
           </label>
           <input
-            type="text"
+            type="number"
             inputMode='numeric'
             className="form-input"
             name="monthsOfService"
@@ -427,7 +427,7 @@ export function MonthlyPaysheetForm({
           <div className="form-group">
             <label>No Pay Days</label>
             <input
-              type="text"
+              type="number"
               inputMode='numeric'
               className="form-input"
               name="nopay"

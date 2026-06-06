@@ -647,3 +647,100 @@ export async function exportMonthlyPaysheetsByRoleToExcel(
   return filePath;
 }
 
+export async function exportPaysheetsToMonthBranchZip(
+  records: MonthlyPaysheetDTO[],
+  users: User[]
+): Promise<string> {
+  const userMap = new Map<string, User>();
+  users.forEach((u) => userMap.set(u.codeNo, u));
+
+  const byMonth = new Map<string, Map<string, MonthlyPaysheetDTO[]>>();
+  for (const rec of records) {
+    const user = userMap.get(rec.codeNo);
+    const branch = user?.branch || 'Unknown';
+    if (!byMonth.has(rec.payMonth)) byMonth.set(rec.payMonth, new Map());
+    const monthMap = byMonth.get(rec.payMonth)!;
+    if (!monthMap.has(branch)) monthMap.set(branch, []);
+    monthMap.get(branch)!.push(rec);
+  }
+
+  const TEMP_DIR = path.join(process.env.TEMP_DIR || path.join(__dirname, '..', '..', 'temp'), `excel_export_${Date.now()}`);
+  fs.mkdirSync(TEMP_DIR, { recursive: true });
+
+  const dataColumns = [
+    { header: 'Code No',        key: 'codeNo',               width: 14 },
+    { header: 'Employee Name',  key: 'employeeName',          width: 24 },
+    { header: 'Bank Name',      key: 'bankName',              width: 16 },
+    { header: 'Bank Account',   key: 'bankAccount',           width: 18 },
+    { header: 'Role',           key: 'role',                  width: 18 },
+    { header: 'Basic Offer',    key: 'basicSalary',           width: 14 },
+    { header: 'Achieve',        key: 'achieve',               width: 14 },
+    { header: 'Assigned Target',key: 'assignedTarget',        width: 16 },
+    { header: 'Achievement %',  key: 'achievementPct',        width: 14 },
+    { header: 'Offer',          key: 'allowance',             width: 14 },
+    { header: 'Vehicle Offer',  key: 'vehicleAllowance',      width: 14 },
+    { header: 'Fuel Offer',     key: 'fuelAllowance',         width: 14 },
+    { header: 'General Offer',  key: 'generalAllowance',      width: 14 },
+    { header: 'ORC',            key: 'orc',                   width: 12 },
+    { header: 'Other Offer',    key: 'otherOffer',            width: 14 },
+    { header: 'Custom Earning', key: 'customEarningAmount',   width: 14 },
+    { header: 'Gross Offer',    key: 'grossSalary',           width: 14 },
+    { header: 'No Pay Days',    key: 'nopay',                 width: 10 },
+    { header: 'No Pay Ded.',    key: 'nopayDeduction',        width: 14 },
+    { header: 'Late Ded.',      key: 'lateDeduction',         width: 14 },
+    { header: 'EPF 8%',         key: 'epfEmployee',           width: 14 },
+    { header: 'Welfare',        key: 'welfare',               width: 12 },
+    { header: 'Custom Ded.',    key: 'customDeductionAmount', width: 14 },
+    { header: 'Net Offer',      key: 'netSalary',             width: 14 },
+  ];
+
+  for (const [month, branchMap] of byMonth.entries()) {
+    const monthDir = path.join(TEMP_DIR, month);
+    fs.mkdirSync(monthDir, { recursive: true });
+
+    for (const [branch, branchRecords] of branchMap.entries()) {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Paysheets');
+      sheet.columns = dataColumns.map(c => ({ key: c.key, width: c.width }));
+
+      // Header style
+      const headerRow = sheet.getRow(1);
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B1464' } };
+        cell.alignment = { horizontal: 'center' };
+      });
+
+      for (const rec of branchRecords) {
+        const user = userMap.get(rec.codeNo);
+        sheet.addRow({
+          ...rec,
+          employeeName: user ? `${user.firstName} ${user.lastName}` : rec.codeNo,
+          bankName: user?.bankName || '',
+          bankAccount: user?.bankAccount || '',
+          achievementPct: Number(((rec.achievementPct || 0) * 100).toFixed(2)),
+        });
+      }
+
+      const branchFileName = `${branch.replace(/[^a-zA-Z0-9]/g, '_')}_${month}.xlsx`;
+      await workbook.xlsx.writeFile(path.join(monthDir, branchFileName));
+    }
+  }
+
+  const zipPath = path.join(EXPORTS_DIR, `paysheets_by_branch_${Date.now()}.zip`);
+  const archiver = require('archiver');
+  const output = fs.createWriteStream(zipPath);
+  const archive = archiver('zip', { zlib: { level: 9 } });
+
+  return new Promise((resolve, reject) => {
+    output.on('close', () => {
+      fs.rmSync(TEMP_DIR, { recursive: true, force: true });
+      resolve(zipPath);
+    });
+    archive.on('error', reject);
+    archive.pipe(output);
+    archive.directory(TEMP_DIR, false);
+    archive.finalize();
+  });
+}
+

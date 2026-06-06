@@ -107,7 +107,7 @@ describe('PaysheetList', () => {
     expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ codeNo: 'E001' }));
   });
 
-  it('calls updatePaysheetStatus with "delete" on soft delete confirm', async () => {
+  it('calls deletePaysheet on delete confirm', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     render(<PaysheetList />);
     await waitFor(() => expect(screen.getByText('E001')).toBeInTheDocument());
@@ -116,17 +116,17 @@ describe('PaysheetList', () => {
     await userEvent.click(deleteBtn);
 
     await waitFor(() => {
-      expect(mockUpdateStatus).toHaveBeenCalledWith('ps1', 'delete');
+      expect(mockDelete).toHaveBeenCalledWith('ps1');
     });
   });
 
-  it('does NOT call updatePaysheetStatus when confirm cancelled', async () => {
+  it('does NOT call deletePaysheet when confirm cancelled', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(false);
     render(<PaysheetList />);
     await waitFor(() => expect(screen.getByText('E001')).toBeInTheDocument());
 
     await userEvent.click(screen.getByTitle('Delete'));
-    expect(mockUpdateStatus).not.toHaveBeenCalled();
+    expect(mockDelete).not.toHaveBeenCalled();
   });
 
   it('renders month filter', async () => {

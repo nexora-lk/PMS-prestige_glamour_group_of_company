@@ -15,12 +15,19 @@ export function findChromePath(): string | undefined {
     try {
       const platforms = fs.readdirSync(chromeDir);
       for (const platform of platforms) {
-        const versions = fs.readdirSync(path.join(chromeDir, platform));
+        const platformDir = path.join(chromeDir, platform);
+        const versions = fs.readdirSync(platformDir);
         for (const ver of versions) {
-          const winPath = path.join(chromeDir, platform, ver, 'chrome-win64', exeName);
-          const linuxPath = path.join(chromeDir, platform, ver, 'chrome-linux64', exeName);
-          if (fs.existsSync(winPath)) return winPath;
-          if (fs.existsSync(linuxPath)) return linuxPath;
+          const verDir = path.join(platformDir, ver);
+          const candidates = [
+            path.join(verDir, 'chrome-win64', 'chrome.exe'),
+            path.join(verDir, 'chrome-linux64', 'chrome'),
+            path.join(verDir, 'chrome-mac-arm64', 'Google Chrome for Testing.app', 'Contents', 'MacOS', 'Google Chrome for Testing'),
+            path.join(verDir, 'chrome-mac-x64', 'Google Chrome for Testing.app', 'Contents', 'MacOS', 'Google Chrome for Testing'),
+          ];
+          for (const c of candidates) {
+            if (fs.existsSync(c)) return c;
+          }
         }
       }
     } catch { /* ignore read errors */ }
@@ -28,7 +35,7 @@ export function findChromePath(): string | undefined {
   }
 
   // 1. Bundled .chromium (packaged app)
-  const localCache = path.join(__dirname, '..', '.chromium');
+  const localCache = path.join(__dirname, '..', '..', '.chromium');
   const local = searchCache(localCache);
   if (local) return local;
 
@@ -50,12 +57,14 @@ export function findChromePath(): string | undefined {
     }
   }
 
-  // 4. Common Linux paths
+  // 4. Common Linux/Mac paths
   if (!isWin) {
     const commonPaths = [
       '/usr/bin/google-chrome',
       '/usr/bin/chromium-browser',
       '/usr/bin/chromium',
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/Applications/Chromium.app/Contents/MacOS/Chromium',
     ];
     for (const p of commonPaths) {
       if (fs.existsSync(p)) return p;

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiEdit2, FiTrash2, FiCheckCircle, FiXCircle } from 'react-icons/fi';
+import { FiSearch, FiEdit2, FiTrash2, FiCheckCircle, FiXCircle, FiRefreshCw } from 'react-icons/fi';
 import { useUsers } from '../hooks/useUsers';
 import { userService } from '../services/userService';
 import { BRANCHES } from '../constants/branches';
@@ -152,6 +152,29 @@ export default function Users() {
             onClick={() => navigate('/users/new')}
           >
             + Add User
+          </button>
+
+          <button
+            className="btn btn-secondary"
+            onClick={refreshUsers}
+            disabled={loading}
+            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <FiRefreshCw size={16} />
+            Refresh
+          </button>
+
+          <button
+            className="btn btn-ghost"
+            onClick={() => {
+              handleSearchChange('');
+              handleBranchChange('');
+              handleRoleChange('');
+              handleStatusChange('all');
+            }}
+            title="Clear all filters"
+          >
+            Clear Filters
           </button>
         </div>
 

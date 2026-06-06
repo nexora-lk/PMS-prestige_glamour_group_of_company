@@ -402,10 +402,14 @@ export async function dbUpdatePaysheet(id: string, ps: MonthlyPaysheetDTO): Prom
 
 export async function dbUpdatePaysheetStatus(id: string, status: 'active' | 'delete'): Promise<void> {
   const prisma = getPrisma();
-  await prisma.monthlyPaysheet.update({
-    where: { id },
-    data: { status, updatedAt: new Date() },
-  });
+  if (status === 'delete') {
+    await prisma.monthlyPaysheet.delete({ where: { id } });
+  } else {
+    await prisma.monthlyPaysheet.update({
+      where: { id },
+      data: { status, updatedAt: new Date() },
+    });
+  }
 }
 
 export async function dbDeletePaysheet(id: string): Promise<void> {

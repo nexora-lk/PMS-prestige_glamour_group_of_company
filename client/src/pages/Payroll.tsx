@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import {FiPrinter, FiDownload, FiCheckCircle, FiAlertCircle, FiFileText, FiSearch} from 'react-icons/fi';
+import {FiPrinter, FiDownload, FiCheckCircle, FiAlertCircle, FiFileText, FiSearch, FiRefreshCw} from 'react-icons/fi';
 import { useReactToPrint } from 'react-to-print';
 import { paysheetService } from '../services/paysheetService';
 import { userService } from '../services/userService';
@@ -27,6 +27,7 @@ interface JobProgress {
 
 export default function Payroll() {
   const [activeTab, setActiveTab] = useState<'generate' | 'bulk-pdf' | 'history'>('generate');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // ── Generate & Preview state ──────────────────────────────
   const [userMap, setUserMap] = useState<Map<string, User>>(new Map());
@@ -90,6 +91,24 @@ export default function Payroll() {
     }
   };
 
+  // Fetch history when history tab is active and refreshTrigger changes
+  useEffect(() => {
+    if (activeTab === 'history') {
+      fetchHistory();
+    } else if (activeTab === 'generate') {
+      // Refresh user map when on generate tab
+      userService.listUsers({ status: 'active', limit: 1000 }).then((res) => {
+        const map = new Map<string, User>();
+        res.users.forEach((u) => map.set(u.codeNo, u));
+        setUserMap(map);
+      }).catch(() => {});
+    }
+  }, [activeTab, refreshTrigger]);
+
+  // Initial load of history data on component mount
+  useEffect(() => {
+    fetchHistory();
+  }, []);
 
   // ── Fetch paysheets for preview ───────────────────────────
 
@@ -426,21 +445,21 @@ export default function Payroll() {
 
   // ── Filter history ────────────────────────────────────────
 
-  const filteredHistory = historyPaysheets.filter((ps) => {
-    const user = userMap.get(ps.codeNo);
-    const name = user ? `${user.firstName} ${user.lastName}` : ps.codeNo;
-    const branch = user?.branch || '';
-    const searchLower = searchTerm.toLowerCase();
-    const matchesSearch =
-      name.toLowerCase().includes(searchLower) ||
-      ps.codeNo.toLowerCase().includes(searchLower) ||
-      ps.role.toLowerCase().includes(searchLower);
-    const matchesPeriod = !filterPeriod || ps.payMonth === filterPeriod;
-    const matchesBranch = !filterBranch || branch.toLowerCase() === filterBranch.toLowerCase();
-    return matchesSearch && matchesPeriod && matchesBranch;
-  });
+   const filteredHistory = historyPaysheets.filter((ps) => {
+     const user = userMap.get(ps.codeNo);
+     const name = user ? `${user.firstName} ${user.lastName}` : ps.codeNo;
+     const branch = user?.branch || '';
+     const searchLower = searchTerm.toLowerCase();
+     const matchesSearch =
+       name.toLowerCase().includes(searchLower) ||
+       ps.codeNo.toLowerCase().includes(searchLower) ||
+       ps.role.toLowerCase().includes(searchLower);
+     const matchesPeriod = !filterPeriod || ps.payMonth?.toString().trim() === filterPeriod.toString().trim();
+     const matchesBranch = !filterBranch || branch.toLowerCase() === filterBranch.toLowerCase();
+     return matchesSearch && matchesPeriod && matchesBranch;
+   });
 
-  const uniquePeriods = Array.from(new Set(historyPaysheets.map((p) => p.payMonth))).sort().reverse();
+   const uniquePeriods = Array.from(new Set(historyPaysheets.map((p) => p.payMonth).filter(Boolean))).sort().reverse();
 
   const statusLabel = (status: string) => {
     switch (status) {
@@ -459,22 +478,24 @@ export default function Payroll() {
     <div className="animate-in">
       {/* Tab Navigation */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-        {([
-          ['generate', 'Preview & Print'],
-          ['bulk-pdf', 'Bulk PDF Export'],
-          ['history', 'History & Reports'],
-        ] as const).map(([key, label]) => (
-          <button
-            key={key}
-            className={`btn ${activeTab === key ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => {
-              setActiveTab(key);
-              if (key === 'history') fetchHistory();
-            }}
-          >
-            {label}
-          </button>
-        ))}
+       {([
+           ['generate', 'Preview & Print'],
+           ['bulk-pdf', 'Bulk PDF Export'],
+           ['history', 'History & Reports'],
+         ] as const).map(([key, label]) => (
+           <button
+             key={key}
+             className={`btn ${activeTab === key ? 'btn-primary' : 'btn-secondary'}`}
+             onClick={() => {
+               setActiveTab(key);
+               if (key === 'history') {
+                 setRefreshTrigger((prev) => prev + 1);
+               }
+             }}
+           >
+             {label}
+           </button>
+         ))}
       </div>
 
       {/* ═══════════════ TAB 1: Preview & Print ═══════════════ */}
@@ -482,22 +503,25 @@ export default function Payroll() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* Employee Selection Card */}
           <EmployeeSelector
+            key={refreshTrigger}
             selectedCodeNos={selectedCodeNos}
             onSelectionChange={setSelectedCodeNos}
             payMonth={period}
             onPayMonthChange={setPeriod}
             title="Select Employees"
             actionButton={
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleFetchPreview}
-                disabled={fetching}
-              >
-                {fetching
-                  ? 'Loading...'
-                  : `Load Pay Sheets${selectedCodeNos.size > 0 ? ` (${selectedCodeNos.size})` : ''}`}
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleFetchPreview}
+                  disabled={fetching}
+                >
+                  {fetching
+                    ? 'Loading...'
+                    : `Load Pay Sheets${selectedCodeNos.size > 0 ? ` (${selectedCodeNos.size})` : ''}`}
+                </button>
+              </div>
             }
           />
 
@@ -512,9 +536,9 @@ export default function Payroll() {
                   </span>
                 )}
               </h2>
-              {previewPaysheets.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
-                  {/* Print mode toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+                {/* Print mode toggle */}
+                {previewPaysheets.length > 0 && (
                   <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
                     <button
                       className={`btn btn-sm ${printMode === 'a4' ? 'btn-primary' : 'btn-ghost'}`}
@@ -531,20 +555,33 @@ export default function Payroll() {
                       A4 (2/page)
                     </button>
                   </div>
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={handlePreviewPdfDownload}
-                    disabled={previewPdfDownloading}
-                  >
-                    <FiDownload size={14} style={{ marginRight: 6 }} />
-                    {previewPdfDownloading ? 'Generating...' : 'Download PDF'}
-                  </button>
-                  <button className="btn btn-secondary btn-sm" onClick={() => handlePrint()}>
-                    <FiPrinter size={14} style={{ marginRight: 6 }} />
-                    Print
-                  </button>
-                </div>
-              )}
+                )}
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleFetchPreview}
+                  disabled={fetching}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <FiRefreshCw size={14} />
+                  Refresh
+                </button>
+                {previewPaysheets.length > 0 && (
+                  <>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={handlePreviewPdfDownload}
+                      disabled={previewPdfDownloading}
+                    >
+                      <FiDownload size={14} style={{ marginRight: 6 }} />
+                      {previewPdfDownloading ? 'Generating...' : 'Download PDF'}
+                    </button>
+                    <button className="btn btn-secondary btn-sm" onClick={() => handlePrint()}>
+                      <FiPrinter size={14} style={{ marginRight: 6 }} />
+                      Print
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
             {/* Warning banner for missing paysheets */}
             {missingEmployees.length > 0 && (
@@ -927,6 +964,28 @@ export default function Payroll() {
                 </option>
               ))}
             </select>
+
+            <button
+              className="btn btn-secondary"
+              onClick={() => setRefreshTrigger((prev) => prev + 1)}
+              disabled={loading}
+              style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+            >
+              <FiRefreshCw size={16} />
+              Refresh
+            </button>
+
+            <button
+              className="btn btn-ghost"
+              onClick={() => {
+                setSearchTerm('');
+                setFilterPeriod('');
+                setFilterBranch('');
+              }}
+              title="Clear all filters"
+            >
+              Clear Filters
+            </button>
           </div>
 
           <div className="table-wrapper">

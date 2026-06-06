@@ -20,6 +20,7 @@ vi.mock('../utils/excelExport', () => ({
   exportMonthlyPaysheetsToExcel: vi.fn(async () => '/tmp/test-export-paysheets.xlsx'),
   exportMonthlyPaysheetsByRoleToExcel: vi.fn(async () => '/tmp/test-export-role.xlsx'),
   exportMonthlyPaysheetsByBranchToExcel: vi.fn(async () => '/tmp/test-export-branch.xlsx'),
+  exportPaysheetsToMonthBranchZip: vi.fn(async () => '/tmp/test-export-branch.zip'),
 }));
 
 import { __resetStore, __seedUser, __seedPaysheet } from '../services/dbStore';
@@ -41,9 +42,10 @@ beforeAll(async () => {
     '/tmp/test-export-paysheets.xlsx',
     '/tmp/test-export-role.xlsx',
     '/tmp/test-export-branch.xlsx',
+    '/tmp/test-export-branch.zip',
   ];
   for (const f of dummies) {
-    if (!fs.existsSync(f)) fs.writeFileSync(f, 'dummy-xlsx-content');
+    if (!fs.existsSync(f)) fs.writeFileSync(f, 'dummy-content');
   }
 });
 

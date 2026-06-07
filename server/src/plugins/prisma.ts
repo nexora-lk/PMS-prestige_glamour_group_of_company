@@ -2,7 +2,11 @@ import fp from 'fastify-plugin';
 import { FastifyInstance } from 'fastify';
 import { PrismaClient } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
+import { neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
 import { ENV } from '../config/env';
+
+neonConfig.webSocketConstructor = ws;
 
 // ── Singleton ─────────────────────────────────────────────────
 // One PrismaClient for the entire server process.

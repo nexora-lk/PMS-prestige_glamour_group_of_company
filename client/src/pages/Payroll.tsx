@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import {FiPrinter, FiDownload, FiCheckCircle, FiAlertCircle, FiFileText, FiSearch, FiRefreshCw} from 'react-icons/fi';
+import { FiPrinter, FiDownload, FiCheckCircle, FiAlertCircle, FiFileText, FiSearch, FiRefreshCw } from 'react-icons/fi';
 import { useReactToPrint } from 'react-to-print';
 import { paysheetService } from '../services/paysheetService';
 import { userService } from '../services/userService';
@@ -8,8 +8,8 @@ import { showToast } from '../components/Toast';
 import PaySheet from '../components/PaySheet';
 import EmployeeSelector from '../components/EmployeeSelector';
 import api from '../services/api';
-import {BRANCHES} from "../constants/branches.ts";
-import {formatCurrency} from "../utils/format.ts";
+import { BRANCHES } from "../constants/branches.ts";
+import { formatCurrency } from "../utils/format.ts";
 
 // ── Bulk PDF job progress type ──────────────────────────────
 
@@ -76,7 +76,7 @@ export default function Payroll() {
       const map = new Map<string, User>();
       res.users.forEach((u) => map.set(u.codeNo, u));
       setUserMap(map);
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   const fetchHistory = async () => {
@@ -101,7 +101,7 @@ export default function Payroll() {
         const map = new Map<string, User>();
         res.users.forEach((u) => map.set(u.codeNo, u));
         setUserMap(map);
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [activeTab, refreshTrigger]);
 
@@ -445,21 +445,21 @@ export default function Payroll() {
 
   // ── Filter history ────────────────────────────────────────
 
-   const filteredHistory = historyPaysheets.filter((ps) => {
-     const user = userMap.get(ps.codeNo);
-     const name = user ? `${user.firstName} ${user.lastName}` : ps.codeNo;
-     const branch = user?.branch || '';
-     const searchLower = searchTerm.toLowerCase();
-     const matchesSearch =
-       name.toLowerCase().includes(searchLower) ||
-       ps.codeNo.toLowerCase().includes(searchLower) ||
-       ps.role.toLowerCase().includes(searchLower);
-     const matchesPeriod = !filterPeriod || ps.payMonth?.toString().trim() === filterPeriod.toString().trim();
-     const matchesBranch = !filterBranch || branch.toLowerCase() === filterBranch.toLowerCase();
-     return matchesSearch && matchesPeriod && matchesBranch;
-   });
+  const filteredHistory = historyPaysheets.filter((ps) => {
+    const user = userMap.get(ps.codeNo);
+    const name = user ? `${user.firstName} ${user.lastName}` : ps.codeNo;
+    const branch = user?.branch || '';
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch =
+      name.toLowerCase().includes(searchLower) ||
+      ps.codeNo.toLowerCase().includes(searchLower) ||
+      ps.role.toLowerCase().includes(searchLower);
+    const matchesPeriod = !filterPeriod || ps.payMonth?.toString().trim() === filterPeriod.toString().trim();
+    const matchesBranch = !filterBranch || branch.toLowerCase() === filterBranch.toLowerCase();
+    return matchesSearch && matchesPeriod && matchesBranch;
+  });
 
-   const uniquePeriods = Array.from(new Set(historyPaysheets.map((p) => p.payMonth).filter(Boolean))).sort().reverse();
+  const uniquePeriods = Array.from(new Set(historyPaysheets.map((p) => p.payMonth).filter(Boolean))).sort().reverse();
 
   const statusLabel = (status: string) => {
     switch (status) {
@@ -478,24 +478,24 @@ export default function Payroll() {
     <div className="animate-in">
       {/* Tab Navigation */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-       {([
-           ['generate', 'Preview & Print'],
-           ['bulk-pdf', 'Bulk PDF Export'],
-           ['history', 'History & Reports'],
-         ] as const).map(([key, label]) => (
-           <button
-             key={key}
-             className={`btn ${activeTab === key ? 'btn-primary' : 'btn-secondary'}`}
-             onClick={() => {
-               setActiveTab(key);
-               if (key === 'history') {
-                 setRefreshTrigger((prev) => prev + 1);
-               }
-             }}
-           >
-             {label}
-           </button>
-         ))}
+        {([
+          ['generate', 'Preview & Print'],
+          ['bulk-pdf', 'Bulk PDF Export'],
+          ['history', 'History & Reports'],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            className={`btn ${activeTab === key ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => {
+              setActiveTab(key);
+              if (key === 'history') {
+                setRefreshTrigger((prev) => prev + 1);
+              }
+            }}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* ═══════════════ TAB 1: Preview & Print ═══════════════ */}
@@ -794,8 +794,8 @@ export default function Payroll() {
                         job.status === 'failed'
                           ? 'var(--error, #B22234)'
                           : job.status === 'completed'
-                          ? 'var(--success, #1A8754)'
-                          : 'linear-gradient(90deg, var(--gold-600, #D4A017), var(--gold-400, #F0CC5A))',
+                            ? 'var(--success, #1A8754)'
+                            : 'linear-gradient(90deg, var(--gold-600, #D4A017), var(--gold-400, #F0CC5A))',
                       transition: 'width 0.3s ease',
                       borderRadius: 6,
                     }}

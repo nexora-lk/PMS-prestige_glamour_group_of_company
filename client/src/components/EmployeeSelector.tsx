@@ -24,8 +24,6 @@ interface EmployeeSelectorProps {
 export default function EmployeeSelector({
   selectedCodeNos,
   onSelectionChange,
-  payMonth,
-  onPayMonthChange,
   actionButton,
   title = 'Select Employees',
 }: EmployeeSelectorProps) {

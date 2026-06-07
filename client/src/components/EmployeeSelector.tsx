@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import {FiSearch, FiChevronLeft, FiChevronRight, FiRefreshCw} from 'react-icons/fi';
+import { FiSearch, FiChevronLeft, FiChevronRight, FiRefreshCw } from 'react-icons/fi';
 import { useUsers } from '../hooks/useUsers';
 import { BRANCHES } from '../constants/branches';
 import { ROLES } from '../constants/roleSalaries';
@@ -86,8 +86,8 @@ export default function EmployeeSelector({
   // ── Filter reset on filter change ─────────────────────────
 
   const handleSearch = (v: string) => { setSearch(v); setPage(1); };
-  const handleBranch = (v: string) => { setBranch(v);  setPage(1); };
-  const handleRole   = (v: string) => { setRole(v);    setPage(1); };
+  const handleBranch = (v: string) => { setBranch(v); setPage(1); };
+  const handleRole = (v: string) => { setRole(v); setPage(1); };
 
   return (
     <div className="card" style={{ marginBottom: 24 }}>
@@ -112,16 +112,6 @@ export default function EmployeeSelector({
           )}
         </h2>
 
-        {/* Optional month picker */}
-        {payMonth !== undefined && onPayMonthChange && (
-          <input
-            type="month"
-            className="form-input"
-            value={payMonth}
-            onChange={(e) => onPayMonthChange(e.target.value)}
-            style={{ width: 'auto' }}
-          />
-        )}
       </div>
 
       {/* Filter bar */}
@@ -146,11 +136,11 @@ export default function EmployeeSelector({
           {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
         </select>
         <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={handleRefresh}
-            disabled={loading || refreshing}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          type="button"
+          className="btn btn-secondary"
+          onClick={handleRefresh}
+          disabled={loading || refreshing}
+          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
         >
           <FiRefreshCw size={14} />
           {refreshing ? 'Refreshing...' : 'Refresh'}

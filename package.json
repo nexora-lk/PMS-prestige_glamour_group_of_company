@@ -4,6 +4,9 @@
   "description": "PMS Application",
   "main": "electron/dist/main.js",
   "scripts": {
+    "dev": "npm-run-all --parallel dev:*",
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && npm run dev",
     "build:client": "cd client && npm run build",
     "build:server": "cd server && npm run build",
     "build:electron": "tsup electron/main.ts electron/preload.ts --out-dir electron/dist --format cjs --external electron",

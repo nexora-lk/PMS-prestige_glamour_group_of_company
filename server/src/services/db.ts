@@ -1,6 +1,8 @@
-import { neon, NeonQueryFunction } from '@neondatabase/serverless';
+import { neon, neonConfig, NeonQueryFunction } from '@neondatabase/serverless';
+import ws from 'ws';
 import logger from '../utils/logger';
 
+neonConfig.webSocketConstructor = ws;
 
 let sql: NeonQueryFunction<false, false> | null = null;
 

@@ -1,8 +1,11 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 
-// Resolve API base from env; VITE_API_BASE_URL is the bare origin (no /api).
+// Resolve API base from env. VITE_API_BASE_URL may be the bare origin
+// (https://host) or already include the /api suffix — both are accepted.
 // Falls back to localhost for local dev when the var is unset.
-const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4500').replace(/\/+$/, '');
+const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4500')
+  .replace(/\/+$/, '')      // drop trailing slashes
+  .replace(/\/api$/, '');   // drop a trailing /api so we don't double it
 const API_BASE_URL = `${API_ORIGIN}/api`;
 
 const api = axios.create({

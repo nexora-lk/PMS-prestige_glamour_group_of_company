@@ -302,6 +302,21 @@ export function calculateETF(achievedSalary: number, epfAvailability: boolean): 
   return epfAvailability ? achievedSalary * ETF_RATE : 0;
 }
 
+// function calculateFinalValue(baseValue, attendance) {
+//   if (attendance <= 7) {
+//     return 0;
+//   }
+//   return baseValue;
+// }
+// export function calculateORC(
+//     achieveAmount: number,
+//     orcValue: number,
+//     baseTarget: number
+// ): number {
+//   if (achieveAmount > baseTarget) return (achieveAmount - baseTarget) * (orcValue / 100);
+//   return 0;
+// }
+
 // ============================================================
 // Main paysheet calculation function
 // ============================================================

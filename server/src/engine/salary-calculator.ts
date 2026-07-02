@@ -302,13 +302,6 @@ export function calculateETF(achievedSalary: number, epfAvailability: boolean): 
   return epfAvailability ? achievedSalary * ETF_RATE : 0;
 }
 
-// function calculateFinalValue(baseValue, attendance) {
-//   if (attendance <= 7) {
-//     return 0;
-//   }
-//   return baseValue;
-// }
-
 // ============================================================
 // Main paysheet calculation function
 // ============================================================

@@ -1,7 +1,12 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 
+// Resolve API base from env; VITE_API_BASE_URL is the bare origin (no /api).
+// Falls back to localhost for local dev when the var is unset.
+const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4500').replace(/\/+$/, '');
+const API_BASE_URL = `${API_ORIGIN}/api`;
+
 const api = axios.create({
-  baseURL: 'http://localhost:4500/api',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -92,7 +97,7 @@ api.interceptors.response.use(
       }
 
       // Exchange refresh token for new access token
-      const { data } = await axios.post('http://localhost:4500/api/auth/refresh', { refreshToken });
+      const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
 
       accessToken = data.accessToken;
       processPendingRequests(data.accessToken);

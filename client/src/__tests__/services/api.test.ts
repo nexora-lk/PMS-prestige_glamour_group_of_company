@@ -34,8 +34,9 @@ describe('api instance', () => {
     expect(typeof api.delete).toBe('function');
   });
 
-  it('has baseURL set to localhost:4500/api', () => {
-    expect(api.defaults.baseURL).toBe('http://localhost:4500/api');
+  it('derives baseURL from VITE_API_BASE_URL with an /api suffix', () => {
+    const origin = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4500').replace(/\/+$/, '');
+    expect(api.defaults.baseURL).toBe(`${origin}/api`);
   });
 
   it('has Content-Type header set to application/json', () => {

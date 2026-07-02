@@ -34,7 +34,13 @@ export const ENV = {
   CLIENT_PATH: process.env.CLIENT_PATH || '',
 
   // ── CORS ─────────────────────────────────────────────────────
-  ALLOWED_ORIGINS: (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000')
+  // Prefer CORS_ORIGINS from the environment. The default list is a fallback
+  // that includes local dev origins and the production frontend so the app
+  // keeps working even if the env var is not set on the host (e.g. Render).
+  ALLOWED_ORIGINS: (
+    process.env.CORS_ORIGINS ||
+    'http://localhost:5173,http://localhost:3000,https://pms-prestige-glamour-group-of-compa.vercel.app'
+  )
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean),

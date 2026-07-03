@@ -2,7 +2,6 @@ import { type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastContainer } from './components/Toast';
-import { NetworkStatusBar } from './components/NetworkStatus';
 
 import Layout from './components/Layout/Layout';
 import Login from './pages/Login';
@@ -43,7 +42,6 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <ToastContainer />
-        <NetworkStatusBar />
       </BrowserRouter>
     </AuthProvider>
   );

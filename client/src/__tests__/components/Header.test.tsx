@@ -1,6 +1,6 @@
 /**
  * Component: Header.tsx
- * Renders title, subtitle, user info, NetworkIndicator
+ * Renders title, subtitle, user info
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -10,10 +10,6 @@ import Header from '../../components/Layout/Header';
 // Mock dependencies
 vi.mock('../../context/AuthContext', () => ({
   useAuth: vi.fn(),
-}));
-
-vi.mock('../../components/NetworkStatus', () => ({
-  NetworkIndicator: () => <div data-testid="network-indicator" />,
 }));
 
 import { useAuth } from '../../context/AuthContext';
@@ -76,10 +72,5 @@ describe('Header', () => {
   it('does not apply "collapsed" class when collapsed=false', () => {
     const { container } = render(<Header collapsed={false} title="Test" />);
     expect(container.querySelector('.header.collapsed')).toBeNull();
-  });
-
-  it('renders the NetworkIndicator', () => {
-    render(<Header collapsed={false} title="Test" />);
-    expect(screen.getByTestId('network-indicator')).toBeInTheDocument();
   });
 });

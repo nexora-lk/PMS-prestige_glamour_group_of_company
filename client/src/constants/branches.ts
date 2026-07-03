@@ -7,7 +7,6 @@ export const BRANCHES = [
 'Kandana',
 'Awissawella',
 'Deraniyagala',
-'Kandana',
 'Galle',
 'Matara',
 'Ampara',

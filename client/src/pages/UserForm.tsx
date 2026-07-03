@@ -293,7 +293,7 @@ export default function UserForm() {
               <label>Basic Offer (Monthly) *</label>
               <input
                 required
-                type="text"
+                type="number"
                 inputMode='numeric'
                 className="form-input"
                 name="basicSalary"
@@ -304,7 +304,7 @@ export default function UserForm() {
             <div className="form-group">
               <label>Total Offers (Monthly)</label>
               <input
-                type="text"
+                type="number"
                 inputMode='numeric'
                 className="form-input"
                 name="allowances"
@@ -317,7 +317,7 @@ export default function UserForm() {
             <div className="form-group">
               <label>Fixed Deductions (Monthly)</label>
               <input
-                type="text"
+                type="number"
                 inputMode='numeric'
                 className="form-input"
                 name="deductions"

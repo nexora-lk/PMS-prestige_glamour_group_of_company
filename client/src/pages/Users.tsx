@@ -243,13 +243,15 @@ export default function Users() {
                     </td>
                     <td>
                       <div className="actions">
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => navigate(`/users/${user.codeNo}`)}
-                          title="Edit"
-                        >
-                          <FiEdit2 size={16} />
-                        </button>
+                        {user.status === 'active' && (
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => navigate(`/users/${user.codeNo}`)}
+                            title="Edit"
+                          >
+                            <FiEdit2 size={16} />
+                          </button>
+                        )}
                         {user.status === 'active' ? (
                           <button
                             className="btn btn-ghost btn-danger btn-sm"

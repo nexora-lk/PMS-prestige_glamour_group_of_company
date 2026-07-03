@@ -12,14 +12,6 @@ interface MonthlyPaysheetFormProps {
   isEditMode?: boolean;
 }
 
-const formatNumberWithCommas = (value: number | string): string => {
-  const num = typeof value === 'string' ? parseFloat(value) : value;
-  if (isNaN(num) || num === 0) return '';
-  const parts = num.toString().split('.');
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return parts.join('.');
-};
-
 const parseFormattedNumber = (value: string): number => {
   const cleaned = value.replace(/,/g, '');
   return parseFloat(cleaned) || 0;
@@ -41,7 +33,6 @@ export function MonthlyPaysheetForm({
 }: MonthlyPaysheetFormProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
-  const [focusedField, setFocusedField] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState<Partial<MonthlyPaysheet>>({
     codeNo: initialData?.codeNo || '',
@@ -117,13 +108,8 @@ export function MonthlyPaysheetForm({
     }
   };
 
-  const handleAmountFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    setFocusedField(e.target.name);
-  };
-
   const handleAmountBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const { name } = e.target;
-    setFocusedField(null);
     const val = formData[name as keyof typeof formData];
     if (typeof val === 'string' && val.endsWith('.')) {
       setFormData((prev) => ({ ...prev, [name]: parseFloat(val) || 0 }));
@@ -132,13 +118,9 @@ export function MonthlyPaysheetForm({
 
   const getAmountDisplayValue = (fieldName: string): string => {
     const val = formData[fieldName as keyof typeof formData];
-    if (focusedField === fieldName) {
-      if (typeof val === 'string') return val;
-      if (val === 0 || val === undefined) return '';
-      return String(val);
-    }
-    const num = typeof val === 'string' ? parseFloat(val) : (val as number);
-    return formatNumberWithCommas(num);
+    if (typeof val === 'string') return val;
+    if (val === 0 || val === undefined) return '';
+    return String(val);
   };
 
   const validateForm = (): Record<string, string> => {
@@ -362,7 +344,6 @@ export function MonthlyPaysheetForm({
               name="achieve"
               value={getAmountDisplayValue('achieve')}
               onChange={handleAmountChange}
-              onFocus={handleAmountFocus}
               onBlur={handleAmountBlur}
               placeholder="0.00"
             />
@@ -372,13 +353,12 @@ export function MonthlyPaysheetForm({
           <div className="form-group">
             <label>Offer</label>
             <input
-              type="text"
+              type="number"
               inputMode='numeric'
               className="form-input"
               name="allowance"
               value={getAmountDisplayValue('allowance')}
               onChange={handleAmountChange}
-              onFocus={handleAmountFocus}
               onBlur={handleAmountBlur}
               placeholder="0.00"
             />
@@ -388,13 +368,12 @@ export function MonthlyPaysheetForm({
           <div className="form-group">
             <label>Welfare</label>
             <input
-              type="text"
+              type="number"
               inputMode='numeric'
               className="form-input"
               name="welfare"
               value={getAmountDisplayValue('welfare')}
               onChange={handleAmountChange}
-              onFocus={handleAmountFocus}
               onBlur={handleAmountBlur}
               placeholder="0.00"
             />
@@ -404,13 +383,12 @@ export function MonthlyPaysheetForm({
           <div className="form-group">
             <label>Other Offers</label>
             <input
-              type="text"
+              type="number"
               inputMode='numeric'
               className="form-input"
               name="otherOffer"
               value={getAmountDisplayValue('otherOffer')}
               onChange={handleAmountChange}
-              onFocus={handleAmountFocus}
               onBlur={handleAmountBlur}
               placeholder="0.00"
             />
@@ -444,7 +422,7 @@ export function MonthlyPaysheetForm({
           <div className="form-group">
             <label>Late Hours</label>
             <input
-              type="text"
+              type="number"
               inputMode='numeric'
               className="form-input"
               name="lateHours"
@@ -460,7 +438,7 @@ export function MonthlyPaysheetForm({
           <div className="form-group">
             <label>Late Minutes</label>
             <input
-              type="text"
+              type="number"
               inputMode='numeric'
               className="form-input"
               name="lateMinutes"
@@ -496,13 +474,12 @@ export function MonthlyPaysheetForm({
           <div className="form-group">
             <label>Custom Earning Amount</label>
             <input
-              type="text"
+              type="number"
               inputMode='numeric'
               className="form-input"
               name="customEarningAmount"
               value={getAmountDisplayValue('customEarningAmount')}
               onChange={handleAmountChange}
-              onFocus={handleAmountFocus}
               onBlur={handleAmountBlur}
               placeholder="0.00"
             />
@@ -525,13 +502,12 @@ export function MonthlyPaysheetForm({
           <div className="form-group">
             <label>Custom Deduction Amount</label>
             <input
-              type="text"
+              type="number"
               inputMode='numeric'
               className="form-input"
               name="customDeductionAmount"
               value={getAmountDisplayValue('customDeductionAmount')}
               onChange={handleAmountChange}
-              onFocus={handleAmountFocus}
               onBlur={handleAmountBlur}
               placeholder="0.00"
             />

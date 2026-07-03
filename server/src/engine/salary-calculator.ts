@@ -255,12 +255,11 @@ export function calculateFuelAllowance(achPct: number, fuelAmount: number): numb
  * orcValue is raw A9 cell value; actual rate = orcValue / 100.
  */
 export function calculateORC(
-  achPct: number,
-  achieveAmount: number,
-  assignedTarget: number,
-  orcValue: number
+    achieveAmount: number,
+    orcValue: number,
+    baseTarget: number
 ): number {
-  if (achPct > 1.0) return (achieveAmount - assignedTarget) * (orcValue / 100);
+  if (achieveAmount > baseTarget) return (achieveAmount - baseTarget) * (orcValue / 100);
   return 0;
 }
 
@@ -302,21 +301,6 @@ export function calculateETF(achievedSalary: number, epfAvailability: boolean): 
   return epfAvailability ? achievedSalary * ETF_RATE : 0;
 }
 
-// function calculateFinalValue(baseValue, attendance) {
-//   if (attendance <= 7) {
-//     return 0;
-//   }
-//   return baseValue;
-// }
-// export function calculateORC(
-//     achieveAmount: number,
-//     orcValue: number,
-//     baseTarget: number
-// ): number {
-//   if (achieveAmount > baseTarget) return (achieveAmount - baseTarget) * (orcValue / 100);
-//   return 0;
-// }
-
 // ============================================================
 // Main paysheet calculation function
 // ============================================================
@@ -342,10 +326,9 @@ export function calculatePaysheet(input: PaysheetInput): PaysheetResult {
     const generalAllowance = input.generalAllowance || 0;
     const otherOffer = input.otherOffer || 0;
     const orc = calculateORC(
-      achievementPct,
       achievementAmount,
-      assignedTarget,
-      saleConfig.orcValue
+      saleConfig.orcValue,
+      saleConfig.baseTarget,
     );
     const customEarningAmount = input.customEarningAmount || 0;
     const grossSalary = achievedSalary + vehicleAllowance + fuelAllowance + generalAllowance + orc + customEarningAmount + otherOffer;
@@ -408,6 +391,5 @@ export function calculatePaysheet(input: PaysheetInput): PaysheetResult {
     };
   }
 }
-
 
 console.log()

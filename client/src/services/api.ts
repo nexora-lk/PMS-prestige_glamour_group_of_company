@@ -59,7 +59,6 @@ api.interceptors.response.use(
     // Provide detailed error message for network errors
     if (!error.response) {
       // Network error or timeout
-      console.error('Network Error:', error.message);
       const detailedError = new Error(
         `Network error: Unable to reach server at ${api.defaults.baseURL}. Make sure the server is running.`
       );

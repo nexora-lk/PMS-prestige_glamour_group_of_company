@@ -1321,69 +1321,6 @@ body {
   color: white;
 }
 
-/* ═══ Network Status ═══ */
-.network-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 3000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 10px 20px;
-  font-size: 14px;
-  font-weight: 600;
-  animation: slideDown 0.3s ease-out;
-  pointer-events: none;
-}
-.network-bar--offline {
-  background: var(--danger);
-  color: white;
-}
-.network-bar--online {
-  background: var(--success);
-  color: white;
-  animation: slideDown 0.3s ease-out, fadeOut 0.4s ease 2.6s forwards;
-}
-
-.network-indicator {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 500;
-}
-.network-indicator--online { color: var(--success); }
-.network-indicator--offline { color: var(--danger); }
-.network-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-.network-indicator--online .network-dot {
-  background: var(--success);
-  box-shadow: 0 0 6px rgba(26, 135, 84, 0.6);
-}
-.network-indicator--offline .network-dot {
-  background: var(--danger);
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes slideDown {
-  from { transform: translateY(-100%); }
-  to   { transform: translateY(0); }
-}
-@keyframes fadeOut {
-  to { opacity: 0; visibility: hidden; }
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.4; }
-}
 
 /* ═══ Loading ═══ */
 .loading-spinner {

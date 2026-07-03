@@ -1,6 +1,6 @@
 /**
  * Page: Login.tsx
- * Form validation, submit, error messages, offline guard, navigation
+ * Form validation, submit, error messages, navigation
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -10,7 +10,6 @@ import { MemoryRouter } from 'react-router-dom';
 
 // Mocks
 vi.mock('../../context/AuthContext', () => ({ useAuth: vi.fn() }));
-vi.mock('../../hooks/useNetworkStatus', () => ({ useNetworkStatus: vi.fn() }));
 vi.mock('../../components/Toast', () => ({ showToast: vi.fn() }));
 vi.mock('react-router-dom', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-router-dom')>();
@@ -18,7 +17,6 @@ vi.mock('react-router-dom', async (importOriginal) => {
 });
 
 import { useAuth } from '../../context/AuthContext';
-import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { showToast } from '../../components/Toast';
 import { useNavigate } from 'react-router-dom';
 import Login from '../../pages/Login';
@@ -29,7 +27,6 @@ const mockNavigate = vi.fn();
 beforeEach(() => {
   vi.clearAllMocks();
   (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({ login: mockLogin, user: null, isAuthenticated: false, isLoading: false, logout: vi.fn() });
-  (useNetworkStatus as ReturnType<typeof vi.fn>).mockReturnValue({ isOnline: true, wasOffline: false, clearReconnected: vi.fn() });
   (useNavigate as ReturnType<typeof vi.fn>).mockReturnValue(mockNavigate);
 });
 
@@ -50,38 +47,11 @@ describe('Login page — render', () => {
     renderLogin();
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
   });
-
-  it('shows "No Internet Connection" on the button when offline', () => {
-    (useNetworkStatus as ReturnType<typeof vi.fn>).mockReturnValue({ isOnline: false, wasOffline: false, clearReconnected: vi.fn() });
-    renderLogin();
-    expect(screen.getByRole('button', { name: /no internet/i })).toBeInTheDocument();
-  });
-
-  it('disables button when offline', () => {
-    (useNetworkStatus as ReturnType<typeof vi.fn>).mockReturnValue({ isOnline: false, wasOffline: false, clearReconnected: vi.fn() });
-    renderLogin();
-    expect(screen.getByRole('button')).toBeDisabled();
-  });
 });
 
 // ── Validation ────────────────────────────────────────────────
 
 describe('Login page — validation', () => {
-  it('shows error toast when offline and submit attempted', async () => {
-    (useNetworkStatus as ReturnType<typeof vi.fn>).mockReturnValue({ isOnline: false, wasOffline: false, clearReconnected: vi.fn() });
-    renderLogin();
-
-    await userEvent.type(screen.getByLabelText(/username/i), 'admin');
-    await userEvent.type(screen.getByLabelText(/password/i), 'pass');
-    // button is disabled when offline, so submit event directly
-    const form = document.querySelector('form')!;
-    form.dispatchEvent(new Event('submit', { bubbles: true }));
-
-    await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith(expect.stringMatching(/connect to the internet/i), 'error');
-    });
-  });
-
   it('shows error toast when username is empty', async () => {
     renderLogin();
     await userEvent.type(screen.getByLabelText(/password/i), 'admin123');

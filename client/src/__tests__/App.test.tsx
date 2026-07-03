@@ -7,7 +7,6 @@ import { render, screen } from '@testing-library/react';
 
 vi.mock('../context/AuthContext', () => ({ useAuth: vi.fn(), AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 vi.mock('../components/Toast', () => ({ ToastContainer: () => null, showToast: vi.fn() }));
-vi.mock('../components/NetworkStatus', () => ({ NetworkStatusBar: () => null, NetworkIndicator: () => null }));
 vi.mock('../components/Layout/Layout', () => ({ default: () => <div data-testid="layout">Layout</div> }));
 vi.mock('../pages/Login', () => ({ default: () => <div data-testid="login-page">Login</div> }));
 vi.mock('../pages/Dashboard', () => ({ default: () => <div>Dashboard</div> }));

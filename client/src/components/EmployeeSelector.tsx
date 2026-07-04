@@ -24,6 +24,8 @@ interface EmployeeSelectorProps {
 export default function EmployeeSelector({
   selectedCodeNos,
   onSelectionChange,
+  payMonth,
+  onPayMonthChange,
   actionButton,
   title = 'Select Employees',
 }: EmployeeSelectorProps) {
@@ -110,6 +112,17 @@ export default function EmployeeSelector({
           )}
         </h2>
 
+        {payMonth !== undefined && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+            <span style={{ color: 'var(--text-muted, #888)' }}>Pay Month</span>
+            <input
+              type="month"
+              className="filter-select"
+              value={payMonth}
+              onChange={(e) => onPayMonthChange?.(e.target.value)}
+            />
+          </label>
+        )}
       </div>
 
       {/* Filter bar */}

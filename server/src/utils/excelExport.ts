@@ -1,17 +1,8 @@
 import ExcelJS from 'exceljs';
-import path from 'path';
-import fs from 'fs';
+import { PassThrough } from 'stream';
 import { User, MonthlyPaysheetDTO } from '../models';
-const EXPORTS_DIR = process.env.OUTPUT_DIR || path.join(__dirname, '..', '..', 'exports');
 
-function ensureExportsDir(): void {
-  if (!fs.existsSync(EXPORTS_DIR)) {
-    fs.mkdirSync(EXPORTS_DIR, { recursive: true });
-  }
-}
-
-export async function exportUsersToExcel(users: User[]): Promise<string> {
-  ensureExportsDir();
+export async function exportUsersToExcel(users: User[]): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Payroll System';
   workbook.created = new Date();
@@ -67,17 +58,13 @@ export async function exportUsersToExcel(users: User[]): Promise<string> {
     }
   });
 
-  const filename = `users_export_${Date.now()}.xlsx`;
-  const filePath = path.join(EXPORTS_DIR, filename);
-  await workbook.xlsx.writeFile(filePath);
-  return filePath;
+  return Buffer.from(await workbook.xlsx.writeBuffer() as ArrayBuffer);
 }
 
 export async function exportMonthlyPaysheetsToExcel(
   records: MonthlyPaysheetDTO[],
   users?: User[]
-): Promise<string> {
-  ensureExportsDir();
+): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Payroll System';
   workbook.created = new Date();
@@ -264,17 +251,13 @@ export async function exportMonthlyPaysheetsToExcel(
     totalRow.height = 24;
   }
 
-  const filename = `monthly_paysheets_export_${Date.now()}.xlsx`;
-  const filePath = path.join(EXPORTS_DIR, filename);
-  await workbook.xlsx.writeFile(filePath);
-  return filePath;
+  return Buffer.from(await workbook.xlsx.writeBuffer() as ArrayBuffer);
 }
 
 export async function exportMonthlyPaysheetsByBranchToExcel(
   records: MonthlyPaysheetDTO[],
   users?: User[]
-): Promise<string> {
-  ensureExportsDir();
+): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Payroll System';
   workbook.created = new Date();
@@ -446,17 +429,13 @@ export async function exportMonthlyPaysheetsByBranchToExcel(
     totalRow.height = 24;
   }
 
-  const filename = `monthly_paysheets_branch_export_${Date.now()}.xlsx`;
-  const filePath = path.join(EXPORTS_DIR, filename);
-  await workbook.xlsx.writeFile(filePath);
-  return filePath;
+  return Buffer.from(await workbook.xlsx.writeBuffer() as ArrayBuffer);
 }
 
 export async function exportMonthlyPaysheetsByRoleToExcel(
   records: MonthlyPaysheetDTO[],
   users?: User[]
-): Promise<string> {
-  ensureExportsDir();
+): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Payroll System';
   workbook.created = new Date();
@@ -641,16 +620,13 @@ export async function exportMonthlyPaysheetsByRoleToExcel(
     totalRow.height = 24;
   }
 
-  const filename = `monthly_paysheets_role_export_${Date.now()}.xlsx`;
-  const filePath = path.join(EXPORTS_DIR, filename);
-  await workbook.xlsx.writeFile(filePath);
-  return filePath;
+  return Buffer.from(await workbook.xlsx.writeBuffer() as ArrayBuffer);
 }
 
 export async function exportPaysheetsToMonthBranchZip(
   records: MonthlyPaysheetDTO[],
   users: User[]
-): Promise<string> {
+): Promise<Buffer> {
   const userMap = new Map<string, User>();
   users.forEach((u) => userMap.set(u.codeNo, u));
 
@@ -663,9 +639,6 @@ export async function exportPaysheetsToMonthBranchZip(
     if (!monthMap.has(branch)) monthMap.set(branch, []);
     monthMap.get(branch)!.push(rec);
   }
-
-  const TEMP_DIR = path.join(process.env.TEMP_DIR || path.join(__dirname, '..', '..', 'temp'), `excel_export_${Date.now()}`);
-  fs.mkdirSync(TEMP_DIR, { recursive: true });
 
   const dataColumns = [
     { header: 'Code No',        key: 'codeNo',               width: 14 },
@@ -694,10 +667,21 @@ export async function exportPaysheetsToMonthBranchZip(
     { header: 'Net Offer',      key: 'netSalary',             width: 14 },
   ];
 
-  for (const [month, branchMap] of byMonth.entries()) {
-    const monthDir = path.join(TEMP_DIR, month);
-    fs.mkdirSync(monthDir, { recursive: true });
+  // Build the ZIP entirely in memory — one xlsx per month/branch, collected
+  // into a single archive buffer that is streamed straight to the browser.
+  const archiver = require('archiver');
+  const archive = archiver('zip', { zlib: { level: 9 } });
+  const collector = new PassThrough();
+  const chunks: Buffer[] = [];
+  collector.on('data', (chunk: Buffer) => chunks.push(chunk));
 
+  const done = new Promise<Buffer>((resolve, reject) => {
+    collector.on('end', () => resolve(Buffer.concat(chunks)));
+    archive.on('error', reject);
+  });
+  archive.pipe(collector);
+
+  for (const [month, branchMap] of byMonth.entries()) {
     for (const [branch, branchRecords] of branchMap.entries()) {
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet('Paysheets');
@@ -723,24 +707,12 @@ export async function exportPaysheetsToMonthBranchZip(
       }
 
       const branchFileName = `${branch.replace(/[^a-zA-Z0-9]/g, '_')}_${month}.xlsx`;
-      await workbook.xlsx.writeFile(path.join(monthDir, branchFileName));
+      const buffer = Buffer.from(await workbook.xlsx.writeBuffer() as ArrayBuffer);
+      archive.append(buffer, { name: `${month}/${branchFileName}` });
     }
   }
 
-  const zipPath = path.join(EXPORTS_DIR, `paysheets_by_branch_${Date.now()}.zip`);
-  const archiver = require('archiver');
-  const output = fs.createWriteStream(zipPath);
-  const archive = archiver('zip', { zlib: { level: 9 } });
-
-  return new Promise((resolve, reject) => {
-    output.on('close', () => {
-      fs.rmSync(TEMP_DIR, { recursive: true, force: true });
-      resolve(zipPath);
-    });
-    archive.on('error', reject);
-    archive.pipe(output);
-    archive.directory(TEMP_DIR, false);
-    archive.finalize();
-  });
+  archive.finalize();
+  return done;
 }
 

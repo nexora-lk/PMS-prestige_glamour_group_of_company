@@ -8,19 +8,18 @@
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import fs from 'fs';
 
 vi.mock('../services/dbStore');
 vi.mock('../services/cache');
 vi.mock('../plugins/prisma');
 
-// Mock Excel export functions to avoid real file I/O
+// Mock Excel export functions — they now return in-memory buffers (no disk I/O)
 vi.mock('../utils/excelExport', () => ({
-  exportUsersToExcel: vi.fn(async () => '/tmp/test-export-users.xlsx'),
-  exportMonthlyPaysheetsToExcel: vi.fn(async () => '/tmp/test-export-paysheets.xlsx'),
-  exportMonthlyPaysheetsByRoleToExcel: vi.fn(async () => '/tmp/test-export-role.xlsx'),
-  exportMonthlyPaysheetsByBranchToExcel: vi.fn(async () => '/tmp/test-export-branch.xlsx'),
-  exportPaysheetsToMonthBranchZip: vi.fn(async () => '/tmp/test-export-branch.zip'),
+  exportUsersToExcel: vi.fn(async () => Buffer.from('xlsx-users')),
+  exportMonthlyPaysheetsToExcel: vi.fn(async () => Buffer.from('xlsx-paysheets')),
+  exportMonthlyPaysheetsByRoleToExcel: vi.fn(async () => Buffer.from('xlsx-role')),
+  exportMonthlyPaysheetsByBranchToExcel: vi.fn(async () => Buffer.from('xlsx-branch')),
+  exportPaysheetsToMonthBranchZip: vi.fn(async () => Buffer.from('zip-branch')),
 }));
 
 import { __resetStore, __seedUser, __seedPaysheet } from '../services/dbStore';
@@ -35,18 +34,6 @@ let token: string;
 beforeAll(async () => {
   app = await buildTestApp();
   token = await getAccessToken(app);
-
-  // Create dummy xlsx files so streamFile() can fs.statSync them
-  const dummies = [
-    '/tmp/test-export-users.xlsx',
-    '/tmp/test-export-paysheets.xlsx',
-    '/tmp/test-export-role.xlsx',
-    '/tmp/test-export-branch.xlsx',
-    '/tmp/test-export-branch.zip',
-  ];
-  for (const f of dummies) {
-    if (!fs.existsSync(f)) fs.writeFileSync(f, 'dummy-content');
-  }
 });
 
 afterAll(async () => {

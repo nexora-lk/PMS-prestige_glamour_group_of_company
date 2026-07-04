@@ -117,10 +117,20 @@ describe('DotMatrixPrinting page', () => {
   it('shows error toast when loading paysheets fails', async () => {
     mockGetMonthPaysheets.mockRejectedValue(new Error('Server error'));
     renderPage();
+    // An employee must be selected before paysheets can be loaded
+    await userEvent.click(screen.getByRole('button', { name: /select employee/i }));
     await userEvent.click(screen.getByRole('button', { name: /load pay sheets/i }));
     await waitFor(() => {
       expect(showToast).toHaveBeenCalledWith('Server error', 'error');
     });
+  });
+
+  it('disables Load Pay Sheets and does not load when no employee is selected', async () => {
+    renderPage();
+    const loadBtn = screen.getByRole('button', { name: /load pay sheets/i });
+    expect(loadBtn).toBeDisabled();
+    await userEvent.click(loadBtn);
+    expect(mockGetMonthPaysheets).not.toHaveBeenCalled();
   });
 
   it('renders How It Works section', () => {

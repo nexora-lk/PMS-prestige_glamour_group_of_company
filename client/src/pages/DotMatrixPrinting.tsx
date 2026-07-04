@@ -62,6 +62,11 @@ export default function DotMatrixPrinting() {
   const handleFetchPreview = async () => {
     if (!payMonth) return showToast('Please select a period', 'error');
 
+    if (selectedCodeNos.size === 0) {
+      setPreviewPaysheets([]);
+      return showToast('Please select at least one employee', 'error');
+    }
+
     setFetching(true);
     try {
       const res = await paysheetService.getMonthPaysheets(payMonth, { limit: 10000 });
@@ -301,7 +306,7 @@ Designation : ${pad(ps.role || employee?.designation || '', 30)} Date      :    
             type="button"
             className="btn btn-primary"
             onClick={handleFetchPreview}
-            disabled={fetching}
+            disabled={fetching || selectedCodeNos.size === 0}
           >
             {fetching
               ? 'Loading...'

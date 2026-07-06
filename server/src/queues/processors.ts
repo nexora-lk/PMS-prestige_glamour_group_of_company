@@ -27,26 +27,33 @@ async function exportProcessor(job: Job<ExportJobData>): Promise<string> {
   const { type, outputPath } = job.data;
   logger.info(`[queue:excel-export] processing ${type} export`);
 
+  const fs = await import('fs');
+  const path = await import('path');
   const { dbGetAllUsers, dbGetAllPaysheets } = await import('../services/dbStore');
+  const {
+    exportUsersToExcel,
+    exportMonthlyPaysheetsToExcel,
+    exportMonthlyPaysheetsByRoleToExcel,
+    exportMonthlyPaysheetsByBranchToExcel,
+  } = await import('../utils/excelExport');
 
+  let buffer: Buffer;
   if (type === 'users') {
-    const { exportUsersToExcel } = await import('../utils/excelExport');
-    const users = await dbGetAllUsers();
-    return exportUsersToExcel(users);
+    buffer = await exportUsersToExcel(await dbGetAllUsers());
+  } else {
+    const [records, users] = await Promise.all([dbGetAllPaysheets(), dbGetAllUsers()]);
+    switch (type) {
+      case 'paysheets':        buffer = await exportMonthlyPaysheetsToExcel(records, users); break;
+      case 'paysheets-role':   buffer = await exportMonthlyPaysheetsByRoleToExcel(records, users); break;
+      case 'paysheets-branch': buffer = await exportMonthlyPaysheetsByBranchToExcel(records, users); break;
+      default: throw new Error(`Unknown export type: ${type}`);
+    }
   }
 
-  const { exportMonthlyPaysheetsToExcel,
-          exportMonthlyPaysheetsByRoleToExcel,
-          exportMonthlyPaysheetsByBranchToExcel } = await import('../utils/excelExport');
-
-  const [records, users] = await Promise.all([dbGetAllPaysheets(), dbGetAllUsers()]);
-
-  switch (type) {
-    case 'paysheets':        return exportMonthlyPaysheetsToExcel(records, users);
-    case 'paysheets-role':   return exportMonthlyPaysheetsByRoleToExcel(records, users);
-    case 'paysheets-branch': return exportMonthlyPaysheetsByBranchToExcel(records, users);
-    default: throw new Error(`Unknown export type: ${type}`);
-  }
+  // Persist to the requested path so the finished file can be fetched later.
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, buffer);
+  return outputPath;
 }
 
 // ── Bulk paysheet creation ────────────────────────────────────

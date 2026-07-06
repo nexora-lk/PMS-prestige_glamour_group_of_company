@@ -49,7 +49,7 @@ describe('AGM — 6 months, 251.5M achievement (≈100%)', () => {
   const result = calculatePaysheet({
     role: config,
     monthsOfService: 6,
-    achievementAmount: 251_500_000,
+    achievementAmount: 250_000_000,
     generalAllowance: 0,
     nopayDays: 0,
     lateHours: 0,

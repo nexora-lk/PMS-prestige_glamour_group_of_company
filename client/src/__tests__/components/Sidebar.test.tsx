@@ -46,7 +46,7 @@ describe('Sidebar — navigation links', () => {
     expect(screen.getByText('Users')).toBeInTheDocument();
     expect(screen.getByText('Payroll')).toBeInTheDocument();
     expect(screen.getByText('Monthly Paysheets')).toBeInTheDocument();
-    expect(screen.getByText('Dot Matrix Print')).toBeInTheDocument();
+    expect(screen.getByText('Print Payslips')).toBeInTheDocument();
     expect(screen.getByText('Export & Backup')).toBeInTheDocument();
   });
 

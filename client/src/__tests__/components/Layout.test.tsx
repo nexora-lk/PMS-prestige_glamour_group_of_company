@@ -79,9 +79,9 @@ describe('Layout', () => {
     expect(screen.getByTestId('header-title').textContent).toBe('Export & Backup');
   });
 
-  it('shows Dot Matrix Printing title for "/dot-matrix"', () => {
-    renderLayout('/dot-matrix');
-    expect(screen.getByTestId('header-title').textContent).toBe('Dot Matrix Printing');
+  it('shows Print Payslips title for "/print-payslips"', () => {
+    renderLayout('/print-payslips');
+    expect(screen.getByTestId('header-title').textContent).toBe('Print Payslips');
   });
 
   it('starts with sidebar expanded (collapsed=false)', () => {

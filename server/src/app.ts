@@ -19,7 +19,6 @@ import userRoutes from './modules/users/users.routes';
 import payrollRoutes from './modules/payroll/payroll.routes';
 import paysheetRoutes from './modules/payroll/paysheets.routes';
 import payslipRoutes from './modules/payslips/payslips.routes';
-import dotMatrixRoutes from './modules/payslips/dotMatrix.routes';
 import exportRoutes from './modules/payslips/export.routes';
 
 import { authMiddleware } from './modules/auth/auth.service';
@@ -70,7 +69,6 @@ app.register(async (fastify) => {
   fastify.register(payrollRoutes,   { prefix: '/payroll' });
   fastify.register(paysheetRoutes,  { prefix: '/paysheets' });
   fastify.register(payslipRoutes,   { prefix: '/payslips' });
-  fastify.register(dotMatrixRoutes, { prefix: '/dot-matrix' });
   fastify.register(exportRoutes,    { prefix: '/export' });
 }, { prefix: '/api' });
 

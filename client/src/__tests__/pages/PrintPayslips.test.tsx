@@ -1,6 +1,6 @@
 /**
- * Page: DotMatrixPrinting.tsx
- * Renders controls, employee selector, generate button, preview section
+ * Page: PrintPayslips.tsx
+ * Select employees + month, load payslips, preview, print / download PDF.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -15,9 +15,14 @@ vi.mock('../../services/userService', () => ({
 vi.mock('../../services/paysheetService', () => ({
   paysheetService: { getMonthPaysheets: vi.fn() },
 }));
-vi.mock('../../services/api', () => ({ default: { post: vi.fn(), get: vi.fn() } }));
+vi.mock('../../services/api', () => ({ default: { get: vi.fn() } }));
 vi.mock('../../components/Toast', () => ({ showToast: vi.fn() }));
-// Use correct prop name: onSelectionChange (not onChange)
+vi.mock('react-to-print', () => ({ useReactToPrint: () => vi.fn() }));
+vi.mock('../../components/PaySheet', () => ({
+  default: ({ paysheet }: { paysheet: { codeNo: string } }) => (
+    <div data-testid="paysheet">{paysheet.codeNo}</div>
+  ),
+}));
 vi.mock('../../components/EmployeeSelector', () => ({
   default: ({
     onSelectionChange,
@@ -50,30 +55,26 @@ vi.mock('../../components/EmployeeSelector', () => ({
 
 import { userService } from '../../services/userService';
 import { paysheetService } from '../../services/paysheetService';
-import api from '../../services/api';
 import { showToast } from '../../components/Toast';
-import DotMatrixPrinting from '../../pages/DotMatrixPrinting';
+import PrintPayslips from '../../pages/PrintPayslips';
 
 const mockListUsers = userService.listUsers as ReturnType<typeof vi.fn>;
 const mockGetMonthPaysheets = paysheetService.getMonthPaysheets as ReturnType<typeof vi.fn>;
 
+const paysheet = { id: 'p1', codeNo: 'E001', payMonth: '2026-04', achievedSalary: 50000 };
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockListUsers.mockResolvedValue({ users: [] });
-  mockGetMonthPaysheets.mockResolvedValue({ paysheets: [] });
+  mockGetMonthPaysheets.mockResolvedValue({ paysheets: [paysheet] });
 });
 
 function renderPage() {
-  return render(<MemoryRouter><DotMatrixPrinting /></MemoryRouter>);
+  return render(<MemoryRouter><PrintPayslips /></MemoryRouter>);
 }
 
-describe('DotMatrixPrinting page', () => {
-  it('renders EmployeeSelector', () => {
-    renderPage();
-    expect(screen.getByTestId('employee-selector')).toBeInTheDocument();
-  });
-
-  it('renders selector with correct title', () => {
+describe('PrintPayslips page', () => {
+  it('renders EmployeeSelector with correct title', () => {
     renderPage();
     expect(screen.getByTestId('selector-title').textContent).toMatch(/select employees/i);
   });
@@ -83,48 +84,37 @@ describe('DotMatrixPrinting page', () => {
     expect(screen.getByTestId('month-input')).toBeInTheDocument();
   });
 
-  it('renders Load Pay Sheets button', () => {
-    renderPage();
-    expect(screen.getByRole('button', { name: /load pay sheets/i })).toBeInTheDocument();
-  });
-
-  it('renders Dot Matrix Preview section', () => {
-    renderPage();
-    expect(screen.getByText(/dot matrix preview/i)).toBeInTheDocument();
-  });
-
-  it('renders Dot Matrix Settings section', () => {
-    renderPage();
-    expect(screen.getByText('Dot Matrix Settings')).toBeInTheDocument();
-  });
-
-  it('renders Generate button', () => {
-    renderPage();
-    expect(screen.getByRole('button', { name: /generate/i })).toBeInTheDocument();
-  });
-
-  it('shows empty state when no paysheets loaded', () => {
+  it('shows empty state before any payslip is loaded', () => {
     renderPage();
     expect(screen.getByText(/select employees and click/i)).toBeInTheDocument();
   });
 
-  it('Generate button is disabled when no paysheets are loaded', () => {
+  it('disables Load Payslips and does not load when no employee is selected', async () => {
     renderPage();
-    const generateBtn = screen.getByRole('button', { name: /generate/i });
-    expect(generateBtn).toBeDisabled();
+    const loadBtn = screen.getByRole('button', { name: /load payslips/i });
+    expect(loadBtn).toBeDisabled();
+    await userEvent.click(loadBtn);
+    expect(mockGetMonthPaysheets).not.toHaveBeenCalled();
   });
 
-  it('shows error toast when loading paysheets fails', async () => {
+  it('loads and previews payslips for the selected employee', async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /select employee/i }));
+    await userEvent.click(screen.getByRole('button', { name: /load payslips/i }));
+    await waitFor(() => {
+      expect(screen.getByTestId('paysheet')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Payslip Preview (1)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /print \/ save as pdf/i })).toBeInTheDocument();
+  });
+
+  it('shows error toast when loading payslips fails', async () => {
     mockGetMonthPaysheets.mockRejectedValue(new Error('Server error'));
     renderPage();
-    await userEvent.click(screen.getByRole('button', { name: /load pay sheets/i }));
+    await userEvent.click(screen.getByRole('button', { name: /select employee/i }));
+    await userEvent.click(screen.getByRole('button', { name: /load payslips/i }));
     await waitFor(() => {
       expect(showToast).toHaveBeenCalledWith('Server error', 'error');
     });
-  });
-
-  it('renders How It Works section', () => {
-    renderPage();
-    expect(screen.getByText('How It Works')).toBeInTheDocument();
   });
 });

@@ -1,6 +1,4 @@
 import { FastifyInstance, FastifyReply } from 'fastify';
-import path from 'path';
-import fs from 'fs';
 import archiver from 'archiver';
 import { z } from 'zod';
 import { dbGetAllUsers, dbGetAllPaysheets, dbGetPaysheetsByMonth } from '../../services/dbStore';
@@ -16,20 +14,17 @@ import {
   exportPaysheetsToMonthBranchZip,
 } from '../../utils/excelExport';
 
-function streamFile(
+function sendBuffer(
   reply: FastifyReply,
-  filePath: string,
+  buffer: Buffer,
+  filename: string,
   contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 ): FastifyReply {
-  const filename = path.basename(filePath);
-  const stat = fs.statSync(filePath);
-  const isZip = filename.endsWith('.zip');
-  const finalContentType = isZip ? 'application/zip' : contentType;
-
+  const finalContentType = filename.endsWith('.zip') ? 'application/zip' : contentType;
   reply.header('Content-Type', finalContentType);
   reply.header('Content-Disposition', `attachment; filename="${filename}"`);
-  reply.header('Content-Length', String(stat.size));
-  return reply.send(fs.createReadStream(filePath));
+  reply.header('Content-Length', String(buffer.length));
+  return reply.send(buffer);
 }
 
 export default async function exportRoutes(fastify: FastifyInstance): Promise<void> {
@@ -39,8 +34,8 @@ export default async function exportRoutes(fastify: FastifyInstance): Promise<vo
     try {
       const users = await dbGetAllUsers();
       if (users.length === 0) return reply.code(400).send({ error: 'No user data to export.' });
-      const filePath = await exportUsersToExcel(users);
-      return streamFile(reply, filePath);
+      const buffer = await exportUsersToExcel(users);
+      return sendBuffer(reply, buffer, `users_export_${Date.now()}.xlsx`);
     } catch (error) {
       console.error('Export error:', error);
       return reply.code(500).send({ error: 'Failed to export users.' });
@@ -53,8 +48,8 @@ export default async function exportRoutes(fastify: FastifyInstance): Promise<vo
       const records = await dbGetAllPaysheets();
       if (records.length === 0) return reply.code(400).send({ error: 'No monthly paysheet data to export.' });
       const users = await dbGetAllUsers();
-      const filePath = await exportMonthlyPaysheetsToExcel(records, users);
-      return streamFile(reply, filePath);
+      const buffer = await exportMonthlyPaysheetsToExcel(records, users);
+      return sendBuffer(reply, buffer, `monthly_paysheets_export_${Date.now()}.xlsx`);
     } catch (error) {
       console.error('Export error:', error);
       return reply.code(500).send({ error: 'Failed to export monthly paysheets.' });
@@ -67,8 +62,8 @@ export default async function exportRoutes(fastify: FastifyInstance): Promise<vo
       const records = await dbGetAllPaysheets();
       if (records.length === 0) return reply.code(400).send({ error: 'No monthly paysheet data to export.' });
       const users = await dbGetAllUsers();
-      const filePath = await exportMonthlyPaysheetsByRoleToExcel(records, users);
-      return streamFile(reply, filePath);
+      const buffer = await exportMonthlyPaysheetsByRoleToExcel(records, users);
+      return sendBuffer(reply, buffer, `monthly_paysheets_role_export_${Date.now()}.xlsx`);
     } catch (error) {
       console.error('Export error:', error);
       return reply.code(500).send({ error: 'Failed to export monthly paysheets by role.' });
@@ -81,8 +76,8 @@ export default async function exportRoutes(fastify: FastifyInstance): Promise<vo
       const records = await dbGetAllPaysheets();
       if (records.length === 0) return reply.code(400).send({ error: 'No monthly paysheet data to export.' });
       const users = await dbGetAllUsers();
-      const filePath = await exportPaysheetsToMonthBranchZip(records, users);
-      return streamFile(reply, filePath);
+      const buffer = await exportPaysheetsToMonthBranchZip(records, users);
+      return sendBuffer(reply, buffer, `paysheets_by_branch_${Date.now()}.zip`);
     } catch (error) {
       console.error('Export error:', error);
       return reply.code(500).send({ error: 'Failed to export monthly paysheets by branch.' });
@@ -112,11 +107,8 @@ export default async function exportRoutes(fastify: FastifyInstance): Promise<vo
         return reply.code(400).send({ error: `All paysheets for ${payMonth} have achievedSalary = 0. Cannot export.` });
       }
 
-      const tempDir = path.join(
-        process.env.TEMP_DIR || path.join(__dirname, '..', '..', '..', 'temp'),
-        `json_export_${Date.now()}`
-      );
-      fs.mkdirSync(tempDir, { recursive: true });
+      // Build one JSON entry per employee in memory — nothing is written to disk.
+      const jsonEntries: { name: string; content: string }[] = [];
 
       for (const record of filtered) {
         const user = userMap.get(record.codeNo);
@@ -164,7 +156,7 @@ export default async function exportRoutes(fastify: FastifyInstance): Promise<vo
         };
 
         const safeName = `${record.codeNo}_${employeeName.replace(/[^a-zA-Z0-9]/g, '_')}`;
-        fs.writeFileSync(path.join(tempDir, `${safeName}.json`), JSON.stringify(jsonData, null, 2), 'utf-8');
+        jsonEntries.push({ name: `${safeName}.json`, content: JSON.stringify(jsonData, null, 2) });
       }
 
       const headers: Record<string, string> = {
@@ -189,11 +181,11 @@ export default async function exportRoutes(fastify: FastifyInstance): Promise<vo
         archive.on('error', reject);
         archive.on('close', resolve);
         archive.pipe(reply.raw);
-        archive.directory(tempDir, false);
+        for (const entry of jsonEntries) {
+          archive.append(entry.content, { name: entry.name });
+        }
         archive.finalize();
       });
-
-      fs.rmSync(tempDir, { recursive: true, force: true });
     } catch (error) {
       console.error('JSON export error:', error);
       if (!reply.sent) {

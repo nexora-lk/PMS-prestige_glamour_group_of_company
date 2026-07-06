@@ -14,7 +14,7 @@ vi.mock('../pages/Users', () => ({ default: () => <div>Users</div> }));
 vi.mock('../pages/UserForm', () => ({ default: () => <div>UserForm</div> }));
 vi.mock('../pages/Payroll', () => ({ default: () => <div>Payroll</div> }));
 vi.mock('../pages/MonthlyPaysheets', () => ({ default: () => <div>MonthlyPaysheets</div> }));
-vi.mock('../pages/DotMatrixPrinting', () => ({ default: () => <div>DotMatrix</div> }));
+vi.mock('../pages/PrintPayslips', () => ({ default: () => <div>PrintPayslips</div> }));
 vi.mock('../pages/Export', () => ({ default: () => <div>Export</div> }));
 
 import { useAuth } from '../context/AuthContext';

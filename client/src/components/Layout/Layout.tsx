@@ -9,7 +9,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/users/new': { title: 'Add New User', subtitle: 'Create a new employee record' },
   '/payroll': { title: 'Payroll', subtitle: 'Generate, preview, print, and export PDF payslips' },
   '/paysheets': { title: 'Monthly Paysheets', subtitle: 'Create and manage monthly paysheets' },
-  '/dot-matrix': { title: 'Dot Matrix Printing', subtitle: 'Generate and print text payslips for dot matrix printers' },
+  '/print-payslips': { title: 'Print Payslips', subtitle: 'Preview and print payslips as PDF' },
   '/export': { title: 'Export & Backup', subtitle: 'Download data and manage backups' },
 };
 

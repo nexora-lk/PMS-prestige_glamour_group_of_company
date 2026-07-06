@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { FiBarChart2, FiUsers, FiDollarSign, FiFileText, FiGrid, FiDownload, FiLogOut, FiChevronRight, FiChevronLeft, FiX } from 'react-icons/fi';
+import { FiBarChart2, FiUsers, FiDollarSign, FiFileText, FiPrinter, FiDownload, FiLogOut, FiChevronRight, FiChevronLeft, FiX } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
@@ -18,7 +18,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
     users: <FiUsers size={20} />,
     payroll: <FiDollarSign size={20} />,
     paysheets: <FiFileText size={20} />,
-    dotmatrix: <FiGrid size={20} />,
+    printpayslips: <FiPrinter size={20} />,
     export: <FiDownload size={20} />,
     logout: <FiLogOut size={20} />,
   };
@@ -28,7 +28,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
     { path: '/users', label: 'Users', icon: 'users' },
     { path: '/payroll', label: 'Payroll', icon: 'payroll' },
     { path: '/paysheets', label: 'Monthly Paysheets', icon: 'paysheets' },
-    { path: '/dot-matrix', label: 'Dot Matrix Print', icon: 'dotmatrix' },
+    { path: '/print-payslips', label: 'Print Payslips', icon: 'printpayslips' },
     { path: '/export', label: 'Export & Backup', icon: 'export' },
   ];
 

@@ -12,7 +12,6 @@ import logger from '../utils/logger';
 
 export const Q = {
   PAYSLIPS:       'payslips',
-  DOT_MATRIX:     'dot-matrix',
   EXCEL_EXPORT:   'excel-export',
   BULK_PAYSHEETS: 'bulk-paysheets',
 } as const;
